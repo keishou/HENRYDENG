@@ -6,7 +6,7 @@
       "Answer with the enumerated output_contract only: program name + label chip + fixed reason line(s) + official source + checked date.",
       "Seed the board with all 15 rows in classifier.seed; show status and checked date once per row, and one sub-line per track with its track label and source link.",
       "Apply the freshness gate: a row gives verdicts other than 未核实 · seed_stale, and shows a join CTA, only while verified_on is within 90 days.",
-      "Before launch, open every track's official source, confirm or correct its facts, cmp and unresolved items, then set page_read = true and verified_on = the reading date. verified_on is the date shown as 核对 / Checked everywhere.",
+      "Before launch, open every track's official source, confirm or correct its facts, cmp and unresolved items, then set page_read = true, evidence = official_page_read and verified_on = the reading date. verified_on is the date shown as 核对 / Checked everywhere.",
       "Offer a share line only under share_line.offer_when, from the fixed template that ends with “推荐 · 可能获佣 / may earn a rebate”; leave {own_link} empty for the user.",
       "Put the standing disclosure in the footer of every view and directly above any share line.",
       "Keep everything bilingual: zh primary line, en secondary line in the muted tone; the four labels always appear as label_set with their en gloss.",
@@ -29,12 +29,12 @@
       "mode": "Deterministic rules run in the browser. No LLM free text, no network call on paste; the same paste, seed and date always give the same output.",
       "input": "One pasted claim, zh or en, up to 2,000 characters. URLs (/https?:\\/\\/\\S+/g) are stripped before matching and never rendered.",
       "steps": [
-        "S0 normalize: NFKC (full-width to half-width), Traditional to Simplified (OpenCC t2s), lowercase Latin, collapse whitespace.",
-        "S1 match programs: seed[].aliases are regex sources (flags iu) run on the S0 text. None → 未核实 · unknown_program. With several programs, split the paste at [。！？!?；;\\n] and at each alias occurrence; each segment belongs to the alias that opens it (text before the first alias goes to the first). S3–S6 read only that program's segments; S7 reads the whole paste and its codes attach to every verdict. Keep the first 3 programs by first alias offset.",
+        "S0 normalize: replace the full-width comma ， (U+FF0C) with 、 (U+3001); then NFKC (full-width to half-width), Traditional to Simplified (OpenCC t2s), lowercase Latin, collapse whitespace; then write spelled-out numbers as digits: Chinese numerals [零一二两三四五六七八九十]{1,3} directly before 个月|年|天|% (not after 第 or 首) or directly after 百分之 (两=2, 十二=12, 二十四=24, 四十五=45); English one–twelve, eighteen, twenty-four, thirty, sixty, ninety directly before month(s)|year(s)|day(s)|percent; then 百分之N → N%, 'N percent' / 'N per cent' → N%, 半年 → 6个月.",
+        "S1 match programs: seed[].aliases are regex sources (flags iu) run on the S0 text. None → 未核实 · unknown_program. With several programs, keep the first 3 programs by first alias offset and split the paste at each alias occurrence; each segment belongs to the program whose alias opens it (text before the first alias goes to the first); a segment opened by an alias of a program that was not kept is dropped. S3–S6 read only that program's segments; S7 reads the whole paste and its codes attach to every verdict.",
         "S2 freshness gate: stale when verified_on is null or (client UTC date − verified_on) > 90 days. Stale → 未核实 · seed_stale and stop for that program.",
         "S3 resolve track: named tracks are the row's tracks whose track_words match. Exactly one → that track. None, several, or only words for tracks this row lacks → the track with the most matched S5 facts (tie → tracks[0]).",
-        "S4 extract facts from the segment with the lexicon: extract ranges first (a rate or amount inside a range span is dropped; a range is one fact {low, high} whose high end counts as ceiling-marked); then standalone rates and amounts (ceiling-marked when a ceiling match ends within 8 characters before the number); durations (a duration within 12 characters of a cookie match is the cookie window, else the commission duration; first_year = 12 months); and every other lexicon key as a boolean. Drop a lifetime, recurring, cash, guarantee, income, affiliation, cap_denial or code_claim match when the text right before it (spaces trimmed) matches negation_before.",
-        "S5 compare, per fact, in this order: (1) a fact that satisfies a row.unresolved touches predicate emits only conflicting_official_wording; (2) otherwise test the row's misread_triggers in array order, first hit wins; (3) otherwise generic rules against the resolved track's cmp: lifetime or recurring vs duration one_time / months → duration_overstated; a commission duration longer than cmp.months → duration_overstated; cash vs reward_form credit → credit_as_cash; a flat value equal to rate_max / amount_max where *_is_ceiling → ceiling_as_floor; a value in cmp (or within its range, or a range equal to it) → matched; a value found only in another track's cmp → track_conflated; anything else → fact_mismatch.",
+        "S4 extract facts from the segment with the lexicon: extract ranges first (a rate or amount inside a range span is dropped; a range is one fact {low, high} whose high end counts as ceiling-marked); then standalone rates and amounts (ceiling-marked when a ceiling match ends within 8 characters before the number, or ceiling_after matches the text right after the number and its unit; an amount with a threshold match ending within 8 characters before it is a threshold fact, not a standalone amount; k or 千 multiplies an amount by 1,000 and 万 by 10,000); durations (each cookie match takes as the cookie window the single nearest duration within 12 characters that has no 、 ; 。 ! ? between it and the cookie word; a remaining duration whose following text matches timing_after, or whose preceding text matches timing_before, is payout timing and is skipped; any other duration is the commission duration; first_year = 12 months); and every other lexicon key as a boolean. Drop a lifetime, recurring, cash, guarantee, income, affiliation, cap_denial or code_claim match when the text right before it (spaces trimmed) matches negation_before.",
+        "S5 compare, per fact, in this order: (1) a fact that satisfies a row.unresolved touches predicate emits only conflicting_official_wording; (2) otherwise test the row's misread_triggers in array order, first hit wins; (3) otherwise generic rules against the resolved track's cmp: lifetime vs duration one_time / months, or recurring vs duration one_time → duration_overstated; recurring vs duration months → duration_overstated only when no commission duration was extracted; a commission duration or cookie window is compared only when cmp has months / cookie_days (longer than cmp.months → duration_overstated, equal → matched, otherwise fact_mismatch); cash vs reward_form credit → credit_as_cash; a flat value equal to rate_max / amount_max where *_is_ceiling, or a flat amount equal to an amount_caps entry → ceiling_as_floor; a ceiling-marked value on a track whose *_is_ceiling is true and that differs from *_max → fact_mismatch; a ceiling-marked amount equal to an amount_caps entry → matched; a threshold fact equal to cmp.threshold → matched, any other threshold fact → fact_mismatch; a value in cmp (or within its range, or a range whose ends are both published) → matched; a value found only in another track's cmp → track_conflated; anything else → fact_mismatch.",
         "S6 status short-circuit for rows whose status is not open (S3–S5 are skipped; their misread_triggers apply only if the row reopens): closed → program_closed; capped_and_geo → referral_cap + geo_excluded; geo_restricted → geo_excluded.",
         "S7 whole-paste lexicon checks: code_claim or private_rate → private_terms, and discard that program's S5 results (the numbers describe the private offer); income → income_claim; affiliation → claimed_affiliation; guarantee → guarantee_claimed.",
         "S8 label = the highest-precedence label among emitted codes. reason_codes = the emitted codes carrying that label, de-duplicated, in the key order of reason_codes. 公开规则 · rule_match only when the row is open and not stale, at least one fact matched, no fact contradicted, and nothing else fired. Nothing fired and nothing matched → 未核实 · no_checkable_fact."
@@ -84,8 +84,8 @@
         },
         "track_conflated": {
           "label": "易误解",
-          "zh": "把两个不同计划（联盟 / 客户推荐 / 合作伙伴，或中国站 / 国际站）的条款拼在了一起。",
-          "en": "Terms from two separate programs (affiliate / referral / partner, or China site / international) are mixed together."
+          "zh": "把不同计划或渠道（如联盟、客户推荐、合作伙伴计划，或中国站与国际站）的条款混在了一起。",
+          "en": "Mixes terms from different programs or channels (such as affiliate, referral and partner programs, or China-site and international terms)."
         },
         "stale_terms": {
           "label": "易误解",
@@ -154,28 +154,33 @@
         "plan_tied": "套餐(?:持续|存续|付费|有效)|持续付费|付费期间|续费期间|as long as|keeps? paying|while (?:the )?customer|of (?:the|their) plan",
         "recurring": "循环|月月[返拿分有]|每月都[返拿分有]|续费[也都]?(?:返|有|计佣|分成)|recurring|every month|each month",
         "one_time": "一次性|one[- ]time|bounty|flat fee",
-        "ceiling": "最高|高达|至多|up to|as much as",
+        "ceiling": "最高|高达|至多|最多|(?<!无|没有|不设)上限|(?<!不)封顶|up to|as much as|capped at|cap of|\\bmax(?:imum)?\\b(?: of)?",
+        "ceiling_after": "^\\s*[(（]?\\s*(?:封顶|为上限|是上限|max(?:imum)?\\b|at most|tops\\b)",
+        "threshold": "满|起付|起提|最低提现|提现门槛|门槛|超过|minimum(?: payout| balance| withdrawal)?(?: of)?|threshold(?: of)?|at least|exceeds?",
         "per_unit": "每单|每个|一单|每人|每位|每拉|per (?:sale|signup|sign-up|referral|customer|order|client)",
-        "range": "(?:[$¥€£]\\s*\\d+(?:\\.\\d+)?\\s*(?:[-–—~至到]|to)\\s*[$¥€£]?\\s*\\d+(?:\\.\\d+)?)|(?:\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|usd)?\\s*(?:[-–—~至到]|to)\\s*\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|元|usd|rmb))",
+        "range": "(?:[$¥€£]\\s*\\d+(?:\\.\\d+)?\\s*(?:[-–—~至到]|to)\\s*(?:us)?[$¥€£]?\\s*\\d+(?:\\.\\d+)?)|(?:\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|刀|usd)?\\s*(?:[-–—~至到]|to)\\s*\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|元|刀|usd|rmb|u(?![a-z.])))|(?:between\\s+(?:us)?[$¥€£]\\s*\\d+(?:\\.\\d+)?\\s*and\\s+(?:us)?[$¥€£]?\\s*\\d+(?:\\.\\d+)?)|(?:between\\s+\\d+(?:\\.\\d+)?\\s*%?\\s*and\\s+\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|元|刀|usd|rmb))",
         "rate": "(\\d+(?:\\.\\d+)?)\\s*[%％]",
-        "amount": "(?:[$¥€£]|usd|rmb|美元|美金|刀)\\s*\\d+(?:,\\d{3})*(?:\\.\\d+)?|\\d+(?:,\\d{3})*(?:\\.\\d+)?\\s*(?:美元|美金|元|刀|usd|rmb|u(?![a-z.]))",
-        "duration": "(?<![\\d.,])(\\d{1,3})\\s*-?\\s*(个月|年(?!\\d)|天|months?|years?|days?)(?![a-z])",
+        "amount": "(?:[$¥€£]|usd|rmb|美元|美金|刀)\\s*\\d+(?:,\\d{3}(?!\\d))*(?:\\.\\d+)?(?:\\s*(?:k\\b|千|万))?|\\d+(?:,\\d{3}(?!\\d))*(?:\\.\\d+)?\\s*(?:k\\b|千|万)?\\s*(?:美元|美金|元|刀|usd|rmb|dollars?\\b|bucks\\b|u(?![a-z.]))",
+        "duration": "(?<!\\d|\\d[.,])((?!(?:1[1-9]|[2-9]\\d|\\d{3})\\s*-?\\s*(?:年|years?))\\d{1,3})\\s*-?\\s*(个月|年(?!\\d)|天|months?|years?|days?)(?![a-z])",
+        "timing_after": "^\\s*(?:后|以后|之后|内|以内|after\\b|later\\b)|^[^、;。!?]{0,8}?(?:待定|生效|到账|审核|结算|冻结|考核|锁定|发放|pending|hold|period|approval|qualif|validat|lock)",
+        "timing_before": "(?:after|within)\\s*$",
         "first_year": "首年|第一年|first year|year[- ]one",
-        "cookie": "cookie|归因|关联期|referral window|attribution",
+        "cookie": "cookie|归因|关联期|追踪期|跟踪期|追踪窗口|referral window|attribution|tracking (?:window|period)|click window",
         "trial": "试用|trial",
         "friend_gets": "(?:好友|朋友|对方|被推荐人|被邀请人|被推荐的公司)(?:也|还|可|能|会)*(?:拿|得|获|领|送|返|有)|\\b(?:friend|referee|invitee)s?\\s+(?:also\\s+)?(?:gets?|receives?|earns?)",
         "cash": "现金|打到(?:银行)?卡|提现|\\bcash\\b(?!\\s?back)|withdraw",
         "credit": "抵扣|积分|代金券|\\bcredits?\\b|coupon|voucher|airmoney",
         "signup_pays": "注册就(?:算|有|拿|给)|注册即(?:返|得|算)|every sign-?up|each sign-?up|per sign-?up",
-        "instant": "秒到|立即到账|马上(?:到账|能卖|有)|当月到账|immediately|instant(?:ly)?|right away|from day one",
+        "instant": "秒到|立即到账|马上(?:到账|能卖|有)|当月到账|(?:paid|pays?|payouts?|payments?|commissions?|starts?|begins?|kicks? in|arrives?)\\s+(?:out\\s+)?(?:instantly|immediately|right away)|instant\\s+(?:pay(?:outs?|ments?)?|commissions?|cash(?:out)?|withdrawals?)|from day one",
         "stack": "叠加|双份|两份|同时拿|\\bstack(?:s|ed|ing)?\\b|on top of",
         "cap_denial": "上不封顶|不封顶|无上限|不设上限|没有上限|不限(?:人数|名额|次数|数量)|无限(?:推荐|邀请|拉人)|unlimited\\s+(?:referrals?|invites?|rewards?|earnings?)|\\bno\\s+(?:referral\\s+)?(?:limit|cap)\\b|uncapped",
-        "code_claim": "内部码|创始人码|专属码|领取码|私信(?:我|本人)?(?:领取|领|拿|要|获取)|founder code|internal code|secret code|exclusive code|dm me (?:for|to get) (?:the |my |an? )?(?:code|link|rate|invite)",
+        "code_claim": "内部码|创始人码|专属码|领取码|私信(?:我|本人)?(?:领取|领|拿|要|获取)(?!取?\\s*(?:链接|link))|founder code|internal code|secret code|exclusive code|dm me (?:for|to get) (?:the |my |an? )?(?:code|rate|invite)",
         "private_rate": "内部价|内部渠道|特批|私下|私域价|vip ?(?:rate|tier)|negotiated|special tier|private rate",
-        "income": "(?:月|日)入(?=\\s*[\\d一二两三四五六七八九十百千万过破上])|收入截图|战绩|躺[赚]|被动收入|\\bi (?:made|earned) (?:\\$|usd ?)?\\d|per month income|passive income|screenshot",
+        "income": "(?:月|日)入(?=\\s*[\\d一二两三四五六七八九十百千万过破上])|收入截图|战绩|躺[赚]|被动收入|\\bi (?:made|earned) (?:\\$|usd ?)?\\d|per month income|passive income|(?:earnings?|income|payouts?|commissions?|revenue)\\s+screenshots?|screenshots?\\s+of\\s+(?:my\\s+)?(?:earnings?|income|payouts?|commissions?|dashboard)",
         "guarantee": "稳[赚]|保赚|包赚|必赚|年入百[万]|guaranteed|risk[- ]free|sure thing",
         "affiliation": "官方合[作](?!伙伴(?:计划|项目))|官方授权|官方指定|official partner(?!s?\\s+program)|authorized by|endorsed by",
-        "negation_before": "(?:不是|并非|并不|非|没有|无|不|别)$|(?:^|[^a-z])(?:not|no|never|isn't|aren't|without|non-?)$"
+        "negation_before": "(?:不是|并非|并不|非|没有|无|不|别|不能|不可以?|无法|不得|不会)$|(?:^|[^a-z])(?:not|no|never|nothing|isn['’]t|aren['’]t|can['’]t|cannot|won['’]t|don['’]t|doesn['’]t|without|non-?)(?:\\s+(?:be|is|are|a|an))?(?:\\s+(?:withdrawn|redeemed|exchanged|converted|paid out)\\s+(?:as|for|into))?$",
+        "exclusion_stated": "不计佣|不计入|不算|不能|不可|不另|不再|不适用|不包括|不含|除外|排除|没有佣金|no longer|not (?:eligible|count|counted|paid|commissionable|the same)|(?:don't|doesn't|do not|does not) (?:count|pay|earn|qualify|apply)|earns? nothing|excluded|isn't|is not|pays? (?:\\$\\s*)?0\\b|零佣金"
       },
       "track_words": {
         "affiliate": "联盟|\\baffiliates?\\b",
@@ -204,18 +209,21 @@
         "rate_gt / amount_lt": "some standalone rate is greater / amount is smaller than the value",
         "amount_between": "some standalone amount lies strictly between the two values",
         "amount_in": "some standalone amount equals one of the values",
-        "cookie_days": "the extracted cookie window equals the value (days)"
+        "cookie_days (in touches)": "also matches when the value is extracted as a cookie/association window",
+        "cookie_days": "the extracted cookie window equals the value (days)",
+        "months": "the extracted commission duration equals the value (months)"
       },
       "cmp_grammar": {
         "_note": "Per-track comparator. null on rows whose status is not open (S6 short-circuits them).",
-        "rates / amounts": "published values; a range endpoint counts as published",
+        "rates / amounts": "published per-sale values; a range endpoint counts as published",
         "rate_range / amount_range": "published range [low, high]",
         "rate_max / amount_max + *_is_ceiling": "the published figure is a ceiling ('up to') or top tier",
         "duration": "one_time | months | per_sale | one_time+plan_lifetime | months+conditional",
         "months": "commission duration in months when duration includes months",
         "cookie_days": "click/association window in days",
         "reward_form": "cash | credit",
-        "has_caps": "the track publishes monetary caps"
+        "amount_caps": "published caps (per order, per customer or per period): a flat amount equal to one → ceiling_as_floor, a ceiling-marked one → matched",
+        "threshold": "published minimum (payout balance or qualifying order); compared only with threshold facts"
       },
       "output_contract": {
         "fields": [
@@ -242,7 +250,7 @@
           "zh": "{program_zh}（公开计划）· 官方条款：{official_url}（{as_of} 核对）· 我的推荐链接：{own_link} ｜ 推荐 · 可能获佣 / may earn a rebate",
           "en": "{program_en} (public program) · official terms: {official_url} (checked {as_of}) · my referral link: {own_link} | 推荐 · 可能获佣 / may earn a rebate"
         },
-        "slots": "{official_url} = the resolved track's source; {as_of} = row.verified_on. {own_link} is typed by the user and starts empty: exactly one http(s) URL, no whitespace, up to 300 characters. Any other input shows 请填写你自己的链接 / Enter your own link and the copy button stays disabled. The instrument never pre-fills, suggests, shortens or rewrites it, and never inserts a code.",
+        "slots": "{program_zh} / {program_en} = row.name.zh / row.name.en; {official_url} = the resolved track's source; {as_of} = row.verified_on. {own_link} is typed by the user and starts empty: exactly one http(s) URL, no whitespace, up to 300 characters. Any other input shows 请填写你自己的链接 / Enter your own link and the copy button stays disabled. The instrument never pre-fills, suggests, shortens or rewrites it, and never inserts a code.",
         "region": "The share line renders in [data-region=\"share\"], outside the verdict; its date carries data-field=\"as_of\"."
       },
       "board": {
@@ -320,9 +328,9 @@
           "geo_restricted": "限地区 Geo-limited",
           "stale": "待核对 Unconfirmed"
         },
-        "stale_rendering": "A row whose verified_on is null or older than 90 days (same clock as S2) shows the 待核对 Unconfirmed chip in place of its status, no data-cta element, and the muted marker 待核对官方原页 / Not yet checked against the official page."
+        "stale_rendering": "A row whose verified_on is null or older than 90 days (same clock as S2) shows the 待核对 Unconfirmed chip in place of its status and no data-cta element. With verified_on null it shows the muted marker 待核对官方原页 / Not yet checked against the official page; with an older date it keeps that checked date and shows the muted marker 复核已过期 / Last check has expired."
       },
-      "seed_policy": "facts are for people; cmp, match and touches are what S5 reads. Nothing in facts or cmp is rendered. Every row starts as evidence = search_index_extract, page_read = false, verified_on = null: official vendor domains were unreachable from the drafting environment, so every fact comes from search-engine extracts of official pages dated extracted_on.",
+      "seed_policy": "facts are for people; cmp, match and touches are what S5 reads. Nothing in facts or cmp is rendered. Every row starts as evidence = search_index_extract, page_read = false, verified_on = null: official vendor domains were unreachable from the drafting environment, so every fact comes from search-engine extracts of official pages dated extracted_on. evidence is search_index_extract or official_page_read.",
       "seed": [
         {
           "id": "deel",
@@ -393,6 +401,21 @@
                 "lex_all": [
                   "friend_gets",
                   "cash"
+                ],
+                "lex_none": [
+                  "credit"
+                ]
+              }
+            },
+            {
+              "reason": "reward_misattributed",
+              "when": "presents the referred business's USD 500 Prepaid Billing Credits as the referrer's reward",
+              "match": {
+                "amount": 500,
+                "re": "客户推荐|customer referral|refer a (?:business|company)",
+                "lex_none": [
+                  "credit",
+                  "friend_gets"
                 ]
               }
             },
@@ -470,6 +493,7 @@
                 ],
                 "amount_max": 1000,
                 "amount_is_ceiling": true,
+                "threshold": 10,
                 "reward_form": "cash"
               }
             },
@@ -520,7 +544,10 @@
               "reason": "conditions_omitted",
               "when": "claims upgrades earn extra commission",
               "match": {
-                "re": "升级|upgrade"
+                "re": "升级|upgrade",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             }
           ],
@@ -535,6 +562,19 @@
               "text": "third tier name and terms unconfirmed",
               "touches": {
                 "re": "elite|第三档|第三级"
+              }
+            },
+            {
+              "text": "June 2023 relaunch welcome bonus of up to USD 80 in the first 30 days; 2026 availability unconfirmed",
+              "touches": {
+                "amount": 80,
+                "months": 1
+              }
+            },
+            {
+              "text": "June 2023 relaunch welcome bonus of up to USD 80 in the first 30 days; 2026 availability unconfirmed",
+              "touches": {
+                "amount": 80
               }
             }
           ],
@@ -574,6 +614,7 @@
                 "amount_is_ceiling": true,
                 "duration": "one_time",
                 "cookie_days": 30,
+                "threshold": 10,
                 "reward_form": "cash"
               }
             },
@@ -621,7 +662,10 @@
               "reason": "track_conflated",
               "when": "treats Shopify Collabs as the affiliate program",
               "match": {
-                "re": "collabs"
+                "re": "collabs",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             },
             {
@@ -747,6 +791,9 @@
               "match": {
                 "lex": [
                   "instant"
+                ],
+                "lex_none": [
+                  "exclusion_stated"
                 ]
               }
             },
@@ -754,7 +801,20 @@
               "reason": "stale_terms",
               "when": "claims new Application/Database Hosting referrals pay",
               "match": {
-                "re": "application hosting|database hosting|应用托管|数据库托管"
+                "re": "application hosting|database hosting|应用托管|数据库托管",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
+              }
+            },
+            {
+              "reason": "credit_as_cash",
+              "when": "calls the customer Referral Program's account credit cash (e.g. '$50 cash per friend')",
+              "match": {
+                "lex": [
+                  "cash"
+                ],
+                "re": "^(?![\\s\\S]*(?:affiliate|联盟))[\\s\\S]*(?:referral|refer a friend|friend|好友|朋友|推荐)"
               }
             }
           ],
@@ -765,6 +825,18 @@
                 "amount_between": [
                   50,
                   500
+                ]
+              }
+            },
+            {
+              "text": "customer-referral credit amount inconsistent in extracts (USD 10 after 5 days vs USD 50)",
+              "touches": {
+                "amount_in": [
+                  10,
+                  50
+                ],
+                "lex": [
+                  "credit"
                 ]
               }
             }
@@ -805,9 +877,7 @@
                 "duration": "months",
                 "months": 12,
                 "cookie_days": 90,
-                "amounts": [
-                  200
-                ],
+                "threshold": 200,
                 "reward_form": "cash"
               }
             },
@@ -849,17 +919,10 @@
               }
             },
             {
-              "reason": "stale_terms",
-              "when": "cites a 60-day cookie or FirstPromoter/Contra payouts as current",
+              "reason": "fact_mismatch",
+              "when": "cites FirstPromoter/Contra payouts as current (official T&C: Dub/Stripe; the earlier setup and any 60-day cookie are known only from third-party posts, and a 60-day cookie already fails the cookie comparison)",
               "match": {
                 "re": "firstpromoter|contra\\b"
-              }
-            },
-            {
-              "reason": "stale_terms",
-              "when": "cites a 60-day cookie",
-              "match": {
-                "cookie_days": 60
               }
             }
           ],
@@ -886,7 +949,7 @@
           "aliases": [
             "convertkit",
             "\\bkit\\.com\\b",
-            "(?<!(?:starter|press|media|tool|survival|aid|drum|model|repair|test|dev|sdk|ui|design|brand|creator|content|marketing|launch|resource)[\\s-])\\bkit\\s*(?:affiliate|联盟)"
+            "(?<!(?:starter|press|media|tool|survival|aid|drum|model|repair|test|dev|sdk|ui|design|brand|creator|content|marketing|launch|resource|first)[\\s-])\\bkit\\b(?=[^。！？!?；;\\n]{0,40}(?:affiliate|联盟|佣金|返佣|commission|partnerstack|bronze|silver|gold|等级))"
           ],
           "status": "open",
           "join_cta": "https://kit.com/affiliate",
@@ -916,9 +979,7 @@
                 "duration": "months+conditional",
                 "months": 12,
                 "cookie_days": 90,
-                "amounts": [
-                  5
-                ],
+                "threshold": 5,
                 "reward_form": "cash"
               }
             }
@@ -938,7 +999,8 @@
                 "rate": 50,
                 "lex": [
                   "lifetime"
-                ]
+                ],
+                "re": "^(?![\\s\\S]*(?:等级|级别|status|tier|bronze|silver|gold|10\\s*[-–—~至到]\\s*20))"
               }
             },
             {
@@ -953,22 +1015,42 @@
               "reason": "track_conflated",
               "when": "treats Paid Recommendations / Creator Network as the affiliate program",
               "match": {
-                "re": "paid recommendations?|creator network|付费推荐"
+                "re": "paid recommendations?|creator network|付费推荐",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             },
             {
               "reason": "conditions_omitted",
               "when": "claims pre-2024 referrals earn the post-12-month share, or counts PPC referrals toward status",
               "match": {
-                "re": "以前推荐|老推荐|before 2024|2023|\\bppc\\b|竞价|广告"
+                "re": "以前推荐|老推荐|before 2024|2023|\\bppc\\b|竞价|广告",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             }
           ],
           "unresolved": [
             {
-              "text": "Silver/Gold thresholds and the Bronze rate confirmed only by third parties",
+              "text": "Silver = 15% and the Silver/Gold thresholds confirmed only by third parties",
               "touches": {
                 "rate": 15
+              }
+            },
+            {
+              "text": "Gold = 20% confirmed only by third parties",
+              "touches": {
+                "re": "gold|金牌",
+                "rate": 20
+              }
+            },
+            {
+              "text": "Bronze = 10% confirmed only by third parties",
+              "touches": {
+                "re": "bronze|铜牌",
+                "rate": 10
               }
             }
           ],
@@ -1009,9 +1091,7 @@
                 ],
                 "duration": "months",
                 "months": 12,
-                "amounts": [
-                  5
-                ],
+                "threshold": 5,
                 "reward_form": "cash"
               }
             }
@@ -1040,7 +1120,10 @@
               "reason": "track_conflated",
               "when": "applies 22% to enterprise deals, Voice Library payouts or the Creator Partner Program",
               "match": {
-                "re": "enterprise|企业版|voice library|声音库|creator partner"
+                "re": "enterprise|企业版|voice library|声音库|creator partner",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             }
           ],
@@ -1106,11 +1189,22 @@
               }
             },
             {
+              "reason": "duration_overstated",
+              "when": "claims the one-month 85% is paid over several months or years",
+              "match": {
+                "rate": 85,
+                "re": "(?:for|持续|连续|共|拿|返)\\s*\\d{1,3}\\s*(?:个月|months?|年|years?)"
+              }
+            },
+            {
               "reason": "conditions_omitted",
               "when": "applies 85% to annual prepaid plans",
               "match": {
                 "rate": 85,
-                "re": "年付|一次付清|annual prepaid|paid upfront|prepaid"
+                "re": "^(?![\\s\\S]*8\\.33\\s*%)[\\s\\S]*(?:年付|一次付清|annual prepaid|paid upfront|prepaid)",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             },
             {
@@ -1119,6 +1213,9 @@
               "match": {
                 "lex": [
                   "trial"
+                ],
+                "lex_none": [
+                  "exclusion_stated"
                 ]
               }
             },
@@ -1206,7 +1303,10 @@
               "reason": "conditions_omitted",
               "when": "claims commission on degree purchases",
               "match": {
-                "re": "学位|\\bmba\\b|degree"
+                "re": "学位|\\bmba\\b|degree",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             }
           ],
@@ -1278,6 +1378,9 @@
               "match": {
                 "lex": [
                   "stack"
+                ],
+                "lex_none": [
+                  "exclusion_stated"
                 ]
               }
             },
@@ -1285,7 +1388,10 @@
               "reason": "conditions_omitted",
               "when": "claims existing users can use a referral code",
               "match": {
-                "re": "老用户|老客户|existing (?:user|customer)"
+                "re": "老用户|老客户|existing (?:user|customer)",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             },
             {
@@ -1293,6 +1399,14 @@
               "when": "presents a past referral contest as a standing reward",
               "match": {
                 "re": "大赛|contest|quest"
+              }
+            },
+            {
+              "reason": "track_conflated",
+              "when": "presents 10% as the friend-referral reward, or confuses it with Loyalty Program Airmoney cashback (the referral reward is a flat USD 3 credit)",
+              "match": {
+                "rate": 10,
+                "re": "^(?![\\s\\S]*(?:affiliate|联盟|impact))[\\s\\S]*(?:推荐|邀请|refer|friend|好友|朋友|返现|cashback|会员|loyalty)"
               }
             }
           ],
@@ -1308,6 +1422,22 @@
               "touches": {
                 "lex": [
                   "cookie"
+                ]
+              }
+            },
+            {
+              "text": "official pages neither state nor rule out commission on top-ups, repeat purchases or for the customer's lifetime",
+              "touches": {
+                "rate": 10,
+                "re": "充值|复购|top-?ups?|repeat"
+              }
+            },
+            {
+              "text": "official pages neither state nor rule out commission on top-ups, repeat purchases or for the customer's lifetime",
+              "touches": {
+                "lex": [
+                  "lifetime",
+                  "recurring"
                 ]
               }
             }
@@ -1326,7 +1456,7 @@
           },
           "aliases": [
             "阿里云",
-            "(?<!腾讯)云大使",
+            "(?<!腾讯\\s*)云大使",
             "\\baliyun\\b",
             "alibaba\\s?cloud"
           ],
@@ -1358,25 +1488,26 @@
                 "rate_is_ceiling": true,
                 "duration": "one_time",
                 "cookie_days": 90,
-                "amounts": [
+                "amount_caps": [
                   200000
                 ],
-                "reward_form": "cash",
-                "has_caps": true
+                "reward_form": "cash"
               }
             },
             {
               "track": "international_affiliate",
               "source": "https://www.alibabacloud.com/affiliate",
               "facts": {
-                "payout": "Affiliate via Rakuten/Admitad; cap USD 1,000 per publisher per month (incl. platform fee); auto-renewals and some order types excluded"
+                "payout": "Affiliate via Rakuten/Admitad; cap USD 1,000 per publisher per month (incl. platform fee); auto-renewals and some order types excluded; quarterly referral bonus: extra 5% on new users' revenue"
               },
               "cmp": {
-                "amounts": [
+                "rates": [
+                  5
+                ],
+                "amount_caps": [
                   1000
                 ],
-                "reward_form": "cash",
-                "has_caps": true
+                "reward_form": "cash"
               }
             },
             {
@@ -1393,13 +1524,14 @@
                 ],
                 "amounts": [
                   10,
+                  5
+                ],
+                "amount_caps": [
                   30,
-                  5,
                   80
                 ],
                 "duration": "one_time",
-                "reward_form": "cash",
-                "has_caps": true
+                "reward_form": "cash"
               }
             },
             {
@@ -1449,13 +1581,27 @@
                   "cap_denial"
                 ]
               }
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "applies the international Ambassador's USD 10 + 50% to every order (it covers only a first order within 30 days of sign-up)",
+              "match": {
+                "rate": 50,
+                "re": "every order|each order|all orders|每单|每笔|所有订单|每个订单"
+              }
             }
           ],
           "unresolved": [
             {
               "text": "whether LLM/Agent purchases still extend association to 365 days (extracts conflict)",
               "touches": {
-                "re": "365|一年内"
+                "cookie_days": 365
+              }
+            },
+            {
+              "text": "whether LLM/Agent purchases still extend association to 365 days (extracts conflict)",
+              "touches": {
+                "re": "365|(?:1|一)\\s*年内"
               }
             },
             {
@@ -1478,9 +1624,11 @@
             "en": "Tencent Cloud Promoter (China-site CPS) / International"
           },
           "aliases": [
-            "腾讯云",
+            "腾讯\\s*云",
             "tencent\\s?cloud",
-            "云推官"
+            "云推官",
+            "\\btencent\\s?rtc\\b",
+            "\\btrtc\\b"
           ],
           "status": "open",
           "join_cta": "https://cloud.tencent.com/act/partner/cps",
@@ -1508,8 +1656,7 @@
                 "rate_is_ceiling": true,
                 "duration": "one_time",
                 "cookie_days": 30,
-                "reward_form": "cash",
-                "has_caps": true
+                "reward_form": "cash"
               }
             },
             {
@@ -1522,13 +1669,12 @@
                 "rates": [
                   30
                 ],
-                "amounts": [
+                "amount_caps": [
                   1500,
                   7500
                 ],
                 "duration": "one_time",
-                "reward_form": "cash",
-                "has_caps": true
+                "reward_form": "cash"
               }
             },
             {
@@ -1538,9 +1684,7 @@
                 "payout": "tencentcloud.com Invite & Earn (effective 2026-02-28): credits, not cash; invitee's first paid order must exceed USD 10"
               },
               "cmp": {
-                "amounts": [
-                  10
-                ],
+                "threshold": 10,
                 "reward_form": "credit"
               }
             },
@@ -1569,7 +1713,8 @@
               "when": "claims 35% on every order",
               "match": {
                 "rate": 35,
-                "flat": true
+                "flat": true,
+                "re": "^(?![\\s\\S]*(?:国际站|international|tencentcloud))"
               }
             },
             {
@@ -1592,7 +1737,10 @@
               "reason": "conditions_omitted",
               "when": "claims companies or agents can be promoters",
               "match": {
-                "re": "公司账号|企业账号|代理商|company account|business account"
+                "re": "公司账号|企业账号|代理商|company account|business account",
+                "lex_none": [
+                  "exclusion_stated"
+                ]
               }
             },
             {
@@ -1607,13 +1755,19 @@
           ],
           "unresolved": [
             {
-              "text": "2026 validity of the RMB 5,000 / 50,000 / 80,000 caps and the 20% base not confirmed",
+              "text": "2026 validity of the RMB 5,000 / 50,000 / 80,000 caps not confirmed",
               "touches": {
                 "amount_in": [
                   5000,
                   50000,
                   80000
                 ]
+              }
+            },
+            {
+              "text": "2026 validity of the 20% base not confirmed",
+              "touches": {
+                "rate": 20
               }
             },
             {
@@ -1639,7 +1793,7 @@
             "en": "Binance Referral Fee-share"
           },
           "aliases": [
-            "binance(?!\\.us\\b|\\s+us\\b)",
+            "binance(?!\\.us\\b|\\s+us\\b|\\s+u\\.s\\.)",
             "币安(?!美国)"
           ],
           "status": "geo_restricted",
@@ -1730,7 +1884,7 @@
             "en": "Notion Affiliate"
           },
           "aliases": [
-            "\\bnotion\\b(?!\\s+(?:that|of)\\b)"
+            "\\bnotion\\b(?!\\s+(?:that|of|to)\\b)"
           ],
           "status": "closed",
           "join_cta": null,
@@ -1951,8 +2105,8 @@
   ],
   "copy": {
     "empty": {
-      "zh": "粘贴一条推荐或返佣说法。说法涉及的每个项目各得一个标签：公开规则、易误解、未核实或关门反例，并附官方来源和核对日期。不估算收益，不提供推荐码。",
-      "en": "Paste one referral or commission claim. Each program it names gets one label (Matches public rule, Commonly misread, Unverified, or Closed / capped / geo-limited), with the official source and the date it was checked. No earnings estimates, no codes."
+      "zh": "粘贴一条推荐或返佣说法。说法中涉及的已收录项目（最多三个）各得一个标签：公开规则、易误解、未核实或关门反例，并附官方来源和核对日期；若未涉及任何已收录项目，则标为未核实。不估算收益，不提供推荐码。",
+      "en": "Paste one referral or commission claim. Up to three programs on our board that it names each get one label (Matches public rule, Commonly misread, Unverified, or Closed / capped / geo-limited), with the official source and the date it was checked; if it names none of them, it is marked Unverified. No earnings estimates, no codes."
     },
     "standing_disclosure": {
       "zh": "独立站点，非 gravity.li；与所列任何公司均无隶属、授权或背书关系。标签依据本站对各项目官方公开页面的整理，逐条注明核对日期；条款可能随时变更，一切以官方页面为准。本站不计算、不预测、不承诺任何收益，也不生成或提供推荐码。本站列出的官方页链接均为原始链接，不含推荐参数，本站不从中获佣。分享文案中的链接由分享者自行填写，文案固定标注「推荐 · 可能获佣 / may earn a rebate」，指分享者可能获得佣金。收录某个项目不代表推荐其产品或服务，也不代表其在你所在地区可用或合规。仅供参考，不构成投资、法律或税务建议。",
@@ -1962,8 +2116,8 @@
   "dont_repeat": [
     {
       "id": "R1",
-      "zh": "把有期限的分成说成终身：HubSpot、Framer、ElevenLabs 公布的比例分成最长 12 个月；Kit 的 50% 只限前 12 个月，之后仅在保持联盟等级期间按较低比例计算；Kinsta 的“终身”只指该客户套餐持续付费的期间。",
-      "en": "Calling time-limited commission lifetime: HubSpot, Framer and ElevenLabs publish a limit of 12 months; Kit's 50% lasts 12 months, then a lower rate applies only while the affiliate keeps a status tier; Kinsta's “lifetime” lasts only while the customer's plan is paid."
+      "zh": "把有期限的分成说成终身：HubSpot 联盟、Framer 联盟和 ElevenLabs 联盟公布的比例分成最长 12 个月（HubSpot 解决方案合作伙伴计划为 3 年）；Kit 的 50% 只限前 12 个月，之后仅在保持联盟等级期间按较低比例计算；Kinsta 的“终身”只指该客户套餐持续付费的期间。",
+      "en": "Calling time-limited commission lifetime: the HubSpot, Framer and ElevenLabs affiliate programs pay their percentage for at most 12 months (HubSpot's Solutions Partner Program: 3 years); Kit's 50% lasts 12 months, then a lower rate applies only while the affiliate keeps a status tier; Kinsta's “lifetime” lasts only while the customer's plan is paid."
     },
     {
       "id": "R2",
@@ -2002,6 +2156,6 @@
     }
   ],
   "open_questions": [
-    "开放行的「官方页」按钮保持官方原始链接（默认，本站不从中获佣），还是换成本站自己的推荐链接？若换，需要改写 dont 第 2 条、验收 A4 和常设声明中「不含推荐参数、不从中获佣」的表述，每行加注「推荐 · 可能获佣 / may earn a rebate」，并逐项确认条款允许在本站放置推荐链接（例如 Framer、ElevenLabs 禁止品牌词竞价和付费广告）。"
+    "开放行的「官方页」按钮保持官方原始链接（默认，本站不从中获佣），还是换成本站自己的推荐链接？若换，需要改写 dont 第 2 条、验收 A4、board.row_cta 的「no query params」、copy.empty 的「不提供推荐码」，以及常设声明中「不含推荐参数，本站不从中获佣」和「不生成或提供推荐码」的表述，每行加注「推荐 · 可能获佣 / may earn a rebate」，并逐项确认条款允许在本站放置推荐链接（例如 Framer、ElevenLabs 禁止品牌词竞价和付费广告）。"
   ]
 }
