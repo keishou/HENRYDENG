@@ -1,0 +1,1249 @@
+{
+  "compose_claim_shredder": {
+    "problem": "Viral posts about referral and affiliate commissions stretch time-limited rates into “lifetime”, turn “up to” into a per-sale figure, pass off a friend's reward or platform credit as the referrer's cash, splice separate programs or regions together, reuse superseded terms, and keep promoting programs that are closed, capped or geo-excluded. Readers can't check this quickly. Claim Shredder takes one pasted claim and returns one of four labels, tied to a dated official source, with no earnings math and no codes.",
+    "do": [
+      "Ship one screen: paste box → verdict panel → program board, in that order; no hero, no marketing sections.",
+      "Answer with the enumerated output_contract only: label chip + fixed reason line(s) + official source + checked date.",
+      "Seed the board with all 15 rows in classifier.seed; show track, status, source and checked date on every row.",
+      "Apply the freshness gate: a row can emit 公开规则 / 易误解 / 关门反例 only after a person has read its official page (page_read = true) within 90 days.",
+      "Before launch, open every row's official source, confirm or correct its track facts and unresolved items, then set page_read = true and verified_on.",
+      "Offer a share line only under share_line.offer_when, from the fixed template that ends with “推荐 · 可能获佣 / may earn a rebate”; leave {own_link} empty for the user.",
+      "Put the standing disclosure in the footer of every view and directly above any share line.",
+      "Keep everything bilingual: zh primary line, en secondary line in the muted tone; the four labels always appear as label_set with their en gloss.",
+      "Look: calm institutional dark board. Tokens: bg #0B0E12, surface #10151B, hairline #1F2630, text #DCE1E8, muted #8C96A4. Outline label chips: 公开规则 #7FAF95, 易误解 #C8A45E, 未核实 #8C96A4, 关门反例 #B97474. Type: IBM Plex Sans + Noto Sans SC, 15/24, tabular numerals for dates.",
+      "Board becomes stacked cards below 640px; 16px side gutter; motion limited to a 150ms opacity fade and off under prefers-reduced-motion.",
+      "Process pastes in the browser only; analytics, if any, count labels and reason codes, never paste text."
+    ],
+    "dont": [
+      "No personal take-rate, earnings estimate, calculator or 「你能拿 xx%」 / “you'll earn X” phrasing anywhere.",
+      "Never generate, complete, echo or store a referral, invite or founder code; never add ref / via / code parameters to any link.",
+      "No join CTA, apply button or referral link on a row whose status is not open (closed, capped, geo-limited).",
+      "Don't quote or restate numbers from the paste in the verdict.",
+      "No hype vocabulary (see acceptance A1) and no urgency or scarcity UI: countdowns, “spots left”, confetti, glow, gradients, emoji.",
+      "Don't present a row as verified while page_read = false, and never hide its checked date.",
+      "Don't use the gravity.li domain, GRAVITY branding or any vendor's logo or trademark styling; don't imply endorsement.",
+      "Don't let a single keyword decide a label across programs; always compare against the matched row and track.",
+      "Don't go beyond 未核实 · unknown_program for programs outside the seed."
+    ],
+    "classifier": {
+      "mode": "Deterministic rules run in the browser. No LLM free text, no server call on paste; the same paste always yields the same output.",
+      "input": "One pasted claim, zh or en, up to 2,000 characters. Pasted URLs are stripped before matching and never rendered.",
+      "steps": [
+        "S0 normalize: NFKC (full-width to half-width), Traditional to Simplified (OpenCC t2s), lowercase Latin, collapse whitespace.",
+        "S1 match program: aliases in seed[].aliases. None → 未核实 · unknown_program. Several → one verdict per program (max 3).",
+        "S2 freshness gate: the row needs page_read = true AND verified_on within 90 days; otherwise 未核实 · seed_stale and stop.",
+        "S3 resolve track: track words (联盟/affiliate, 推荐好友/referral, 合作伙伴/partner, agency, 国内站/国际站) select the track; none named → compare against every track of the row.",
+        "S4 extract claim facts with lexicon: rate, amount, duration, recurring vs one-time, ceiling words, cookie, recipient (referrer vs friend), reward form (cash vs credit), cap denial, region, join-now framing.",
+        "S5 compare each fact with the resolved track's facts. A contradiction that matches one of the row's misread_triggers (or a generic reason code) emits that reason code. A fact that only matches a different track emits track_conflated. A fact touching row.unresolved emits conflicting_official_wording.",
+        "S6 status checks when row.status ≠ open: closed + join-now or earning-now framing → program_closed; capped + cap denial → referral_cap; geo-limited + worldwide framing or an excluded region/account type → geo_excluded.",
+        "S7 lexicon checks on the whole paste: code_claim / private_rate → private_terms; income → income_claim; affiliation → claimed_affiliation; guarantee → guarantee_claimed.",
+        "S8 pick the label: highest precedence among emitted reason codes. 公开规则 only when at least one fact matched and nothing else fired. Nothing fired and nothing matched → 未核实 · no_checkable_fact."
+      ],
+      "precedence": [
+        "关门反例",
+        "易误解",
+        "未核实",
+        "公开规则"
+      ],
+      "per_row_not_global": "Judge every keyword against the matched row. “Lifetime” recurring is the published rule for Kinsta, so it is 公开规则 there; the same wording is 易误解 for HubSpot, Kit, Framer and ElevenLabs.",
+      "reason_codes": {
+        "rule_match": {
+          "label": "公开规则",
+          "zh": "与官方公开规则摘要一致。",
+          "en": "Consistent with the official public rule summary."
+        },
+        "duration_overstated": {
+          "label": "易误解",
+          "zh": "官方条款写明是一次性或有期限，不是终身循环。",
+          "en": "Official terms are one-time or time-limited, not lifetime recurring."
+        },
+        "ceiling_as_floor": {
+          "label": "易误解",
+          "zh": "「最高 / 高达」是上限，不是每单固定值。",
+          "en": "“Up to” is a ceiling, not a per-sale amount."
+        },
+        "reward_misattributed": {
+          "label": "易误解",
+          "zh": "这部分奖励属于被推荐人，或从推荐人自己的份额里切出。",
+          "en": "That reward belongs to the referred person, or is carved out of the referrer's own share."
+        },
+        "credit_as_cash": {
+          "label": "易误解",
+          "zh": "奖励是平台内抵扣额或积分，不是现金。",
+          "en": "The reward is platform credit, not cash."
+        },
+        "track_conflated": {
+          "label": "易误解",
+          "zh": "把两个不同计划（联盟 / 客户推荐 / 合作伙伴，或国内站 / 国际站）的条款拼在了一起。",
+          "en": "Terms from two separate programs (affiliate / referral / partner, or mainland / international) are mixed together."
+        },
+        "stale_terms": {
+          "label": "易误解",
+          "zh": "引用的是旧版条款，现行规则已变更。",
+          "en": "Cites superseded terms; the current rule differs."
+        },
+        "conditions_omitted": {
+          "label": "易误解",
+          "zh": "省略了官方列明的前提（付费资格、新客限定、扣税、分期、折扣门槛等）。",
+          "en": "Leaves out conditions the official terms require (paid plan, new customers only, tax, staged payout, discount floors)."
+        },
+        "guarantee_claimed": {
+          "label": "易误解",
+          "zh": "官方条款不承诺任何收益。",
+          "en": "No program's terms guarantee earnings."
+        },
+        "unknown_program": {
+          "label": "未核实",
+          "zh": "不在种子库内，无法对照公开规则。",
+          "en": "Not in the seed set; there is no public rule to compare against."
+        },
+        "seed_stale": {
+          "label": "未核实",
+          "zh": "该项目条目尚未读原页复核或已过核对期，暂不下结论。",
+          "en": "This entry has not been re-read on the official page or is past its check window; no verdict yet."
+        },
+        "private_terms": {
+          "label": "未核实",
+          "zh": "私下费率、内部码或「特批」无法从公开条款核实。",
+          "en": "Private rates, “internal codes” or special tiers can't be verified from public terms."
+        },
+        "income_claim": {
+          "label": "未核实",
+          "zh": "个人收入、截图或战绩无法核实。",
+          "en": "Personal income claims and screenshots can't be verified."
+        },
+        "claimed_affiliation": {
+          "label": "未核实",
+          "zh": "自称与项目方有特殊关系，公开信息无法核实。",
+          "en": "A claimed special relationship with the vendor can't be verified from public information."
+        },
+        "conflicting_official_wording": {
+          "label": "未核实",
+          "zh": "官方页面自身表述不一致，暂不下结论。",
+          "en": "Official pages word this differently; no verdict yet."
+        },
+        "no_checkable_fact": {
+          "label": "未核实",
+          "zh": "说法里没有可对照的具体条款。",
+          "en": "The claim contains no checkable term."
+        },
+        "program_closed": {
+          "label": "关门反例",
+          "zh": "该项目目前不接受新成员。",
+          "en": "This program is not accepting new members."
+        },
+        "referral_cap": {
+          "label": "关门反例",
+          "zh": "官方设有推荐人数或奖励上限。",
+          "en": "Official terms cap referrals or rewards."
+        },
+        "geo_excluded": {
+          "label": "关门反例",
+          "zh": "所说地区或账户类型不在官方可参与范围内。",
+          "en": "The stated region or account type is excluded by the official terms."
+        }
+      },
+      "lexicon": {
+        "_note": "Regex sources (JS, flags iu). Bracketed forms such as 稳[赚] match the plain word in a paste while keeping this file clean under the acceptance grep.",
+        "lifetime": "终身|永久|一辈子|永远|lifetime|forever|for life|in perpetuity",
+        "recurring": "循环|每月|月月|续费|recurring|monthly|every month",
+        "one_time": "一次性|one[- ]time|bounty|flat fee",
+        "ceiling": "最高|高达|至多|up to|as much as",
+        "per_unit": "每单|每个|一单|每人|每位|per (sale|signup|sign-up|referral|customer|order)",
+        "duration": "(\\d+)\\s*(个月|月|年|天|months?|years?|days?)",
+        "rate": "(\\d+(?:\\.\\d+)?)\\s*[%％]",
+        "amount": "(?:[$¥￥€£]|usd|rmb|美元|美金|元|刀)\\s*\\d[\\d,]*(?:\\.\\d+)?|\\d[\\d,]*(?:\\.\\d+)?\\s*(?:美元|美金|元|刀|usd|rmb|u\\b)",
+        "cookie": "cookie|归因|关联期|referral window",
+        "friend": "好友|朋友|对方|被推荐人|被邀请人|friend|referee|invitee",
+        "cash": "现金|打到卡|到账|提现|cash|withdraw",
+        "credit": "额度|抵扣|积分|代金券|credit|coupon|voucher|airmoney",
+        "cap_denial": "无上限|不设上限|不限|无限|unlimited|no limit|uncapped",
+        "worldwide": "全球|任何国家|哪都能|worldwide|global|anywhere|any country",
+        "join_now": "申请|加入|招人|招募|上车|点我|join|apply|sign up now|now open|recruiting",
+        "code_claim": "内部码|创始人码|专属码|私信|领取码|founder code|internal code|secret code|exclusive code|dm me",
+        "private_rate": "内部价|内部渠道|特批|私下|私域价|vip ?(rate|tier)|negotiated|special tier|private rate",
+        "income": "月入|日入|收入截图|战绩|躺[赚]|被动收入|i made|per month income|passive income|screenshot",
+        "guarantee": "稳[赚]|保赚|包赚|必赚|年入百[万]|guaranteed|risk[- ]free|sure thing",
+        "affiliation": "官方合[作]|官方授权|官方指定|official partner|authorized by|endorsed by"
+      },
+      "output_contract": {
+        "fields": [
+          "label",
+          "label_en",
+          "program_id",
+          "reason_codes",
+          "source_url",
+          "as_of"
+        ],
+        "label_en": {
+          "公开规则": "Public rule",
+          "易误解": "Commonly misread",
+          "未核实": "Unverified",
+          "关门反例": "Closed / capped / geo"
+        },
+        "render": "Label chip (zh + en gloss) → one fixed zh/en line per reason code → official source link → 核对日期 / checked date. No numerals anywhere in the verdict except the date; the paste is never quoted or paraphrased.",
+        "verdict_has_no_join_cta": true
+      },
+      "share_line": {
+        "offer_when": "label = 公开规则 AND row.status = open; never on 易误解 / 未核实 / 关门反例",
+        "template": {
+          "zh": "{program_zh} 有公开的推荐计划，条款以官方页为准：{official_url}（核对 {as_of}）· 我的链接：{own_link} ｜ 推荐 · 可能获佣 / may earn a rebate",
+          "en": "{program_en} runs a public referral program; the official page governs: {official_url} (checked {as_of}) · my link: {own_link} | 推荐 · 可能获佣 / may earn a rebate"
+        },
+        "slots": "{own_link} is typed by the user and starts empty; the instrument never pre-fills, suggests, shortens or rewrites it, and never inserts a code"
+      },
+      "board": {
+        "columns": [
+          "项目 Program",
+          "计划 Track",
+          "状态 Status",
+          "来源 Source",
+          "核对 Checked"
+        ],
+        "row_cta": "status = open → one plain official URL (row.join_cta, no query params) labelled 官方页 / Official page; any other status → no CTA, source link only",
+        "status_chip": {
+          "open": "开放 Open",
+          "closed": "已停招 Closed",
+          "capped_and_geo": "限额·限地区 Capped · geo",
+          "geo_restricted": "限地区 Geo-limited"
+        },
+        "evidence_marker": "evidence = search_index_extract or page_read = false → muted marker 待读原页 / Awaiting page read"
+      },
+      "seed_policy": "track facts are comparator input only and are never rendered. Every row starts as evidence = search_index_extract, page_read = false: official domains were unreachable from the drafting environment, so every fact comes from search-engine extracts of official pages.",
+      "seed": [
+        {
+          "id": "deel",
+          "name": {
+            "zh": "Deel 联盟 / 客户推荐",
+            "en": "Deel Affiliate / Customer Referral"
+          },
+          "aliases": [
+            "deel"
+          ],
+          "status": "open",
+          "join_cta": "https://www.deel.com/partner/affiliates/",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://www.deel.com/partner/affiliates/",
+              "facts": {
+                "network": "PartnerStack",
+                "payout": "USD 500 when the lead becomes a sales-qualified opportunity + USD 1,000 when it becomes a new customer",
+                "duration": "one-time flat amounts; no recurring share",
+                "window": "90 days from click"
+              }
+            },
+            {
+              "track": "customer_referral",
+              "source": "https://help.letsdeel.com/hc/en-gb/articles/4631291138321-The-Deel-Referral-Program-Earn-Rewards-for-Sharing-Deel",
+              "facts": {
+                "payout": "referrer USD 1,500 per qualifying new business (referrals created on/after 2025-12-02)",
+                "referee_reward": "USD 500 Deel Prepaid Billing Credits: Deel services only, no cash value, non-transferable",
+                "eligibility": "business brand new to Deel; starts an eligible service within 4 months",
+                "payout_timing": "within 90 days after the referral is confirmed"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "duration_overstated",
+              "when": "claims a recurring or lifetime share"
+            },
+            {
+              "reason": "credit_as_cash",
+              "when": "claims the referred company receives cash"
+            },
+            {
+              "reason": "stale_terms",
+              "when": "cites the older USD 200 gift-card offer as current"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "says a sign-up alone pays"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "stacks affiliate and customer-referral rewards on one business"
+            }
+          ],
+          "unresolved": [
+            "partner-program payout terms not found on a public page"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "medium"
+        },
+        {
+          "id": "hubspot",
+          "name": {
+            "zh": "HubSpot 联盟",
+            "en": "HubSpot Affiliate"
+          },
+          "aliases": [
+            "hubspot",
+            "hub spot"
+          ],
+          "status": "open",
+          "join_cta": "https://www.hubspot.com/partners/affiliates",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://www.hubspot.com/partners/affiliates",
+              "facts": {
+                "network": "Impact; application reviewed",
+                "payout": "30% monthly recurring on a new customer's purchase",
+                "duration": "up to 12 months",
+                "window": "180-day cookie",
+                "exclusions": "no commission on upgrades or additional purchases by the same customer"
+              }
+            },
+            {
+              "track": "solutions_partner",
+              "source": "https://www.hubspot.com/partner-commissions-faq",
+              "facts": {
+                "payout": "20% of partner-sourced monthly recurring net revenue",
+                "duration": "up to 3 years",
+                "note": "separate program; paid membership required from 2026-07-15 unless waived"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "duration_overstated",
+              "when": "claims lifetime or permanent 30%"
+            },
+            {
+              "reason": "ceiling_as_floor",
+              "when": "turns 'up to $1,000+ per sale' into a per-sale floor"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "attributes the Solutions Partner 20% / 3-year terms to the affiliate program"
+            },
+            {
+              "reason": "stale_terms",
+              "when": "cites a 90-day cookie"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "claims upgrades earn extra commission"
+            }
+          ],
+          "unresolved": [
+            "'15% after month 12' appears only on third-party sites; absence on the official page not confirmed by a full read",
+            "third tier name and terms unconfirmed"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "medium"
+        },
+        {
+          "id": "shopify",
+          "name": {
+            "zh": "Shopify 联盟",
+            "en": "Shopify Affiliate"
+          },
+          "aliases": [
+            "shopify"
+          ],
+          "status": "open",
+          "join_cta": "https://www.shopify.com/affiliates",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://help.shopify.com/en/affiliates/earnings",
+              "facts": {
+                "network": "Impact; approval required",
+                "payout": "one-time, up to USD 150 per qualified full-price Basic/Grow/Advanced or POS Pro referral; amount varies by merchant country",
+                "duration": "one-time; not recurring",
+                "window": "30 days from click",
+                "exclusions": "Starter, Lite, Plus, Enterprise, Retail not eligible; merchant must pay full price at least one month"
+              }
+            },
+            {
+              "track": "partner_program",
+              "source": "https://help.shopify.com/en/partners/partner-program/how-to-earn",
+              "facts": {
+                "payout": "recurring subscription and GMV share for partners (new model for stores from 2026-08-10)",
+                "note": "separate program for agencies and developers; not the affiliate program"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "ceiling_as_floor",
+              "when": "claims USD 150 per referral everywhere"
+            },
+            {
+              "reason": "duration_overstated",
+              "when": "claims recurring or lifetime affiliate commission"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "mixes Partner Program, Plus bounties or Shopify Collabs into affiliate terms"
+            },
+            {
+              "reason": "stale_terms",
+              "when": "cites ended promotions (e.g. per-client bonus offers that expired in early 2026)"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "claims a 400-day cookie"
+            }
+          ],
+          "unresolved": [
+            "post-trial tracking limit: 'up to 400 days' vs '125 days' both indexed",
+            "country tier table not read"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "medium"
+        },
+        {
+          "id": "kinsta",
+          "name": {
+            "zh": "Kinsta 联盟",
+            "en": "Kinsta Affiliate"
+          },
+          "aliases": [
+            "kinsta"
+          ],
+          "status": "open",
+          "join_cta": "https://kinsta.com/affiliates/",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://kinsta.com/affiliates/",
+              "facts": {
+                "payout": "one-time USD 50–500 depending on the Managed WordPress plan + 10% monthly recurring",
+                "duration": "recurring for the lifetime of the referred customer's paid WordPress plan; starts after the one-time commission is approved",
+                "window": "60-day cookie, last click",
+                "eligibility": "one-time approved after a 2-month qualification period",
+                "exclusions": "new Application/Database Hosting referrals not commissionable (moved to Sevalla)"
+              }
+            },
+            {
+              "track": "customer_referral",
+              "source": "https://kinsta.com/docs/service-information/referrals-faq/",
+              "facts": {
+                "payout": "account credit for existing customers, not cash"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "ceiling_as_floor",
+              "when": "claims USD 500 per customer"
+            },
+            {
+              "reason": "stale_terms",
+              "when": "claims Application/Database Hosting referrals pay"
+            },
+            {
+              "reason": "credit_as_cash",
+              "when": "calls the customer-referral credit cash"
+            }
+          ],
+          "unresolved": [
+            "per-plan one-time table seen only in third-party extracts"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "medium"
+        },
+        {
+          "id": "framer",
+          "name": {
+            "zh": "Framer 联盟（Creator Program）",
+            "en": "Framer Affiliate (Creator Program)"
+          },
+          "aliases": [
+            "framer"
+          ],
+          "status": "open",
+          "join_cta": "https://www.framer.com/help/articles/how-the-creator-program-works/",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://www.framer.com/legal/affiliates-terms-and-conditions/",
+              "facts": {
+                "network": "Dub; payouts via Stripe",
+                "payout": "50% of subscription payments",
+                "duration": "first 12 months, or until cancellation",
+                "window": "90-day cookie",
+                "payout_ops": "30-day pending; monthly; USD 200 minimum",
+                "exclusions": "free sign-ups earn nothing; paid ads and brand-term bidding banned"
+              }
+            },
+            {
+              "track": "agency",
+              "source": "https://www.framer.com/agencies/",
+              "facts": {
+                "payout": "'up to 50%' revenue share on new customers",
+                "note": "separate program with its own acceptance"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "duration_overstated",
+              "when": "claims lifetime 50%"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "claims every sign-up pays"
+            },
+            {
+              "reason": "ceiling_as_floor",
+              "when": "treats the agency 'up to 50%' as a flat rate for anyone"
+            }
+          ],
+          "unresolved": [
+            "earlier cookie length and payout setup known only from third-party posts",
+            "payout availability where Stripe is unsupported not confirmed"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "kit",
+          "name": {
+            "zh": "Kit（原 ConvertKit）联盟",
+            "en": "Kit (formerly ConvertKit) Affiliate"
+          },
+          "aliases": [
+            "kit.com",
+            "convertkit",
+            "kit affiliate",
+            "kit 联盟"
+          ],
+          "status": "open",
+          "join_cta": "https://kit.com/affiliate",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://help.kit.com/en/articles/2502473-kit-affiliate-commissions-faq",
+              "facts": {
+                "network": "PartnerStack; approval required",
+                "payout": "50% of each referred customer's payments",
+                "duration": "first 12 months; after that 10–20% only while the affiliate holds Bronze/Silver/Gold status (Bronze = at least 10 paying referrals a year); applies to referrals from 2024-01-01",
+                "window": "90-day cookie, last click",
+                "payout_ops": "USD 5 minimum; PPC referrals don't count toward status"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "stale_terms",
+              "when": "cites 30% lifetime or 30% for 24 months"
+            },
+            {
+              "reason": "duration_overstated",
+              "when": "claims 50% lifetime"
+            },
+            {
+              "reason": "ceiling_as_floor",
+              "when": "claims 20% lifetime for every affiliate"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "treats Paid Recommendations / Creator Network as the affiliate program"
+            }
+          ],
+          "unresolved": [
+            "Silver/Gold thresholds and the Bronze rate confirmed only by third parties"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "elevenlabs",
+          "name": {
+            "zh": "ElevenLabs 联盟",
+            "en": "ElevenLabs Affiliate"
+          },
+          "aliases": [
+            "elevenlabs",
+            "eleven labs",
+            "11labs"
+          ],
+          "status": "open",
+          "join_cta": "https://elevenlabs.io/affiliates",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://elevenlabs.io/affiliates-terms",
+              "facts": {
+                "network": "PartnerStack; approval required",
+                "payout": "22% of Starter/Creator/Pro/Scale payments; 11% on Business tier",
+                "duration": "first 12 months per referred paying subscriber",
+                "payout_ops": "commission active 90 days after first payment; USD 5 minimum",
+                "exclusions": "free-tier sign-ups earn nothing; no self-referral; no brand bidding or paid placements",
+                "geo": "service unavailable in sanctioned regions (service-level restriction)"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "duration_overstated",
+              "when": "claims lifetime 22%"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "counts free sign-ups, or expects same-month payment"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "applies 22% to enterprise deals, Voice Library payouts or the Creator Partner Program"
+            }
+          ],
+          "unresolved": [
+            "cookie length stated only by third parties"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "adobe",
+          "name": {
+            "zh": "Adobe 联盟",
+            "en": "Adobe Affiliate"
+          },
+          "aliases": [
+            "adobe",
+            "creative cloud",
+            "adobe express",
+            "photoshop"
+          ],
+          "status": "open",
+          "join_cta": "https://www.adobe.com/affiliates.html",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://www.adobe.com/affiliates.html",
+              "facts": {
+                "network": "Partnerize; applications reviewed",
+                "payout": "monthly or annual-paid-monthly plans: 85% of one month's fee; annual prepaid: 8.33% of one year's fee",
+                "duration": "one-time share of a single month (or year); no renewal commission published",
+                "window": "30-day click window",
+                "exclusions": "trial, cancelled, invalid and fraud orders pay zero; Adobe Stock has a separate schedule"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "duration_overstated",
+              "when": "claims 85% every month / for life"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "applies 85% to annual prepaid plans, or counts free trials"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "quotes a sub-network listing rate or the B2B Partner Connection / Solution Partner programs as Adobe's affiliate terms"
+            },
+            {
+              "reason": "stale_terms",
+              "when": "points to an older non-Partnerize sign-up route"
+            }
+          ],
+          "unresolved": [
+            "Adobe Stock schedule seen only in one indexed excerpt"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "coursera",
+          "name": {
+            "zh": "Coursera 联盟",
+            "en": "Coursera Affiliate"
+          },
+          "aliases": [
+            "coursera",
+            "coursera plus"
+          ],
+          "status": "open",
+          "join_cta": "https://www.coursera.org/about/affiliates",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://www.coursera.org/about/affiliates",
+              "facts": {
+                "network": "Impact",
+                "payout": "baseline 15%–45% on eligible purchases, plus performance bonuses",
+                "duration": "subscriptions (incl. Coursera Plus): first month's transaction only",
+                "window": "30 days from click, last qualified click",
+                "exclusions": "degrees excluded; some certificates excluded"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "ceiling_as_floor",
+              "when": "claims 45% on every course"
+            },
+            {
+              "reason": "duration_overstated",
+              "when": "claims recurring commission on Coursera Plus"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "claims commission on degree purchases"
+            }
+          ],
+          "unresolved": [
+            "older '20% on courses and Specializations' headline still indexed alongside the 15%–45% wording",
+            "per-product split seen only on third-party sites"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "airalo",
+          "name": {
+            "zh": "Airalo 联盟 / 好友推荐",
+            "en": "Airalo Affiliate / Refer & Earn"
+          },
+          "aliases": [
+            "airalo",
+            "airmoney"
+          ],
+          "status": "open",
+          "join_cta": "https://partners.airalo.com/solutions/affiliates",
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://www.airalo.com/help/affiliates-partnerships/JWVHG1H2NHJ7/does-airalo-have-an-affiliate-program/CVF0CNOFQN4I",
+              "facts": {
+                "network": "Impact; application",
+                "payout": "standard 10% on verified sales; may vary by promotional method",
+                "payout_ops": "validated by the 7th of the next month; paid by month end"
+              }
+            },
+            {
+              "track": "friend_referral",
+              "source": "https://www.airalo.com/refer-and-earn",
+              "facts": {
+                "payout": "referrer USD 3.00 Airmoney credit after the friend's first purchase",
+                "referee_reward": "USD 3.00 off the friend's first purchase (or local-currency equivalent)",
+                "reward_form": "Airmoney: not cashable, not transferable, valid one year from last qualifying purchase; not combinable with other promotions",
+                "eligibility": "friend must be new and apply the code at sign-up or first checkout"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "credit_as_cash",
+              "when": "calls Airmoney cash, or sums referral credits as income"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "mixes the friend code, the 10% affiliate rate, loyalty cashback or a network listing rate"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "claims existing users can use a referral code, or stacks it with other promo codes"
+            },
+            {
+              "reason": "stale_terms",
+              "when": "presents a past referral contest as a standing reward"
+            }
+          ],
+          "unresolved": [
+            "affiliate rate worded three ways on official pages ('standard 10%', 'starting from 10%', 'up to 10%')",
+            "no cookie window or minimum payout published"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "alibaba-cloud-ambassador",
+          "name": {
+            "zh": "阿里云 云大使 / 国际站推广",
+            "en": "Alibaba Cloud Ambassador / Affiliate"
+          },
+          "aliases": [
+            "阿里云",
+            "云大使",
+            "aliyun",
+            "alibaba cloud",
+            "alibabacloud"
+          ],
+          "status": "open",
+          "join_cta": "https://dashi.aliyun.com/",
+          "tracks": [
+            {
+              "track": "mainland_ambassador",
+              "source": "https://developer.aliyun.com/article/1757939",
+              "facts": {
+                "payout": "rebate 10%–35% by product line (top rate on LLM/Agent lines), rules effective 2026-09-01",
+                "duration": "association period 90 days by default",
+                "eligibility": "first-time buyers of that product, or dormant users (no holdings/spend in 12 months); real-name account",
+                "caps": "counted paid amount capped at RMB 200,000 per referred customer",
+                "payout_ops": "withdrawable 30 days after the record; Alipay matching the real-name identity"
+              }
+            },
+            {
+              "track": "international",
+              "source": "https://www.alibabacloud.com/affiliate",
+              "facts": {
+                "payout": "Affiliate via Rakuten/Admitad (cap USD 1,000 per publisher per month); Ambassador: USD 10 + 50% on a first order within 30 days of sign-up; Invite & Earn pays credits, not cash",
+                "note": "separate from the mainland program"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "stale_terms",
+              "when": "cites a 45% top rate from 2024 coverage"
+            },
+            {
+              "reason": "duration_overstated",
+              "when": "claims lifetime rebates on all renewals"
+            },
+            {
+              "reason": "ceiling_as_floor",
+              "when": "claims the top rate on every order"
+            },
+            {
+              "reason": "credit_as_cash",
+              "when": "calls international Invite & Earn credits cash"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "mixes mainland and international terms"
+            }
+          ],
+          "unresolved": [
+            "whether LLM/Agent purchases still extend association to 365 days (extracts conflict)",
+            "international Ambassador payout method not found"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "tencent-cloud-ambassador",
+          "name": {
+            "zh": "腾讯云 推广奖励（CPS）/ 国际站",
+            "en": "Tencent Cloud Promoter (CPS) / International"
+          },
+          "aliases": [
+            "腾讯云",
+            "tencent cloud",
+            "tencentcloud",
+            "云推官",
+            "推广大使"
+          ],
+          "status": "open",
+          "join_cta": "https://cloud.tencent.com/act/partner/cps",
+          "tracks": [
+            {
+              "track": "mainland_cps",
+              "source": "https://cloud.tencent.com/developer/article/1360268",
+              "facts": {
+                "payout": "cash paid × (20% base + 0–15% star bonus), max 35%; dormant-user first purchase 20%",
+                "duration": "30-day association; customer's first purchase of listed products only",
+                "eligibility": "real-name individual users of the mainland site only; no enterprises, agents or resellers",
+                "caps": "RMB 5,000 per order; RMB 50,000 per month (new–3★) or RMB 80,000 (4–5★)",
+                "payout_ops": "staged payment by star level; tax withheld at source since 2026-03-01; discount floors on some SKUs"
+              }
+            },
+            {
+              "track": "international",
+              "source": "https://www.tencentcloud.com/act/pro/referral",
+              "facts": {
+                "payout": "international products via CPS 30% with USD caps; tencentcloud.com Invite & Earn pays credits, not cash; RTC affiliate is a separate product program",
+                "note": "separate from the mainland rules"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "ceiling_as_floor",
+              "when": "claims 35% on every order"
+            },
+            {
+              "reason": "duration_overstated",
+              "when": "claims lifetime binding or rebates on renewals"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "claims the full rate lands in the bank (ignores tax, staging, discount floors) or that companies can promote"
+            },
+            {
+              "reason": "credit_as_cash",
+              "when": "calls international invite credits cash"
+            },
+            {
+              "reason": "track_conflated",
+              "when": "applies RTC affiliate tiers or cookie to Tencent Cloud-wide CPS"
+            }
+          ],
+          "unresolved": [
+            "2026 validity of the RMB caps and 20% base not confirmed",
+            "international USD caps from a single article extract"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "binance-fee-share",
+          "name": {
+            "zh": "币安 推荐返佣（Referral Pro）",
+            "en": "Binance Referral Fee-share"
+          },
+          "aliases": [
+            "binance",
+            "币安"
+          ],
+          "status": "geo_restricted",
+          "join_cta": null,
+          "tracks": [
+            {
+              "track": "referral_pro",
+              "source": "https://www.binance.com/en/support/faq/terms-and-conditions-for-binance-referral-program-d06a66559cdd4185aea360752405633e",
+              "facts": {
+                "payout": "referrer earns a share of referees' trading fees; the kickback to the friend is carved out of the same base rate",
+                "tiers": "BNB-holding tiers discontinued 2025-09-09; quarterly performance tiers since",
+                "basis": "net fees (after discounts and rebates) in 2026; zero-fee trades earn nothing",
+                "payout_ops": "USDC by default since 2025-02-13",
+                "geo": "restricted-region users disqualified as referrer or referee; US served only by the separate Binance.US; further regional carve-outs in the T&C"
+              }
+            },
+            {
+              "track": "affiliate",
+              "source": "https://www.binance.com/en/support/faq/binance-affiliate-program-standard-terms-and-conditions-b5b4a734aaaf42d0b7a32d5b30930408",
+              "facts": {
+                "note": "separate approval-based program; current rates not confirmed on an official page"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "stale_terms",
+              "when": "cites BNB-holding tiers"
+            },
+            {
+              "reason": "reward_misattributed",
+              "when": "presents the friend's kickback as extra on top of the referrer's share"
+            },
+            {
+              "reason": "ceiling_as_floor",
+              "when": "claims affiliate-level rates for any referral link"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "claims commission on gross fees or zero-fee trades"
+            },
+            {
+              "reason": "credit_as_cash",
+              "when": "calls Lite-mode fee vouchers cash"
+            }
+          ],
+          "unresolved": [
+            "post-2025-09-09 tier thresholds and rates",
+            "exact regional carve-out list (extracts only)"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "notion",
+          "name": {
+            "zh": "Notion 联盟",
+            "en": "Notion Affiliate"
+          },
+          "aliases": [
+            "notion"
+          ],
+          "status": "closed",
+          "join_cta": null,
+          "tracks": [
+            {
+              "track": "affiliate",
+              "source": "https://www.notion.com/affiliates",
+              "facts": {
+                "status_text": "official page (indexed): not accepting new affiliates; no reopening date",
+                "historical": "last published structure: up to USD 50 per activated sign-up + 20% of year-one revenue",
+                "note": "Builders Program is a separate program, not a reopening"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "track_conflated",
+              "when": "presents the Builders Program as the affiliate program"
+            }
+          ],
+          "unresolved": [
+            "exact closure date not stated on an official page"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        },
+        {
+          "id": "ibkr-friend-referral",
+          "name": {
+            "zh": "盈透 IBKR 推荐好友",
+            "en": "IBKR Refer-a-Friend"
+          },
+          "aliases": [
+            "ibkr",
+            "interactive brokers",
+            "盈透"
+          ],
+          "status": "capped_and_geo",
+          "join_cta": null,
+          "tracks": [
+            {
+              "track": "friend_referral",
+              "source": "https://www.interactivebrokers.com/en/accounts/referrer.php",
+              "facts": {
+                "payout": "referrer flat USD 200 per eligible referral",
+                "caps": "15 referrals per calendar year, 30 in total",
+                "eligibility": "friend applies via the unique link, deposits at least USD 10,000 within 30 days and keeps it one year; referrer NLV at least USD 2,000 plus one trade",
+                "referee_reward": "IBKR Class A shares in proportion to year-one net deposits, max USD 1,000 in shares; forfeited if the account closes before the anniversary",
+                "geo": "residents of Japan, Denmark, Spain, Portugal, Poland, mainland China and Israel excluded; IB Canada / IB India referees get no shares; family members and same-address excluded"
+              }
+            }
+          ],
+          "misread_triggers": [
+            {
+              "reason": "reward_misattributed",
+              "when": "presents the friend's up-to-USD-1,000 in shares as the referrer's reward"
+            },
+            {
+              "reason": "conditions_omitted",
+              "when": "says shares arrive at once and can be sold immediately"
+            }
+          ],
+          "unresolved": [
+            "share ratio: USD 1 per USD 300 (referrer page; form 4841, 2026-07-02) vs USD 1 per USD 100 (form 4051, 2026-05-29)"
+          ],
+          "evidence": "search_index_extract",
+          "page_read": false,
+          "verified_on": null,
+          "as_of": "2026-09-22",
+          "confidence": "low"
+        }
+      ]
+    },
+    "acceptance": [
+      "A1 Hype grep: `grep -rnE '稳[赚]|年入百[万]|官方合[作]' .` over the repo, this spec, copy and the built output returns nothing (exit 1). The bracket form keeps this spec clean under its own grep.",
+      "A2 Closed rows: `document.querySelectorAll('[data-status]:not([data-status=\"open\"]) [data-cta=\"join\"]').length === 0`, and every seed row whose status is not open has join_cta = null (notion, ibkr-friend-referral, binance-fee-share).",
+      "A3 No take-rate: for the 5 fixtures and a 200-paste fuzz corpus, the text of [data-region=\"verdict\"] minus [data-field=\"as_of\"] contains no [0-9０-９] and no match for /你能[拿赚]|you('ll| will| can| could) (earn|make|get|receive)/i.",
+      "A4 No codes: no shipped file or rendered DOM matches /[?&](ref|via|code|invite|aff|referral)=/i; the share line's {own_link} renders empty until the user types.",
+      "A5 Share line: every rendered share line contains the exact substring “推荐 · 可能获佣 / may earn a rebate”; share lines appear only when label = 公开规则 and row status = open (fixture F1 yes; F2–F5 no).",
+      "A6 Fixtures: with the matched row verified, all 5 fixtures return their expect.label and expect.reason_codes; with it unverified, each returns 未核实 · seed_stale.",
+      "A7 Seed integrity: 15 rows; each has at least one official source URL, as_of, evidence, confidence. Launch is blocked until every row has page_read = true; CI downgrades any row whose verified_on is older than 90 days.",
+      "A8 Determinism and privacy: the same paste run 100 times gives identical output; after page load, pasting fires zero network requests.",
+      "A9 Bilingual: every UI string key has non-empty zh and en; label chips always show the zh label plus the en gloss.",
+      "A10 Look: all text including label chips is WCAG AA (≥ 4.5:1) on its surface; no horizontal scroll at 360px; no animation beyond the 150ms fade.",
+      "A11 Identity: not served from gravity.li; no GRAVITY or vendor logos; the standing disclosure appears on every view."
+    ]
+  },
+  "label_set": [
+    "公开规则",
+    "易误解",
+    "未核实",
+    "关门反例"
+  ],
+  "fixtures": [
+    {
+      "id": "F1",
+      "paste": "Kinsta affiliate: one-time commission from $50 up to $500 depending on the WordPress plan, plus 10% monthly recurring for as long as the referred customer keeps paying for their plan. 60-day cookie.",
+      "expect": {
+        "label": "公开规则",
+        "program_id": "kinsta",
+        "reason_codes": [
+          "rule_match"
+        ],
+        "row_join_cta": true,
+        "share_line_offered": true
+      },
+      "if_seed_unverified": {
+        "label": "未核实",
+        "reason_codes": [
+          "seed_stale"
+        ]
+      },
+      "why": "Every stated fact matches the Kinsta affiliate track, including “lifetime of the plan” recurring, which is Kinsta's published rule."
+    },
+    {
+      "id": "F2",
+      "paste": "HubSpot 联盟终身 30% 返佣！推一次，永久躺着分钱，赶紧上车",
+      "expect": {
+        "label": "易误解",
+        "program_id": "hubspot",
+        "reason_codes": [
+          "duration_overstated"
+        ],
+        "row_join_cta": true,
+        "share_line_offered": false
+      },
+      "if_seed_unverified": {
+        "label": "未核实",
+        "reason_codes": [
+          "seed_stale"
+        ]
+      },
+      "why": "The official terms cap the 30% at up to 12 months; “终身 / 永久” contradicts the matched track. The verdict must not repeat the 30%."
+    },
+    {
+      "id": "F3",
+      "paste": "Deel 创始人内部码，比公开的多返 20%，私信我领取",
+      "expect": {
+        "label": "未核实",
+        "program_id": "deel",
+        "reason_codes": [
+          "private_terms"
+        ],
+        "row_join_cta": true,
+        "share_line_offered": false
+      },
+      "if_seed_unverified": {
+        "label": "未核实",
+        "reason_codes": [
+          "seed_stale"
+        ]
+      },
+      "why": "A private code or extra rate can't be checked against public terms. The instrument never produces, completes or asks for the code."
+    },
+    {
+      "id": "F4",
+      "paste": "Notion 联盟正在招人：每个激活注册最高 50 美元 + 首年 20% 分成，点我链接申请",
+      "expect": {
+        "label": "关门反例",
+        "program_id": "notion",
+        "reason_codes": [
+          "program_closed"
+        ],
+        "row_join_cta": false,
+        "share_line_offered": false
+      },
+      "if_seed_unverified": {
+        "label": "未核实",
+        "reason_codes": [
+          "seed_stale"
+        ]
+      },
+      "why": "The numbers repeat the last published structure, but the program is not accepting new affiliates; join-now framing on a closed row wins by precedence."
+    },
+    {
+      "id": "F5",
+      "paste": "盈透 IBKR 推荐好友无上限，每拉一个 $200，中国大陆也能参加",
+      "expect": {
+        "label": "关门反例",
+        "program_id": "ibkr-friend-referral",
+        "reason_codes": [
+          "referral_cap",
+          "geo_excluded"
+        ],
+        "row_join_cta": false,
+        "share_line_offered": false
+      },
+      "if_seed_unverified": {
+        "label": "未核实",
+        "reason_codes": [
+          "seed_stale"
+        ]
+      },
+      "why": "The USD 200 matches, but referrals are capped per year and in total, and mainland China residents are excluded."
+    }
+  ],
+  "copy": {
+    "empty": {
+      "zh": "粘贴一条推荐或返佣说法，一次一条。只返回一个标签：公开规则、易误解、未核实或关门反例，附官方来源和核对日期。不算收益，不给推荐码。",
+      "en": "Paste one referral or commission claim. Returns a single label (Public rule, Commonly misread, Unverified, or Closed / capped / geo) with the official source and the date it was checked. No earnings math, no codes."
+    },
+    "standing_disclosure": {
+      "zh": "独立站点，非 gravity.li，与所列任何公司均无隶属、授权或背书关系。标签依据各项目官方公开页面，逐条注明核对日期；条款可能随时变更，以官方页面为准。本站不计算、不承诺任何个人收益，也不生成或提供推荐码。本站建议的分享文案一律标注「推荐 · 可能获佣 / may earn a rebate」。不构成投资、法律或税务建议。",
+      "en": "Independent site, not gravity.li, and not affiliated with, authorized or endorsed by any company listed. Labels rest on each program's official public pages, each with the date it was checked; terms can change at any time and the official page prevails. We don't calculate or promise anyone's earnings, and we never generate or hand out referral codes. Every share line we suggest carries “推荐 · 可能获佣 / may earn a rebate”. Not investment, legal or tax advice."
+    }
+  },
+  "dont_repeat": [
+    {
+      "id": "R1",
+      "zh": "把有期限的分成说成终身：HubSpot、Kit、Framer、ElevenLabs 的比例分成都有 12 个月上限；Kinsta 的“终身”只指该客户套餐仍在付费的期间。",
+      "en": "Calling time-limited commission lifetime: HubSpot, Kit, Framer and ElevenLabs cap it at 12 months; Kinsta's “lifetime” lasts only while the customer's plan is paid."
+    },
+    {
+      "id": "R2",
+      "zh": "把「最高 / up to」当成每单固定值或保证收入（Shopify、Kinsta、Coursera、阿里云、腾讯云）。",
+      "en": "Treating “up to” as a per-sale amount or a guarantee (Shopify, Kinsta, Coursera, Alibaba Cloud, Tencent Cloud)."
+    },
+    {
+      "id": "R3",
+      "zh": "把被推荐人的奖励算到推荐人头上：IBKR 的股票归好友；Binance 返给好友的部分从推荐人份额里切出。",
+      "en": "Crediting the friend's reward to the referrer: IBKR shares go to the friend; Binance kickbacks come out of the referrer's own share."
+    },
+    {
+      "id": "R4",
+      "zh": "把抵扣额或积分说成现金：Airalo Airmoney、Deel 预付账单抵扣额、阿里云/腾讯云国际站邀请积分。",
+      "en": "Calling credits cash: Airalo Airmoney, Deel Prepaid Billing Credits, Alibaba/Tencent international invite credits."
+    },
+    {
+      "id": "R5",
+      "zh": "把联盟、客户推荐、合作伙伴/代理计划，或国内站与国际站的条款拼在一起（Deel、HubSpot、Shopify、Framer、阿里云、腾讯云）。",
+      "en": "Mixing affiliate, customer-referral and partner/agency terms, or mainland and international sites (Deel, HubSpot, Shopify, Framer, Alibaba Cloud, Tencent Cloud)."
+    },
+    {
+      "id": "R6",
+      "zh": "沿用旧条款：ConvertKit 旧版终身比例、HubSpot 旧 cookie、Binance BNB 持仓档位、Deel 旧礼品卡、阿里云旧版最高比例。",
+      "en": "Reusing superseded terms: old ConvertKit lifetime rate, HubSpot's old cookie, Binance BNB-holding tiers, Deel's old gift card, Alibaba Cloud's old top rate."
+    },
+    {
+      "id": "R7",
+      "zh": "省略官方前提：注册不等于计佣、只限新客或首购、试用单为零、扣税与分期发放、折扣门槛、资格身份。",
+      "en": "Dropping official conditions: a sign-up isn't a sale, new or first purchase only, trials pay zero, tax and staged payouts, discount floors, eligible account types."
+    },
+    {
+      "id": "R8",
+      "zh": "给关门、限额或限地区的项目放加入入口或推荐链接（Notion 已停招；IBKR 有人数上限与地区排除；Binance 多地不可参与）。",
+      "en": "Putting a join entry or referral link on closed, capped or geo-limited programs (Notion closed; IBKR capped and region-excluded; Binance unavailable in many regions)."
+    }
+  ],
+  "open_questions": [
+    "开放行的「官方页」按钮保持官方原始链接（默认，本站零佣金），还是换成本站自己的推荐链接？若换，每行都要加注「推荐 · 可能获佣 / may earn a rebate」，并逐项确认条款允许这种投放（例如 Framer、ElevenLabs 禁止品牌词竞价和付费投放）。"
+  ]
+}
