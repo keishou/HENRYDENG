@@ -1,0 +1,169 @@
+{
+  "as_of_run": "2026-09-22",
+  "rows": [
+    {
+      "project": "Deel",
+      "status": "open",
+      "official_url": "https://www.deel.com/affiliates/",
+      "public_rule_summary": "经 PartnerStack 申请、人工审核后发专属链接；每个转为 sales-qualified opportunity 的线索付 USD 500，成交为新付费客户再付 USD 1,000（单客户合计最高 USD 1,500）；点击起 90 天归因窗口，opportunity 在窗口内创建即归属；被推荐方须为从未注册、未做过 Deel demo 的全新客户。官方 Affiliates Prospectus 标注 Last updated: May 2025。",
+      "common_misread": "USD 1,500 是两段式合计（SQL 500 + 成交 1,000），不是注册即付；deel.com 的 'Share, refer, earn up to $200'（Amazon 礼卡）是客户推荐计划，不是 affiliate；第三方的 '$50 demo + $150 合同' 未见于官网。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "HubSpot",
+      "status": "open",
+      "official_url": "https://www.hubspot.com/partners/affiliates",
+      "public_rule_summary": "经 Impact 申请，2–3 个工作日审核；新付费客户按月 30% 经常性佣金，最长 12 个月；Cookie 180 天；仅计未处于 HubSpot 销售流程中的新客户，且须撑过锁定期；禁止竞价 HubSpot 品牌词、禁止自用链接或做被推荐账户的账单联系人/用户；为客户实施服务的须走 Solutions Partner Program；须按 FTC 要求披露。",
+      "common_misread": "'recurring' 12 个月封顶，不是终身；'up to $1,000+ per sale' 是营销上限，不是固定 bounty；第三方 '第 13 个月起 15% 终身' 未见官网；Solutions Partner 推荐是另一计划。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "Alibaba Cloud 云大使",
+      "status": "open",
+      "official_url": "https://dashi.aliyun.com/",
+      "public_rule_summary": "仅对阿里云实名认证账号开放；按 2026-09-01 生效的 9 月规则：新客户（官网无付费购买记录，新注册≠新客户）在 90 天关联期内的首购类订单按产品线返利 10%–35%，最高 35%（7 月规则示例：大模型+Agent 10–35%，云资源 25%）；单客户累计实付按 20 万元封顶计算；阿里云合作伙伴/分销商员工、阿里云员工及外包、已触达客户（含 PPL 报备）不计。规则按月发布、常变。",
+      "common_misread": "'最高 45%' 是 2024 年云大使 2.0 的 L4 口径，2026 月度规则头部为 35%，招募帖写的是 '最高 30%'；35% 是上限不是默认值；新注册账号不等于新客户；原来最长 365 天的延长关联期已于 2026-09-01 取消，统一为 90 天。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "low"
+    },
+    {
+      "project": "Tencent Cloud 推广大使",
+      "status": "open",
+      "official_url": "https://cloud.tencent.com/act/partner/cps",
+      "public_rule_summary": "仅限个人实名认证用户（企业账号、代理商、腾讯及合作伙伴员工不可）；只对新客户首次付费购买指定产品返佣，复购、续费不返；佣金 = 有效现金实付 ×（基础 20% + 星级奖励 0–15%），最高 35%；关联有效期 30 天；单笔佣金上限 5,000 元，月上限 5 万元（4–5 星 8 万元）；自 2026-03-01 起平台代扣个税与增值税，实收 = 应收 − 税费；新会员/1 星佣金分两个月到账。",
+      "common_misread": "35% 只有高星级才有，新会员是 20%；30 天关联，不是终身绑定；页面显示的是税前佣金；推广沉睡用户另按 20% 计；旧帖里的星级积分门槛（如 5 星 1,001 分）可能已过时。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "low"
+    },
+    {
+      "project": "Kinsta",
+      "status": "open",
+      "official_url": "https://kinsta.com/affiliates/",
+      "public_rule_summary": "自营系统申请，人工审核网站（Kinsta 客户自动通过）；Managed WordPress Hosting 推荐：按套餐一次性 USD 50–500，另加每月 10% 终身经常性佣金（按折后月费计）；Cookie 60 天；余额 ≥ USD 50 才付款，仅 PayPal；新的 Application/Database Hosting 推荐不再计佣；禁止品牌词竞价、优惠券/返现激励、自我推荐；美国禁运地区及受制裁人员不可参与。",
+      "common_misread": "'$500' 是上限，不是固定 CPA；标题里的 '5%' 只适用于旧的 Application/Database 推荐；一次性佣金需约 2 个月资格期，经常性佣金在一次性佣金获批后才开始计；客户推荐的账户额度是另一计划。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "Shopify",
+      "status": "open",
+      "official_url": "https://www.shopify.com/affiliates",
+      "public_rule_summary": "经 Impact 申请，面向有商家受众的创作者，择优审核；被推荐商家在免费试用开始后 125 天内转为全价付费计划才计佣，按商家所在国家计算，每个合格推荐（含合格 POS Pro）最高 USD 150；最后点击 + 30 天窗口；余额 ≥ USD 10 可提现，每月 22 日结算上月；无联盟优惠码，只能推广免费试用；禁止品牌词竞价，须把 'shopify' 设为否定关键词。",
+      "common_misread": "'up to $150' 是按国家浮动的上限，试用注册本身不付钱；Partner Program 的 20% 经常性分成和 Plus/POS Pro 推荐奖励是另一计划；第三方的 '$2,000 Plus 推荐' 和旧的 '月费百分比' 口径不要引用；商家 refer-a-friend 发的是账户额度。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "Framer",
+      "status": "open",
+      "official_url": "https://www.framer.com/legal/affiliates-terms-and-conditions/",
+      "public_rule_summary": "经 Dub 追踪与付款；发布 Marketplace 模板或成为认证 Framer Expert 可自动加入，否则在 Links 页手动申请（看作品质量、受众相关性、推广方式）；通过链接购买的订阅付 50%，仅前 12 个月或直到取消；Cookie 90 天；每月支付两个月前的佣金，累计未付 ≥ USD 200 才付款；禁止品牌词竞价，禁止在 Google Ads/Bing 等付费广告投放联盟链接。",
+      "common_misread": "'50% recurring' 实际是首 12 个月封顶；Experts/Agency 计划的 'up to 50%' 不是固定 50%；framercommerce.com 的 '20% first-year' 是第三方公司；USD 200 起付门槛和两个月滞后常被忽略。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "Kit",
+      "status": "open",
+      "official_url": "https://kit.com/affiliate",
+      "public_rule_summary": "经 PartnerStack 申请审核；付费订阅 50% 佣金，持续 12 个月；达到 Bronze 及以上（每年推荐 ≥ 10 个客户）后，对 2024-01-01 起推荐且留存超过 12 个月的客户另得 10–20% 终身经常性佣金；Cookie 90 天，最后点击；交易后 31 天生成佣金，USD 5 起付；PPC 带来的推荐不计入等级数量。",
+      "common_misread": "'终身' 只在第 12 个月之后，且要一直维持 Bronze 以上；2022-03-01 起的旧口径 '30%，24 个月' 已被替换；免费 Newsletter 计划没有佣金；Kit Expert、Creator Network 推荐是另外的计划。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "ElevenLabs",
+      "status": "open",
+      "official_url": "https://elevenlabs.io/affiliates",
+      "public_rule_summary": "经 PartnerStack 注册；新付费订阅前 12 个月：Starter/Creator/Pro/Scale 22%，Business 11%，Enterprise 无佣金；点击后 90 天内注册可追踪，佣金在 90 天后生效；USD 5 起付，每月 1–15 日支付；须年满 18 岁，禁止自我推荐和多个推荐账户，禁止竞价 ElevenLabs 商标或做付费广告投放；受制裁地区无法使用服务。",
+      "common_misread": "22% 不是统一费率（Business 11%，Enterprise 0）；12 个月封顶，不是终身；佣金晚 90 天生效，容易误以为漏单；Creator Partner Program（/cpp）和企业推荐计划是另外的计划。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "Adobe",
+      "status": "open",
+      "official_url": "https://www.adobe.com/affiliates.html",
+      "public_rule_summary": "经 Partnerize 免费加入，无最低受众要求；Creative Cloud/Adobe Express/Document Cloud：月付及年付按月缴 = 一个月订阅费的 85%，年付预付 = 年费的 8.33%；Adobe Stock：月付及年付按月缴固定 USD 43，单品购买 8.33%，'每月 3 个标准素材' 计划 85%；试用、取消、无效、欺诈订单为 $0；Cookie 30 天；Document Cloud 和 Stock 只在指定国家提供。",
+      "common_misread": "85% 是一次性的首月佣金，不是经常性；年付预付只有 8.33%；Stock 月付是固定 USD 43，不是 85%；Firefly 联盟计划还是等候名单；cuelinks 的 '76.5%' 是子网络转手价，不是 Adobe 费率。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "Coursera",
+      "status": "open",
+      "official_url": "https://www.coursera.org/about/affiliates",
+      "public_rule_summary": "经 Impact 免费加入；用户点击合格链接后 30 天内的合格购买，基础佣金 15%–45%（含表现奖励）；适用课程、Specializations、Professional Certificates 和 Coursera Plus；学位（Degrees）和 Certificate 类购买不计；订阅只对首月交易计佣。",
+      "common_misread": "'45%' 是区间顶端，含绩效奖励，底线是 15%；Professional Certificates 计佣，学位和 Certificate 不计，容易混；Coursera Plus 只付首月；同一页面在索引里还有一句 '20% on 1,000+ courses'，未能确认哪句现行。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "low"
+    },
+    {
+      "project": "Airalo",
+      "status": "open",
+      "official_url": "https://partners.airalo.com/solutions/affiliates",
+      "public_rule_summary": "经 Impact 免费申请，面向博主、YouTuber、旅行顾问、比价/优惠/返现站、员工与学生福利平台和媒体；每笔经追踪链接的销售标准佣金 10%，按推广方式可能不同；每月销售在次月 7 日前核验，次月底前经 Impact 打到银行或 PayPal。",
+      "common_misread": "官方措辞不一（'starting from 10%' 与 'standard 10%, may vary'），应写 '标准 10%，按推广方式浮动'；'30 天 Cookie' 只见于第三方；refer-a-friend 的 USD 3 Airmoney 是客户额度，不是现金也不是 affiliate 佣金；Influencer、Reseller 计划和 Impact 联盟是不同轨道。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": null,
+      "confidence": "med"
+    },
+    {
+      "project": "Binance referral/affiliate",
+      "status": "geo_limited",
+      "official_url": "https://www.binance.com/en/activity/affiliate",
+      "public_rule_summary": "普通邀请（/en/activity/referral，已 KYC 用户即可）：现货默认返佣 20%，可分 0/5/10% 给好友；日均持有 ≥ 500 BNB 时升至 40%（可分至 20%）；只对 Regular/VIP1–2 的被邀请人计佣，对方升到 VIP3 即停止；合约返佣自开户起 12 个月；按小时发放。Affiliate（申请制，约 7 个工作日审核）：现货最高 50%，合约最高 40%，档位按季度（90 天）复核。",
+      "common_misread": "'50%' 只属于 Affiliate 高档且要达标，普通邀请是 20%（或 40%）；分给好友的返佣从你自己的比例里扣；合约返佣只有 12 个月；第三方的 '终身 50%' 属于夸大。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": "受限司法辖区用户（如新加坡居民；美国用户须用独立的 Binance.US）不能作为邀请人或被邀请人参与，被邀请人是香港居民时双方都无佣金；Affiliate 还要求 5,000+ 粉丝或 500+ 社群成员并通过审核。",
+      "confidence": "low"
+    },
+    {
+      "project": "Notion affiliate",
+      "status": "closed",
+      "official_url": "https://www.notion.com/affiliates",
+      "public_rule_summary": "原规则：每个激活注册最高 USD 50，另加每个推荐首年收入的 20%；只计点击后 180 天内升级到 Plus/Business 的新工作区，最后点击归因；2 个月内降级或退款会被追回；禁止自我推荐，须披露带佣金关系。当前不接受新 affiliate。",
+      "common_misread": "很多博客仍把 '$50 + 20%' 列为可加入；'20% recurring' 其实只算首年收入；Notion for Creators（免费套餐）、Startups、Partners 和推荐额度都不是 affiliate 计划。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": "notion.com/affiliates 标注当前不接受新 affiliate，PartnerStack 申请页也写明新申请一律自动拒绝，计划重启后才会联系。",
+      "confidence": "med"
+    },
+    {
+      "project": "Interactive Brokers invite/friend referral",
+      "status": "geo_limited",
+      "official_url": "https://www.interactivebrokers.com/en/trading/referral-member-to-member.php",
+      "public_rule_summary": "邀请人（个人或联名账户，净清算值 ≥ USD 2,000 且做过至少一笔证券交易）每个有效推荐得 USD 200 现金，条件是被邀请人经专属链接开户、30 天内入金 ≥ USD 10,000 并持有满 1 年；被邀请人按首年净入金每 USD 300 得 USD 1 的 IBKR A 类股，上限 USD 1,000，锁定 1 年；FA、对冲基金、机构及税收递延账户不适用；加拿大居民可以拿 USD 200，但被邀请人没有股票。T&C 表格 4841 标注日期 2 July 2026。",
+      "common_misread": "'$1,000' 是被邀请人拿的 IBKR 股票，不是现金，要首年净入金 USD 300k 才拿满，而且锁定一年；邀请人的 USD 200 要对方入金 ≥ 1 万美元并持有一年才发；上限是每年 15 个、累计 30 个；/en/accounts/referrer.php 的商业 Referrer 计划是另一回事。",
+      "as_of": "2026-09-22",
+      "why_not_joinable": "中国大陆、日本、西班牙、葡萄牙、丹麦、以色列、波兰居民不能参与，而且每位邀请人每自然年最多 15 个、累计最多 30 个有效推荐。",
+      "confidence": "med"
+    }
+  ],
+  "dont_repeat": [
+    "不要再写 Notion affiliate 可加入或 '$50 + 20%' 可拿：官方页面已停止接受新 affiliate。",
+    "不要把 12 个月封顶的计划写成终身 recurring：HubSpot 30%、Framer 50%、ElevenLabs 22%、Kit 50% 的主佣金都只算 12 个月；Kinsta 的 10% 才是终身。",
+    "不要把 Adobe 85% 写成经常性佣金：它只是一次性首月费用的 85%，年付预付只有 8.33%，Stock 月付是固定 USD 43。",
+    "不要把客户 refer-a-friend 奖励当成 affiliate 佣金：Deel 的 USD 200 礼卡、Airalo 的 USD 3 Airmoney、Kinsta 的账户额度、Shopify 商家推荐、Notion 的额度都是另外的计划。",
+    "不要引用阿里云 '最高 45%' 或 '365 天关联期'：2026 月度规则头部是 35%，关联期自 2026-09-01 起统一为 90 天；腾讯云 35% 只有高星级才有，新会员是 20% 且只算首购。",
+    "不要把 Binance 50% 写成普通邀请规则：普通邀请默认 20%（日均 ≥ 500 BNB 为 40%），50% 只属于达到门槛、按季度复核的 Affiliate。",
+    "不要把 IBKR '$1,000' 写成现金奖励：那是被邀请人的 IBKR 股票，需要 USD 300k 净入金才拿满、锁定一年；邀请人的 USD 200 还受每年 15 个、累计 30 个的上限和地区排除限制。",
+    "不要用第三方聚合站的数字当规则来源：cuelinks 的 76.5%、wecantrack 的 '$2,000 Plus'、'Kinsta 固定 $500'、'Deel $50 + $150'、'HubSpot 第 13 个月起 15%' 都没有出现在官方页面上。"
+  ],
+  "open_questions": [
+    "本轮运行环境的网络策略拦截了所有 vendor 域名（WebFetch 和 curl 都返回 EGRESS_BLOCKED/403），所以每一行都来自限定 vendor 域名的搜索索引摘录，而不是逐字读取的页面，因此全表没有 high。锁板前要不要先在能直连的环境里逐字复核，优先复核 4 行 low（阿里云、腾讯云、Coursera、Binance）？",
+    "三处官方表述互相冲突，需要登录后台确认：阿里云 2026 月度规则的 '统一 35%' 和帮助文档的 L1–L4（30/35/40/45%）等级表是否并存，企业认证账号能否加入；Coursera 的 '15–45%' 和索引里的 '20%' 哪个是现行口径；Binance Affiliate 50% 档的门槛是 '100 名新交易者 + 500 BTC' 还是 '500 traded referrals'。"
+  ]
+}
