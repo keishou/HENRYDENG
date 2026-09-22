@@ -1,0 +1,346 @@
+{
+  "compose_land_constraint_constellation": {
+    "problem": "(compose as_of 2026-09-22) /land research reads as a flat list. L-05 v2 reasoning entries, L-11 constraint cards, L-12 day-board conditionals/candidates and /land/s/power §2 [VERIFY] items reference each other, but those binding relations can't be seen or followed. Need: a read-only, lazy print-sky overlay on /land. Stars are existing plate ids. Edges are only the cites / falsifies / shares-placeholder relations already written in the sources. No new assets, no new plates (no L-16+), no trading surface. The L-05 v2 and L-01 河 PASTEs remain binding by reference.",
+    "do": [
+      "Mount as an overlay inside /land, opened by the 「仰望 / Look up」 toggle and closed by 「低头 / Look down」 or Esc. /land keeps its scroll position and focus returns to the toggle.",
+      "Build stars from the existing id index of L-05 v2 entries, L-11 cards, L-12 candidates and power §2 [VERIFY] items. Copy id, grade and as_of byte-for-byte. Unresolved refs go to manifest.excluded[] with a reason and show in a footer count 「未解析 n / Unresolved n」. They are never patched.",
+      "Take edges only from explicit source text. An id mention gives cites. An explicit falsifying marker gives falsifies. The same Grade S placeholder token on two stars gives shares_placeholder. Every cites or falsifies edge stores provenance {plate, anchor}.",
+      "Group stars into 4 named constellations by plate: 系缚座 The Tether (L-11), 岔路座 The Fork (L-12), 未明座 The Unproven (power§2) and 星历座 The Ephemeris (L-05).",
+      "Focus or click a star to open the side plate 「星签 / Star tag」. It shows exactly id, plate, grade, as_of, the standing notice, typed edge rows (zh+en), a same-origin source-plate anchor, and the refuse line (Q-* only).",
+      "Offer 3 lenses: T 循引 Trace, F 反证镜 Falsify lens and P 同空 Twin placeholders. They re-light existing edges only and never add or infer an edge.",
+      "Give Q-* stars a ⊘ marker and the zh+en refuse line (copy ui.q_refuse) inside [data-refuse-list]; the legend's marker.Q row also renders inside [data-refuse-list]. Q-* side-plate controls are limited to the same-origin source link and in-sky edge-focus buttons: 0 inputs, 0 outbound calls.",
+      "Ship a lazy chunk `land-constellation` plus a same-origin manifest, fetched only after 「仰望 / Look up」 or a #sky= deep link.",
+      "Compute the layout deterministically at build: position = f(sha256(id)) inside the plate's sector (L-05 included), then a collision pass over ids sorted by id. Identical input gives an identical sky.",
+      "Provide a 「星表 / Catalogue」 text view holding the same stars, grades, as_of values and edges. It serves screen readers and the print appendix and adds nothing.",
+      "Ship every user-facing string from copy in zh+en, and reuse the existing /land standing notice verbatim."
+    ],
+    "dont": [
+      "No star that is absent verbatim from a source plate: no sample, demo, FIXTURE-, ticker or instrument nodes.",
+      "No 4th edge type, and no similarity, co-occurrence, model-made, weighted or hand-guessed edges.",
+      "No price, PnL, order, quote, LIVE, tips, 必赚, 10000x or buy/sell wording, nor position/return in a holding/yield sense, in any text, aria-label, title, tooltip or print.",
+      "Placement, size and brightness encode nothing: no axes, no time or value mapping, no ranking glow, no 'hot' stars.",
+      "No force/physics layout, runtime randomness, idle twinkle, drift, parallax, auto-tour, automatic pan or looping motion.",
+      "No hues beyond the navy, gold and ink/paper tokens, and no red/green up/down semantics.",
+      "Never set a default grade or as_of, never re-grade, and never assign meaning to O/M/S/C beyond 'S = placeholder'.",
+      "No API-key field, exchange login/OAuth, wallet connect, order ticket or exchange deep link, for Q-* or any other star.",
+      "No market data, websocket or third-party request. connect-src 'self'.",
+      "No writes: no plate edit, no L-05 log append and no verify_clear mint from the overlay.",
+      "Keep the chunk and manifest out of the homepage bundle: no import, prefetch, preload or modulepreload.",
+      "No L-16+ plate, id or reserved slot.",
+      "Do not touch /field, /campus or /ethics: no files, links, stars or edges.",
+      "Do not restate, paraphrase or override the L-05 v2 or L-01 河 PASTE."
+    ],
+    "sky": {
+      "name": {
+        "zh": "约束星座",
+        "en": "Constraint Constellation"
+      },
+      "metaphor": {
+        "zh": "研究是一片被约束绑住的天空：每颗星是既有版面 id，每条线是原文已写明的关系。星图，不是清单。",
+        "en": "Research as a sky of binding constraints: every star is an existing plate id, every line a relation already written in the source. A star chart, not a list."
+      },
+      "tokens": "--gv-navy / --gv-gold / --gv-ink / --gv-paper are placeholder names: map each to the existing /land navy, gold, ink and paper tokens; create none.",
+      "field": "Full-bleed navy token inside the overlay. There is one hairline horizon arc and no graticule, axes or glow. Each constellation boundary is a single dotted gold@30 hairline, captioned in ink with its name in zh+en.",
+      "constellations": [
+        {
+          "plate": "L-11",
+          "zh": "系缚座",
+          "en": "The Tether",
+          "region": "天心 centre sector (placement only, no rank)"
+        },
+        {
+          "plate": "L-12",
+          "zh": "岔路座",
+          "en": "The Fork",
+          "region": "东弧 east-arc sector"
+        },
+        {
+          "plate": "power§2",
+          "zh": "未明座",
+          "en": "The Unproven",
+          "region": "西弧 west-arc sector; each star carries a small [ ] tick mirroring its source [VERIFY] tag"
+        },
+        {
+          "plate": "L-05",
+          "zh": "星历座",
+          "en": "The Ephemeris",
+          "region": "地平带 horizon-band sector; placed by id hash, not by time"
+        }
+      ],
+      "dots": "Every star is the same-radius filled gold token dot at fill-opacity 0.30, Grade S included. Grade S adds an ink hairline outer ring (placeholder) with fill unchanged. The grade letter appears as an ink superscript. Q-* stars get a ⊘ ring. The focused star gets a 2px ink focus ring.",
+      "labels": "Verbatim id in ink on a paper-token tag, mono 11px, print-dense, never truncated into another id. Label contrast is at least 4.5:1 against the tag.",
+      "edges": {
+        "cites": "Solid hairline with an arrow toward the cited star.",
+        "falsifies": "Dashed hairline with a ⊣ bar at the falsified star.",
+        "shares_placeholder": "Dotted hairline, undirected, with a hollow ◌ midpoint.",
+        "label": "Every edge element carries a zh+en accessible name from the copy.legend edge entries: '<from> 引用 cites <to>' / '<from> 证伪 falsifies <to>' / '<a> 共用占位 shares placeholder <b>'.",
+        "rest_state": "All edges gold@30.",
+        "focus_state": "Edges incident to the focused star turn ink and show a zh+en type chip. Everything else stays gold@30."
+      },
+      "asterism": "空心星群 Hollow asterism: ringed S stars joined by shares_placeholder read as one figure, meaning one missing source would fill them all. It is visible under lens P and never ranked.",
+      "layout": "Fixed viewBox with 4 sectors. x,y = f(sha256(id)) within the plate's sector, L-05 included. A collision pass runs over ids sorted by id, and the earlier id keeps its slot. Everything is computed at build, with no runtime physics.",
+      "motion": "Sparse. A one-shot incident-edge draw-in of 240ms or less on focus. Nothing idles or loops; no automatic pan.",
+      "reduced_motion": "prefers-reduced-motion: reduce means 0 animations and 0 transitions. State changes are instant and the output is identical to the static SVG.",
+      "print": "@media print: paper ground, ink stars and hairlines, gold rendered as ink outlines. The legend and Catalogue are appended, and the standing notice appears on every page.",
+      "mobile": "User-driven scroll/pan only inside the sky frame, with no horizontal page scroll and no animated or inertial pan under reduced motion. The side plate becomes a bottom sheet.",
+      "loading": "A toggle- or hash-triggered dynamic import (never on /land load without #sky=) loads chunk `land-constellation` and fetches manifest {schema:'constellation/1', as_of, source_sha{L-05,L-11,L-12,power§2}, stars[], edges[{from,to,type,provenance}], excluded[{ref,reason}]}. No graph, physics, animation or charting library.",
+      "network": "Same-origin manifest only. CSP connect-src 'self'.",
+      "empty": "With no resolvable ids, the sky shows the horizon arc and copy.empty_sky centred. No stars are drawn.",
+      "inherits": "The L-05 v2 and L-01 河 PASTEs remain binding by reference. The sky restates neither."
+    },
+    "interaction": {
+      "open_close": "The toggle (aria-expanded) or deep link /land#sky=<id> opens a role=dialog aria-modal overlay. Esc unpins the star first, a second Esc closes the overlay, and focus returns to the toggle.",
+      "focus_model": "The sky is one tab stop with a roving tabindex. Each star's accessible name is '<id> · <plate> · 等级 grade <g or —>'. Focus changes are announced through role=status using copy ui.status_focus (zh+en).",
+      "keys": {
+        "ArrowLeft/ArrowRight": "Previous/next star in the constellation (by id; L-05 by append sequence where L-05 v2 records one, else by id)",
+        "ArrowUp/ArrowDown": "Cycle constellations: Tether, Fork, Unlit, Ephemeris",
+        "Home": "Back to The Tether",
+        "Enter/Space": "Pin or unpin the side plate",
+        "E / Shift+E": "Follow the next/previous incident edge to its neighbour",
+        "T / F / P": "Toggle the Trace / Falsify lens / Twin placeholders lens",
+        "C": "Toggle the 星表 Catalogue",
+        "Esc": "Unpin, then close"
+      },
+      "key_help": "This key table is spec only; on-screen key help renders solely from copy.legend keys (zh+en).",
+      "pointer": "Hover shows only the id + plate tag. Click focuses and pins a star. Clicking the empty field unpins.",
+      "side_plate": {
+        "fields": [
+          "id",
+          "plate + constellation name (zh+en)",
+          "grade letter verbatim, or '— 未标 / not recorded'; S adds '占位 / placeholder'",
+          "as_of verbatim, or '未注明 / not stated'",
+          "standing notice [data-notice]: existing /land component verbatim, with copy notice.fallback only if none exists",
+          "edge rows: type zh+en → neighbour id, each a button that moves focus there",
+          "「打开原版面 / Open source plate」: same-origin plate anchor",
+          "refuse line (Q-* only): copy ui.q_refuse inside [data-refuse-list]"
+        ],
+        "placement": "Right rail at 900px and wider, bottom sheet below that.",
+        "never": "No field absent from the source plate. No inputs or forms."
+      },
+      "lenses": [
+        {
+          "key": "T",
+          "zh": "循引",
+          "en": "Trace",
+          "does": {
+            "zh": "点亮所选星上下游完整引用链；其余图层组透明度降至 0.3，星本身填充不变。",
+            "en": "Lights the full cites chain upstream and downstream of the focused star; other layers drop to group opacity 0.3, star fill-opacity unchanged."
+          }
+        },
+        {
+          "key": "F",
+          "zh": "反证镜",
+          "en": "Falsify lens",
+          "does": {
+            "zh": "只显示触及所选星的证伪连线：何者可推翻它，它可推翻何者。",
+            "en": "Shows only falsifies edges touching the focused star: what could overturn it, and what it could overturn."
+          }
+        },
+        {
+          "key": "P",
+          "zh": "同空",
+          "en": "Twin placeholders",
+          "does": {
+            "zh": "只显示共用占位连线；空心星群显现，每缺一处来源一组。",
+            "en": "Shows only shares_placeholder edges; hollow asterisms appear, one per missing source."
+          }
+        }
+      ],
+      "filters": "Toggle chips for each constellation and each edge type, labelled from copy.legend. They hide or show layers without moving any star. State lives in the URL hash (#sky=&plates=&edges=).",
+      "deep_link_miss": "An unknown id opens the sky unfocused with the status line copy ui.deep_link_miss. No substitute star is shown.",
+      "q_star": {
+        "rule": "A star whose id starts with Q- shows copy ui.q_refuse inside [data-refuse-list]. Its side-plate controls are limited to the same-origin source link and in-sky edge-focus buttons: 0 inputs, 0 outbound calls."
+      },
+      "catalogue": "「星表 / Catalogue」 is a grouped table with headers from copy ui.catalogue (星座 constellation · id · 等级 grade · as_of · 连线 edges), rows by id (L-05 by append sequence where recorded). It carries the same N stars as the sky and is not the default view.",
+      "read_only": "Opening, focusing, lenses, filters and close perform 0 writes to any plate, the L-05 log or storage beyond the URL hash."
+    },
+    "acceptance": [
+      "[data] The set difference between manifest star ids and the source id indexes is empty. plate is one of {L-05, L-11, L-12, power§2}. drawn + excluded = refs scanned. FIXTURE- ids in a shipped manifest = 0.",
+      "[scope] The pattern L-(1[6-9]|[2-9][0-9]|[0-9]{3,}) has 0 hits over the manifest, chunk and copy. CI path guard: 0 changed files under /field, /campus or /ethics, and 0 links to them.",
+      "[edges] type is one of {cites, falsifies, shares_placeholder}. Both endpoints are stars. No self-loops. shares_placeholder is stored canonically with from < to by id; no duplicate (from,to,type). Each cites/falsifies provenance resolves to a source span containing the target id. shares_placeholder endpoints share at least one Grade S placeholder token. Inferred edges = 0. 100% of edge elements carry a zh+en accessible name whose type label matches one of the 3 legend entries.",
+      "[parity] Rendered grade and as_of are byte-equal to the source for 100% of stars. A missing value renders the zh+en 'not recorded / not stated' copy and is never defaulted. At rest (no lens), all star radii and fill-opacities are equal, Grade S included.",
+      "[dom] Every focused star's side plate contains exactly {id, plate, grade, as_of, standing notice, edge rows, source link}, plus the refuse line if and only if the id starts with Q-. The overlay has 0 input/form/select/textarea elements.",
+      "[lint] Case-insensitive whole-word scan for price, pnl, order, live, tips, buy, sell, plus substrings 必赚, 10000x, 价格, 盈亏, 下单, 订单, 买入, 卖出, over rendered textContent, aria-label, title, role=status output and print: 0 hits. A currency symbol followed by a digit: 0 hits. Every rendered string (ids, grade letters and the reused /land standing notice verbatim excepted) resolves to a copy key with non-empty zh and en.",
+      "[q] Q-<placeholder> fixture (Grade S): ⊘ marker and copy ui.q_refuse (zh+en) present inside [data-refuse-list]. Case-insensitive whole-word scan of the Q-* star's side plate and its sky subtree, excluding [data-refuse-list] and [data-notice]: 0 matches for key, keys, 密钥, login, 登录, wallet, 钱包, exchange, 交易所. Controls = source link + edge-focus buttons only; 0 input/password fields; 0 requests beyond the land-constellation chunk and 1 same-origin manifest; 0 storage writes.",
+      "[network] GET / makes 0 requests matching 'constellation'. /land without #sky= makes 0 before the toggle; after the toggle, or on load with #sky=, there is exactly the chunk + 1 manifest, both same-origin. 0 cross-origin requests or websockets at any point. CSP connect-src 'self'.",
+      "[bundle] The homepage entry graph has 0 modules under land/constellation/**. Homepage and /land shell HTML have 0 prefetch/preload/modulepreload refs to the chunk or manifest. The dependency scan finds no graph/physics/animation/charting, wallet or exchange SDK.",
+      "[determinism] Two builds, including one with shuffled source input, give identical manifest sha256 and SVG bytes.",
+      "[motion] Under reducedMotion='reduce': document.getAnimations() is empty, transition-duration is 0s, and screenshots 50ms and 500ms after focus are pixel-identical. By default: 0 infinite animations, 0 automatic pans, and nothing moves more than 240ms after a focus change.",
+      "[style] Computed field = navy token. Every star fill = gold token at fill-opacity 0.3 at rest; S adds only an ink hairline ring. Labels = ink on paper token. Tokens map to existing /land navy/gold/ink/paper tokens; 0 new tokens; no other hue.",
+      "[a11y] axe-core reports 0 serious/critical issues. ArrowLeft/Right visit each star of a constellation exactly once. ArrowUp/Down reach all 4. E walks the incident edges. Esc then Esc returns focus to the toggle. The Catalogue lists the same N stars.",
+      "[empty] With 0 resolvable ids, empty_sky renders in zh+en with 0 star nodes.",
+      "[read-only] A session of open, focus, T/F/P, filter and close produces 0 plate writes, 0 L-05 appends and 0 verify_clear events.",
+      "[print] Print emulation shows a static ink-on-paper sky, the legend, the Catalogue appendix and the standing notice on every page.",
+      "[inherit] Reviewer check: the overlay cites the L-05 v2 and L-01 河 PASTEs as inherited, does not restate them and does not conflict with them."
+    ]
+  },
+  "star_schema": {
+    "id": "string. The existing plate id, copied verbatim from its source id index (<L-05 entry id> | <L-11 card id> | <L-12 candidate id> | <power §2 VERIFY id>). It must resolve on its plate or the star is not drawn. It is unique within the sky and never minted or normalized. A leading Q- takes the refuse-list path. FIXTURE- ids are rejected in shipped manifests.",
+    "plate": "enum 'L-05' | 'L-11' | 'L-12' | 'power§2' (= /land/s/power §2). It selects the constellation. Any other value, including L-16+, fails the build.",
+    "grade": "enum 'O' | 'M' | 'S' | 'C' | null. Copied byte-for-byte from the source plate; the existing meaning is unchanged and not redefined here. S = placeholder (extra ink hairline ring, fill unchanged). null renders as '— 未标 / not recorded' and is never defaulted or inferred.",
+    "edge_types": [
+      "cites",
+      "falsifies",
+      "shares_placeholder"
+    ]
+  },
+  "copy": {
+    "legend": [
+      {
+        "item": "edge.cites",
+        "zh": "引用 —— 实线箭头：此星原文点名引用彼星",
+        "en": "cites —— solid arrow: this star's source names that star"
+      },
+      {
+        "item": "edge.falsifies",
+        "zh": "证伪 ─ ─ 虚线，末端 ⊣：此星记载可推翻彼星的条件",
+        "en": "falsifies ─ ─ dashed, ⊣ at target: this star records a condition that would overturn that star"
+      },
+      {
+        "item": "edge.shares_placeholder",
+        "zh": "共用占位 ··· 点线，无方向，中点空心 ◌：两星共用同一 S 级占位，一处来源可同时填实",
+        "en": "shares placeholder ··· dotted, undirected, hollow ◌ midpoint: both stars hold the same Grade S placeholder, and one source fills both"
+      },
+      {
+        "item": "constellation.L-11",
+        "zh": "系缚座 · L-11 约束卡 · 天心",
+        "en": "The Tether · L-11 constraint cards · centre"
+      },
+      {
+        "item": "constellation.L-12",
+        "zh": "岔路座 · L-12 日板条件·候选 · 东弧",
+        "en": "The Fork · L-12 day-board conditionals · candidates · east arc"
+      },
+      {
+        "item": "constellation.power§2",
+        "zh": "未明座 · /land/s/power §2 [VERIFY] 项 · 西弧",
+        "en": "The Unproven · /land/s/power §2 [VERIFY] items · west arc"
+      },
+      {
+        "item": "constellation.L-05",
+        "zh": "星历座 · L-05 推理日志条目 · 地平带",
+        "en": "The Ephemeris · L-05 reasoning-log entries · horizon band"
+      },
+      {
+        "item": "grade",
+        "zh": "等级 O · M · S · C —— 照录来源版面，本页不重定义、不重评",
+        "en": "Grade O · M · S · C —— copied from the source plate; never redefined or re-graded here"
+      },
+      {
+        "item": "grade.S",
+        "zh": "S —— 占位，外加细环",
+        "en": "S —— placeholder, extra hairline ring"
+      },
+      {
+        "item": "grade.none",
+        "zh": "— 来源未标等级，不补",
+        "en": "— no grade on the source; none filled in"
+      },
+      {
+        "item": "as_of",
+        "zh": "as_of —— 取自来源条目；未写则显示「未注明」",
+        "en": "as_of —— from the source entry; shows 'not stated' when absent"
+      },
+      {
+        "item": "marker.Q",
+        "zh": "⊘ Q-* 量化星：拒绝清单生效 · 无密钥 · 无交易所登录 · 无钱包连接 · 无交易入口",
+        "en": "⊘ Q-* quant star: refuse-list applies · no keys · no exchange login · no wallet connect · no trade entry"
+      },
+      {
+        "item": "asterism.hollow",
+        "zh": "空心星群 —— 多颗带环 S 星以同一占位相连：缺的是同一处来源",
+        "en": "Hollow asterism —— ringed S stars joined by one placeholder: they lack the same single source"
+      },
+      {
+        "item": "star.encoding",
+        "zh": "星位、大小、亮度均不表示数值、时间或排名",
+        "en": "Star placement, size and brightness encode no value, time or rank"
+      },
+      {
+        "item": "lenses",
+        "zh": "T 循引 · F 反证镜 · P 同空 —— 只重亮既有连线",
+        "en": "T Trace · F Falsify lens · P Twin placeholders —— re-light existing lines only"
+      },
+      {
+        "item": "keys",
+        "zh": "←/→ 同座移动 · ↑/↓ 换星座 · Home 回系缚座 · E 沿边 · Enter 固定 · C 星表 · Esc 取消固定，再按收起",
+        "en": "←/→ within constellation · ↑/↓ switch constellation · Home back to The Tether · E follow edge · Enter pin · C catalogue · Esc unpin, again to close"
+      },
+      {
+        "item": "unresolved",
+        "zh": "未解析 n —— 在原版面找不到的 id 不上天",
+        "en": "Unresolved n —— ids not found on their plate are not drawn"
+      },
+      {
+        "item": "notice.fallback",
+        "zh": "常设声明（后备）：仅供研究；非投资建议；本星图只读，不执行任何操作。",
+        "en": "Standing notice (fallback): research only; not investment advice; this sky is read-only and executes nothing."
+      },
+      {
+        "item": "reduced_motion",
+        "zh": "已开启「减少动态」：星空完全静止",
+        "en": "Reduced motion on: the sky is fully static"
+      },
+      {
+        "item": "ui.toggle",
+        "zh": "仰望 · 低头",
+        "en": "Look up · Look down"
+      },
+      {
+        "item": "ui.star_tag",
+        "zh": "星签",
+        "en": "Star tag"
+      },
+      {
+        "item": "ui.open_source",
+        "zh": "打开原版面",
+        "en": "Open source plate"
+      },
+      {
+        "item": "ui.missing",
+        "zh": "— 未标 · 未注明",
+        "en": "— not recorded · not stated"
+      },
+      {
+        "item": "ui.catalogue",
+        "zh": "星表 —— 星座 · id · 等级 · as_of · 连线",
+        "en": "Catalogue —— constellation · id · grade · as_of · edges"
+      },
+      {
+        "item": "ui.deep_link_miss",
+        "zh": "该 id 不在当前星图",
+        "en": "id not in current sky"
+      },
+      {
+        "item": "ui.status_focus",
+        "zh": "已聚焦 <id> · <plate> · 等级 <g 或 —>",
+        "en": "Focused <id> · <plate> · grade <g or —>"
+      },
+      {
+        "item": "ui.q_refuse",
+        "zh": "Q-* 量化拒绝清单生效：无密钥 · 无交易所登录 · 无钱包连接 · 无交易入口。",
+        "en": "Q-* quant refuse-list applies: no keys · no exchange login · no wallet connect · no trade entry."
+      }
+    ],
+    "empty_sky": {
+      "zh": "今夜无星。L-05、L-11、L-12 与 power §2 暂无可解析的 id —— 这片天空不会替你编造星辰。",
+      "en": "No stars tonight. L-05, L-11, L-12 and power §2 have no resolvable ids yet —— this sky will not invent any."
+    }
+  },
+  "dont_repeat": [
+    "Don't repeat: shipping sample or demo stars 'until real data lands'. The empty sky is the honest state.",
+    "Don't repeat: letting a layout heuristic (similarity, co-occurrence) quietly become a 4th edge type.",
+    "Don't repeat: size, glow or position hinting at importance. Every star is equal.",
+    "Don't repeat: filling a missing grade with S or a missing as_of with the build date.",
+    "Don't repeat: a banned word (price, PnL, order, LIVE, tips, 必赚, 10000x, buy/sell) slipping in through aria-labels, tooltips or print.",
+    "Don't repeat: a Q-* star exposing any input, key field, exchange or wallet button.",
+    "Don't repeat: shared-chunk hoisting or prefetch dragging the constellation into the homepage bundle.",
+    "Don't repeat: ambient loops that ignore prefers-reduced-motion.",
+    "Don't repeat: overlays that 'helpfully' write back (log appends, verify_clear) from a read-only view.",
+    "Don't repeat: scope creep into L-16+, /field, /campus or /ethics, or restating the L-05 / L-01 河 PASTE instead of inheriting it."
+  ],
+  "open_questions": [
+    "Provenance: do L-11, L-12 and power §2 already carry explicit cross-id refs, and which marker means 'falsifies' rather than a plain citation? Until the founder defines it, falsifies edges stay empty rather than inferred.",
+    "L-01 河 PASTE is still binding. Should it render as a faint, starless, unlabeled 天河 band (decor only), or stay absent because the LOCKED star sources exclude L-01?"
+  ]
+}
