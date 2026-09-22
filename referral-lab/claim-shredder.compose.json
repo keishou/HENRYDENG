@@ -29,11 +29,11 @@
       "mode": "Deterministic rules run in the browser. No LLM free text, no network call on paste; the same paste, seed and date always give the same output.",
       "input": "One pasted claim, zh or en, up to 2,000 characters. URLs (/https?:\\/\\/\\S+/g) are stripped before matching and never rendered.",
       "steps": [
-        "S0 normalize: replace the full-width comma ， (U+FF0C) with 、 (U+3001); then NFKC (full-width to half-width), Traditional to Simplified (OpenCC t2s), lowercase Latin, collapse whitespace; then write spelled-out numbers as digits: Chinese numerals [零一二两三四五六七八九十]{1,3} directly before 个月|年|天|% (not after 第 or 首) or directly after 百分之 (两=2, 十二=12, 二十四=24, 四十五=45); English one–twelve, eighteen, twenty-four, thirty, sixty, ninety directly before month(s)|year(s)|day(s)|percent; then 百分之N → N%, 'N percent' / 'N per cent' → N%, 半年 → 6个月.",
-        "S1 match programs: seed[].aliases are regex sources (flags iu) run on the S0 text. None → 未核实 · unknown_program. With several programs, keep the first 3 programs by first alias offset and split the paste at each alias occurrence; each segment belongs to the program whose alias opens it (text before the first alias goes to the first); a segment opened by an alias of a program that was not kept is dropped. S3–S6 read only that program's segments; S7 reads the whole paste and its codes attach to every verdict.",
+        "S0 normalize: replace enclosed alphanumerics used as list markers (U+2460–U+24FF, U+3251–U+325F, U+32B1–U+32BF, e.g. ① ⑵ ⒊) with 、; replace the full-width comma ， (U+FF0C) with 、 (U+3001); then NFKC (full-width to half-width), Traditional to Simplified (OpenCC t2s), lowercase Latin, collapse whitespace; then write spelled-out numbers as digits: Chinese numerals [零一二两三四五六七八九十]{1,3} directly before 个月|年|天|% (not after 第 or 首) or directly after 百分之 (两=2, 十二=12, 二十四=24, 四十五=45); English one–twelve, eighteen, twenty-four, thirty, sixty, ninety directly before month(s)|year(s)|day(s)|percent; then 百分之N → N%, 'N percent' / 'N per cent' → N%, 半年 → 6个月, N年半 → (12N+6)个月 (一年半 → 18个月).",
+        "S1 match programs: seed[].aliases are regex sources (flags iu) run on the S0 text. None → 未核实 · unknown_program. With several programs, keep the first 3 programs by first alias offset and split the paste at each alias occurrence; each segment belongs to the program whose alias opens it (text before the first alias goes to the first); a segment opened by an alias of a program that was not kept is dropped. A segment whose text after its alias holds only list separators (whitespace / 、 , & + | · 和 与 及 以及 还有 跟 and or) also reads the next segment that holds more than that, when that segment belongs to another kept program, so a claim shared by a list of names (A、B、C 都是…) reaches every listed program. S3–S6 read only that program's segments; S7 reads the whole paste and its codes attach to every verdict.",
         "S2 freshness gate: stale when verified_on is null or (client UTC date − verified_on) > 90 days. Stale → 未核实 · seed_stale and stop for that program.",
-        "S3 resolve track: named tracks are the row's tracks whose track_words match. Exactly one → that track. None, several, or only words for tracks this row lacks → the track with the most matched S5 facts (tie → tracks[0]).",
-        "S4 extract facts from the segment with the lexicon: extract ranges first (a rate or amount inside a range span is dropped; a range is one fact {low, high} whose high end counts as ceiling-marked); then standalone rates and amounts (ceiling-marked when a ceiling match ends within 8 characters before the number, or ceiling_after matches the text right after the number and its unit; an amount with a threshold match ending within 8 characters before it is a threshold fact, not a standalone amount; k or 千 multiplies an amount by 1,000 and 万 by 10,000); durations (each cookie match takes as the cookie window the single nearest duration within 12 characters that has no 、 ; 。 ! ? between it and the cookie word; a remaining duration whose following text matches timing_after, or whose preceding text matches timing_before, is payout timing and is skipped; any other duration is the commission duration; first_year = 12 months); and every other lexicon key as a boolean. Drop a lifetime, recurring, cash, guarantee, income, affiliation, cap_denial or code_claim match when the text right before it (spaces trimmed) matches negation_before.",
+        "S3 resolve track: named tracks are the row's tracks whose track_words match. Exactly one → that track. Several named tracks → cut the segment at the start of each of their track_words matches (a match starting inside an earlier match is ignored); each piece is extracted (S4) and compared (S5 step 3) against the track whose word opens it, text before the first cut joins the first piece, and a fact matched in any piece counts as matched; S5 steps 1–2 still read the whole segment. None, or only words for tracks this row lacks → the track with the most matched S5 facts (tie → tracks[0]).",
+        "S4 extract facts from the segment with the lexicon: extract ranges first (a rate or amount inside a range span is dropped; a range is one fact {low = its first number, high = its last number} whose high end counts as ceiling-marked; a tier ladder such as 10%→15%→25% is a range); then standalone rates and amounts (ceiling-marked when a ceiling match ends within 8 characters before the number, or ceiling_after matches the text right after the number and its unit; an amount with a threshold match ending within 8 characters before it, or whose following text (after the number and its unit) matches threshold_after, is a threshold fact, not a standalone amount; k or 千 multiplies an amount by 1,000 and 万 by 10,000); durations (each cookie match takes as the cookie window the single nearest duration within 12 characters that has no 、 ; 。 ! ? between it and the cookie word (on a tie, the one after the cookie word); a remaining duration whose following text matches timing_after, or whose preceding text matches timing_before, is payout timing and is skipped; any other duration is the commission duration; first_year = 12 months); and every other lexicon key as a boolean. Drop a lifetime, recurring, cash, guarantee, income, affiliation, cap_denial or code_claim match when the text right before it (spaces trimmed) matches negation_before.",
         "S5 compare, per fact, in this order: (1) a fact that satisfies a row.unresolved touches predicate emits only conflicting_official_wording; (2) otherwise test the row's misread_triggers in array order, first hit wins; (3) otherwise generic rules against the resolved track's cmp: lifetime vs duration one_time / months, or recurring vs duration one_time → duration_overstated; recurring vs duration months → duration_overstated only when no commission duration was extracted; a commission duration or cookie window is compared only when cmp has months / cookie_days (longer than cmp.months → duration_overstated, equal → matched, otherwise fact_mismatch); cash vs reward_form credit → credit_as_cash; a flat value equal to rate_max / amount_max where *_is_ceiling, or a flat amount equal to an amount_caps entry → ceiling_as_floor; a ceiling-marked value on a track whose *_is_ceiling is true and that differs from *_max → fact_mismatch; a ceiling-marked amount equal to an amount_caps entry → matched; a threshold fact equal to cmp.threshold → matched, any other threshold fact → fact_mismatch; a value in cmp (or within its range, or a range whose ends are both published) → matched; a value found only in another track's cmp → track_conflated; anything else → fact_mismatch.",
         "S6 status short-circuit for rows whose status is not open (S3–S5 are skipped; their misread_triggers apply only if the row reopens): closed → program_closed; capped_and_geo → referral_cap + geo_excluded; geo_restricted → geo_excluded.",
         "S7 whole-paste lexicon checks: code_claim or private_rate → private_terms, and discard that program's S5 results (the numbers describe the private offer); income → income_claim; affiliation → claimed_affiliation; guarantee → guarantee_claimed.",
@@ -149,35 +149,36 @@
         }
       },
       "lexicon": {
-        "_note": "JS regex sources, flags iu, run on the S0-normalized segment. Bracketed forms such as 稳[赚] match the plain word in a paste while keeping this file clean under acceptance A1.",
-        "lifetime": "终身|永久|一辈子|永远|\\blifetime\\b(?!\\s+deal)|\\bforever\\b|\\bfor life\\b|in perpetuity",
-        "plan_tied": "套餐(?:持续|存续|付费|有效)|持续付费|付费期间|续费期间|as long as|keeps? paying|while (?:the )?customer|of (?:the|their) plan",
-        "recurring": "循环|月月[返拿分有]|每月都[返拿分有]|续费[也都]?(?:返|有|计佣|分成)|recurring|every month|each month",
+        "_note": "JS regex sources, flags iu, run on the S0-normalized segment. Bracketed forms such as 稳[赚] match the plain word in a paste while keeping this file clean under acceptance A1. The lexicon is a living list: add a phrasing only together with a regression-corpus case (acceptance A12).",
+        "lifetime": "终身|终生|永续|无限期|永久|一辈子|永远|\\blifetime\\b(?!\\s+deal)|\\bforever\\b|\\bfor life\\b|in perpetuity",
+        "plan_tied": "套餐(?:持续|存续|付费|有效)|只要(?:客户|用户|对方)?(?:一直|持续|继续|还在|在)?(?:续费|付费|订阅)|续费就|(?:客户|用户)?不(?:退订|取消|流失)|持续付费|付费期间|续费期间|as long as|keeps? paying|while (?:the )?customer|of (?:the|their) plan",
+        "recurring": "循环|月月[返拿分有]|每个?月都(?:能|会|可以?)?[返拿分有]|续费[也都]?(?:返|有|计佣|分成)|recurring|every month|each month",
         "one_time": "一次性|one[- ]time|bounty|flat fee",
-        "ceiling": "最高|高达|至多|最多|(?<!无|没有|不设)上限|(?<!不)封顶|up to|as much as|capped at|cap of|\\bmax(?:imum)?\\b(?: of)?",
+        "ceiling": "最高|至高|可达|高达|至多|最多|(?<!无|没有|不设)上限|(?<!不)封顶|up to|as much as|capped at|cap of|\\bmax(?:imum)?\\b(?: of)?",
         "ceiling_after": "^\\s*[(（]?\\s*(?:封顶|为上限|是上限|max(?:imum)?\\b|at most|tops\\b)",
         "threshold": "满|起付|起提|最低提现|提现门槛|门槛|超过|minimum(?: payout| balance| withdrawal)?(?: of)?|threshold(?: of)?|at least|exceeds?",
+        "threshold_after": "^\\s*(?:起提|起付|起结|起兑|即可提现|才(?:能|可以?)?(?:提现|提|打款|结算)|提现门槛|门槛|minimum(?: payout| withdrawal| balance)?\\b|min\\.? (?:payout|withdrawal)|payout (?:threshold|minimum))",
         "per_unit": "每单|每个|一单|每人|每位|每拉|per (?:sale|signup|sign-up|referral|customer|order|client)",
-        "range": "(?:[$¥€£]\\s*\\d+(?:\\.\\d+)?\\s*(?:[-–—~至到]|to)\\s*(?:us)?[$¥€£]?\\s*\\d+(?:\\.\\d+)?)|(?:\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|刀|usd)?\\s*(?:[-–—~至到]|to)\\s*\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|元|刀|usd|rmb|u(?![a-z.])))|(?:between\\s+(?:us)?[$¥€£]\\s*\\d+(?:\\.\\d+)?\\s*and\\s+(?:us)?[$¥€£]?\\s*\\d+(?:\\.\\d+)?)|(?:between\\s+\\d+(?:\\.\\d+)?\\s*%?\\s*and\\s+\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|元|刀|usd|rmb))",
-        "rate": "(\\d+(?:\\.\\d+)?)\\s*[%％]",
-        "amount": "(?:[$¥€£]|usd|rmb|美元|美金|刀)\\s*\\d+(?:,\\d{3}(?!\\d))*(?:\\.\\d+)?(?:\\s*(?:k\\b|千|万))?|\\d+(?:,\\d{3}(?!\\d))*(?:\\.\\d+)?\\s*(?:k\\b|千|万)?\\s*(?:美元|美金|元|刀|usd|rmb|dollars?\\b|bucks\\b|u(?![a-z.]))",
+        "range": "(?:\\d+(?:\\.\\d+)?\\s*%?\\s*(?:→|->|➡|⇒)\\s*)+\\d+(?:\\.\\d+)?\\s*%|(?:[$¥€£]\\s*\\d+(?:\\.\\d+)?\\s*(?:[-–—~〜至到]|to)\\s*(?:us)?[$¥€£]?\\s*\\d+(?:\\.\\d+)?)|(?:\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|美刀|刀|usd)?\\s*(?:[-–—~〜至到]|to)\\s*\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|美刀|元|刀|usd|rmb|u(?![a-z.])))|(?:between\\s+(?:us)?[$¥€£]\\s*\\d+(?:\\.\\d+)?\\s*and\\s+(?:us)?[$¥€£]?\\s*\\d+(?:\\.\\d+)?)|(?:between\\s+\\d+(?:\\.\\d+)?\\s*%?\\s*and\\s+\\d+(?:\\.\\d+)?\\s*(?:%|美元|美金|美刀|元|刀|usd|rmb))",
+        "rate": "(\\d+(?:\\.\\d+)?)\\s*(?:[%％]|(?<=(?:返|返佣|返点|佣金|分成|提成|抽成?)\\s*\\d+(?:\\.\\d+)?\\s*)个点)",
+        "amount": "(?:[$¥€£]|usd|rmb|美元|美金|美刀|刀)\\s*\\d+(?:,\\d{3}(?!\\d))*(?:\\.\\d+)?(?:\\s*(?:k\\b|千|万))?|\\d+(?:,\\d{3}(?!\\d))*(?:\\.\\d+)?\\s*(?:k\\b|千|万)?\\s*(?:美元|美金|美刀|元|刀|usd|rmb|dollars?\\b|bucks\\b|u(?![a-z.])|\\$)",
         "duration": "(?<!\\d|\\d[.,])((?!(?:1[1-9]|[2-9]\\d|\\d{3})\\s*-?\\s*(?:年|years?))\\d{1,3})\\s*-?\\s*(个月|年(?!\\d)|天|months?|years?|days?)(?![a-z])",
-        "timing_after": "^\\s*(?:后|以后|之后|内|以内|after\\b|later\\b)|^[^、;。!?]{0,8}?(?:待定|生效|到账|审核|结算|冻结|考核|锁定|发放|pending|hold|period|approval|qualif|validat|lock)",
-        "timing_before": "(?:after|within)\\s*$",
+        "timing_after": "^\\s*(?:后|以后|之后|after\\b|later\\b)|^[^、;。!?]{0,8}?(?:待定|生效|到账|审核|结算|冻结|考核|锁定|发放|付款|打款|支付|注册|下单|首购|首单|购买|确认|提现|pending|hold|period|approval|qualif|validat|lock)",
+        "timing_before": "(?:after|within)\\s*$|(?:待定|生效|到账|审核|结算|冻结|考核|锁定|发放|等待|pending|hold|approval)[^、;。!?\\d]{0,3}$",
         "first_year": "首年|第一年|first year|year[- ]one",
-        "cookie": "cookie|归因|关联期|追踪期|跟踪期|追踪窗口|referral window|attribution|tracking (?:window|period)|click window",
+        "cookie": "cookie|归因|关联期|追踪|跟踪|referral window|attribution|tracking (?:window|period)|click window",
         "trial": "试用|trial",
-        "friend_gets": "(?:好友|朋友|对方|被推荐人|被邀请人|被推荐的公司)(?:也|还|可|能|会)*(?:拿|得|获|领|送|返|有)|\\b(?:friend|referee|invitee)s?\\s+(?:also\\s+)?(?:gets?|receives?|earns?)",
+        "friend_gets": "(?:好友|朋友|对方(?:公司|企业)?|被推荐人|被邀请人|被(?:推荐|邀请)的?(?:公司|企业|客户|商家))(?:也|还|可|能|会)*(?:拿|得|获|领|送|返|有)|\\b(?:friend|referee|invitee)s?\\s+(?:also\\s+)?(?:gets?|receives?|earns?)",
         "cash": "现金|打到(?:银行)?卡|提现|\\bcash\\b(?!\\s?back)|withdraw",
         "credit": "抵扣|积分|代金券|\\bcredits?\\b|coupon|voucher|airmoney",
-        "signup_pays": "注册就(?:算|有|拿|给)|注册即(?:返|得|算)|every sign-?up|each sign-?up|per sign-?up",
+        "signup_pays": "注册(?:就|即|也|都)(?:能|可以?|会)?(?:算|有|拿|给|返|得)|every sign-?up|each sign-?up|per sign-?up",
         "instant": "秒到|立即到账|马上(?:到账|能卖|有)|当月到账|(?:paid|pays?|payouts?|payments?|commissions?|starts?|begins?|kicks? in|arrives?)\\s+(?:out\\s+)?(?:instantly|immediately|right away)|instant\\s+(?:pay(?:outs?|ments?)?|commissions?|cash(?:out)?|withdrawals?)|from day one",
         "stack": "叠加|双份|两份|同时拿|\\bstack(?:s|ed|ing)?\\b|on top of",
         "cap_denial": "上不封顶|不封顶|无上限|不设上限|没有上限|不限(?:人数|名额|次数|数量)|无限(?:推荐|邀请|拉人)|unlimited\\s+(?:referrals?|invites?|rewards?|earnings?)|\\bno\\s+(?:referral\\s+)?(?:limit|cap)\\b|uncapped",
         "code_claim": "内部码|创始人码|专属码|领取码|私信(?:我|本人)?(?:领取|领|拿|要|获取)(?!取?\\s*(?:链接|link))|founder code|internal code|secret code|exclusive code|dm me (?:for|to get) (?:the |my |an? )?(?:code|rate|invite)",
         "private_rate": "内部价|内部渠道|特批|私下|私域价|vip ?(?:rate|tier)|negotiated|special tier|private rate",
-        "income": "(?:月|日)入(?=\\s*[\\d一二两三四五六七八九十百千万过破上])|收入截图|战绩|躺[赚]|被动收入|\\bi (?:made|earned) (?:\\$|usd ?)?\\d|per month income|passive income|(?:earnings?|income|payouts?|commissions?|revenue)\\s+screenshots?|screenshots?\\s+of\\s+(?:my\\s+)?(?:earnings?|income|payouts?|commissions?|dashboard)",
-        "guarantee": "稳[赚]|保赚|包赚|必赚|年入百[万]|guaranteed|risk[- ]free|sure thing",
+        "income": "(?:月|日)入(?=\\s*[\\d一二两三四五六七八九十百千万过破上])|收入截图|战绩|躺[赚]|被动收入|睡后收入|躺着(?:赚|收|拿|数)钱|\\bi (?:made|earned) (?:\\$|usd ?)?\\d|per month income|passive income|(?:earnings?|income|payouts?|commissions?|revenue)\\s+screenshots?|screenshots?\\s+of\\s+(?:my\\s+)?(?:earnings?|income|payouts?|commissions?|dashboard)",
+        "guarantee": "稳[赚]|保赚|包赚|必赚|年入百[万]|零风险|无风险|0\\s*风险|guaranteed|risk[- ]free|sure thing",
         "affiliation": "官方合[作](?!伙伴(?:计划|项目))|官方授权|官方指定|official partner(?!s?\\s+program)|authorized by|endorsed by",
         "negation_before": "(?:不是|并非|并不|非|没有|无|不|别|不能|不可以?|无法|不得|不会)$|(?:^|[^a-z])(?:not|no|never|nothing|isn['’]t|aren['’]t|can['’]t|cannot|won['’]t|don['’]t|doesn['’]t|without|non-?)(?:\\s+(?:be|is|are|a|an))?(?:\\s+(?:withdrawn|redeemed|exchanged|converted|paid out)\\s+(?:as|for|into))?$",
         "exclusion_stated": "不计佣|不计入|不算|不能|不可|不另|不再|不适用|不包括|不含|除外|排除|没有佣金|no longer|not (?:eligible|count|counted|paid|commissionable|the same)|(?:don't|doesn't|do not|does not) (?:count|pay|earn|qualify|apply)|earns? nothing|excluded|isn't|is not|pays? (?:\\$\\s*)?0\\b|零佣金"
@@ -196,7 +197,8 @@
         "international_ambassador": "国际站.{0,6}大使|\\bambassador\\b",
         "international_cps": "国际站(?:产品)?(?:推广|返佣)|international (?:products?|site)",
         "invite_earn": "invite (?:&|and) earn|邀请(?:有礼|计划)|积分",
-        "rtc_affiliate": "\\brtc\\b|trtc"
+        "rtc_affiliate": "\\brtc\\b|trtc",
+        "llm_line": "大模型|\\bllms?\\b|\\bagents?\\b|智能体|通义|百炼|qwen"
       },
       "match_grammar": {
         "_note": "A trigger or unresolved item fires when every condition in its object holds for the program's segment. null = documentation only, never fires.",
@@ -317,6 +319,10 @@
           "rtc_affiliate": {
             "zh": "RTC 产品联盟",
             "en": "RTC product affiliate"
+          },
+          "llm_line": {
+            "zh": "中国站大模型 / Agent 产品线",
+            "en": "China-site LLM / Agent lines"
           }
         },
         "rows": "Status and checked date once per row; one sub-line per track with its track label and that track's source link (data-field=\"source_url\", visible text 官方来源 / Official source).",
@@ -339,7 +345,7 @@
             "en": "Deel Affiliate / Customer Referral"
           },
           "aliases": [
-            "\\bdeel\\b"
+            "\\bdeel(?![a-z])"
           ],
           "status": "open",
           "join_cta": "https://www.deel.com/partner/affiliates/",
@@ -465,7 +471,7 @@
             "en": "HubSpot Affiliate"
           },
           "aliases": [
-            "\\bhub\\s?spot\\b"
+            "\\bhub\\s?spot(?![a-z])"
           ],
           "status": "open",
           "join_cta": "https://www.hubspot.com/partners/affiliates",
@@ -591,7 +597,7 @@
             "en": "Shopify Affiliate"
           },
           "aliases": [
-            "\\bshopify\\b(?!\\s+collabs)"
+            "\\bshopify(?![a-z])(?!\\s+collabs)"
           ],
           "status": "open",
           "join_cta": "https://www.shopify.com/affiliates",
@@ -718,7 +724,7 @@
             "en": "Kinsta Affiliate"
           },
           "aliases": [
-            "\\bkinsta\\b"
+            "\\bkinsta(?![a-z])"
           ],
           "status": "open",
           "join_cta": "https://kinsta.com/affiliates/",
@@ -854,7 +860,7 @@
             "en": "Framer Affiliate (Creator Program)"
           },
           "aliases": [
-            "\\bframer\\b"
+            "\\bframer(?![a-z])"
           ],
           "status": "open",
           "join_cta": "https://www.framer.com/help/articles/how-the-creator-program-works/",
@@ -1000,7 +1006,7 @@
                 "lex": [
                   "lifetime"
                 ],
-                "re": "^(?![\\s\\S]*(?:等级|级别|status|tier|bronze|silver|gold|10\\s*[-–—~至到]\\s*20))"
+                "re": "^(?![\\s\\S]*(?:等级|级别|status|tier|bronze|silver|gold|10\\s*[-–—~〜至到]\\s*20))"
               }
             },
             {
@@ -1068,7 +1074,7 @@
           },
           "aliases": [
             "eleven\\s?labs",
-            "\\b11labs\\b"
+            "\\b11labs(?![a-z])"
           ],
           "status": "open",
           "join_cta": "https://elevenlabs.io/affiliates",
@@ -1150,7 +1156,7 @@
             "en": "Adobe Affiliate"
           },
           "aliases": [
-            "\\badobe\\b",
+            "\\badobe(?![a-z])",
             "creative cloud"
           ],
           "status": "open",
@@ -1193,7 +1199,7 @@
               "when": "claims the one-month 85% is paid over several months or years",
               "match": {
                 "rate": 85,
-                "re": "(?:for|持续|连续|共|拿|返)\\s*\\d{1,3}\\s*(?:个月|months?|年|years?)"
+                "re": "(?:for|持续|连续|共|拿|返)\\s*\\d{1,3}\\s*(?:个月|months?|年|years?)|\\d{1,3}\\s*(?:个月|months?|年|years?)\\s*(?:都|一直)(?:能|可以?)?(?:有|返|拿)"
               }
             },
             {
@@ -1248,7 +1254,7 @@
             "en": "Coursera Affiliate"
           },
           "aliases": [
-            "\\bcoursera\\b"
+            "\\bcoursera(?![a-z])"
           ],
           "status": "open",
           "join_cta": "https://www.coursera.org/about/affiliates",
@@ -1331,7 +1337,7 @@
             "en": "Airalo Affiliate / Refer & Earn"
           },
           "aliases": [
-            "\\bairalo\\b",
+            "\\bairalo(?![a-z])",
             "airmoney"
           ],
           "status": "open",
@@ -1546,6 +1552,24 @@
                 ],
                 "reward_form": "credit"
               }
+            },
+            {
+              "track": "llm_line",
+              "source": "https://developer.aliyun.com/article/1757939",
+              "facts": {
+                "payout": "LLM (大模型) and Agent product lines carry the top 35% rebate (Sep-2026 notice); other mainland terms as mainland_ambassador"
+              },
+              "cmp": {
+                "rates": [
+                  35
+                ],
+                "duration": "one_time",
+                "cookie_days": 90,
+                "amount_caps": [
+                  200000
+                ],
+                "reward_form": "cash"
+              }
             }
           ],
           "misread_triggers": [
@@ -1570,7 +1594,8 @@
               "when": "claims the top rate on every order",
               "match": {
                 "rate": 35,
-                "flat": true
+                "flat": true,
+                "re": "^(?![\\s\\S]*(?:大模型|\\bllms?\\b|\\bagents?\\b|智能体|通义|百炼|qwen))"
               }
             },
             {
@@ -1884,7 +1909,7 @@
             "en": "Notion Affiliate"
           },
           "aliases": [
-            "\\bnotion\\b(?!\\s+(?:that|of|to)\\b)"
+            "\\bnotion(?![a-z])(?!\\s+(?:that|of|to)\\b)"
           ],
           "status": "closed",
           "join_cta": null,
@@ -1928,7 +1953,7 @@
             "en": "IBKR Refer-a-Friend"
           },
           "aliases": [
-            "\\bibkr\\b",
+            "\\bibkr(?![a-z])",
             "interactive\\s?brokers",
             "盈透"
           ],
@@ -1991,7 +2016,8 @@
       "A8 Determinism and privacy: the same paste on the same seed and date run 100 times gives identical output; after page load, pasting fires zero network requests.",
       "A9 Bilingual: every UI string key has non-empty zh and en; label chips always show the zh label plus the en gloss.",
       "A10 Look: all text including label chips is WCAG AA (≥ 4.5:1) on its surface; no horizontal scroll at 360px; no animation beyond the 150ms fade.",
-      "A11 Identity: not served from gravity.li; no GRAVITY or vendor logos; the standing disclosure appears on every view."
+      "A11 Identity: not served from gravity.li; no GRAVITY or vendor logos; the standing disclosure appears on every view.",
+      "A12 Regression corpus: CI runs a paste → expected label / reason_codes corpus of at least 300 zh and en pastes (seeded with the 5 fixtures and the drafting stress cases: viral zh formatting, spelled-out numbers, ranges, thresholds, cookie vs commission vs payout-timing durations, negations, stated exclusions, multi-program lists, alias collisions). Every lexicon, cmp, trigger or step change must keep it green, and every newly found misclassification is added to it before the fix."
     ]
   },
   "label_set": [
