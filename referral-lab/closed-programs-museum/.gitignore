@@ -1,0 +1,4 @@
+dist/
+dist-fixtures/
+tests/screenshots/
+tests/.inject-tmp/

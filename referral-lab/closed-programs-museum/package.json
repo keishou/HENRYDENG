@@ -1,0 +1,14 @@
+{
+  "name": "closed-programs-museum",
+  "private": true,
+  "type": "module",
+  "description": "Implementation brief, reference build and executable acceptance checks for the Referral Lab Closed Programs Museum",
+  "scripts": {
+    "generate": "node tools/generate-brief.mjs",
+    "validate": "node tools/validate-brief.mjs",
+    "build": "node reference/build.mjs",
+    "build:fixtures": "node reference/build.mjs --fixtures",
+    "lexicon": "node tests/lexicon-scan.mjs dist && node tests/lexicon-scan.mjs dist-fixtures",
+    "test": "npm run validate && npm run build && npm run build:fixtures && npm run lexicon && node tests/acceptance.mjs"
+  }
+}
