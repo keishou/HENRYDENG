@@ -12,7 +12,7 @@ export const T = {
   verifiedOnNone: ['尚未复核', 'Not yet verified'],
   freshness: ['核对状态', 'Check status'],
   source: ['官方来源', 'Official source'],
-  sourceCandidate: ['候选官方来源，尚未读取', 'Candidate official source, not yet read'],
+  sourceCandidate: ['候选链接', 'Candidate link'],
   newTab: ['（在新标签页打开）', '(opens in a new tab)'],
   wallLabel: ['展签', 'Wall label'],
   reason: ['为何不可加入', 'Why not joinable'],
@@ -22,7 +22,7 @@ export const T = {
   fresh: {
     current: [['来源已读取，90 天内已核对', 'Source read; checked within 90 days'], ['核对较新只说明记录没有过期；该计划仍不可加入。', 'A recent check only means this record has not expired; the program still cannot be joined.']],
     stale: [['复核已过期', 'Last check has expired'], ['上次核对已超过 90 天。此记录仅作存档，现状未经确认。', 'The last check is more than 90 days old. This record is kept for the archive; its current status is unconfirmed.']],
-    unconfirmed: [['待核对', 'Unconfirmed'], ['尚未对照官方页面核对，请以官方页面为准。', 'Not yet checked against the official page. The official page prevails.']],
+    unconfirmed: [['待核对', 'Unconfirmed'], ['请以官方页面为准。', 'The official page prevails.']],
   },
 };
 
@@ -33,6 +33,12 @@ export function esc(s) {
 // "zh / en" with the English half tagged.
 export function bi([zh, en], sep = ' / ') {
   return `${esc(zh)}${sep}<span lang="en">${esc(en)}</span>`;
+}
+
+// Tags the English half of an already-combined "zh / en" string.
+export function biText(s) {
+  const i = String(s).indexOf(' / ');
+  return i < 0 ? esc(s) : bi([s.slice(0, i), s.slice(i + 3)]);
 }
 
 const isoRe = /^\d{4}-\d{2}-\d{2}$/;
@@ -47,11 +53,11 @@ export function renderFacts(row, fresh, recheckDueDate) {
   const [label, helper] = T.fresh[fresh];
   const read = row.page_read === true;
   return `<dl class="facts">
-<div class="fact"><dt>${bi(T.asOf)}</dt><dd data-field="as_of">${isoRe.test(row.as_of) ? dateHtml(row.as_of) : esc(row.as_of)}</dd></div>
+<div class="fact"><dt>${bi(T.asOf)}</dt><dd data-field="as_of">${isoRe.test(row.as_of) ? dateHtml(row.as_of) : biText(row.as_of)}</dd></div>
 <div class="fact"><dt>${bi(T.pageRead)}</dt><dd data-field="page_read">${bi(read ? T.pageReadTrue : T.pageReadFalse)}</dd></div>
 <div class="fact"><dt>${bi(T.verifiedOn)}</dt><dd data-field="verified_on">${row.verified_on ? dateHtml(row.verified_on) : bi(T.verifiedOnNone)}</dd></div>
 <div class="fact"><dt>${bi(T.freshness)}</dt><dd data-field="freshness"><span class="fresh-label">${bi(label)}</span><span class="helper">${bi(helper)}</span></dd></div>
-<div class="fact"><dt>${bi(read ? T.source : T.sourceCandidate)}</dt><dd data-field="source"><a data-source-link href="${esc(row.source_url)}" target="_blank" rel="noopener noreferrer nofollow" referrerpolicy="no-referrer">${esc(sourceText(row.source_url))}<span class="vh">${bi(T.newTab)}</span></a></dd></div>
+<div class="fact"><dt>${bi(T.source)}${read ? '' : `<span class="qualifier">${bi(T.sourceCandidate)}</span>`}</dt><dd data-field="source"><a data-source-link href="${esc(row.source_url)}" target="_blank" rel="noopener noreferrer nofollow" referrerpolicy="no-referrer">${esc(sourceText(row.source_url))}<span class="vh">${bi(T.newTab)}</span></a></dd></div>
 </dl>
 <details data-check-record><summary>${bi(T.checkRecord)}</summary><div class="record">
 <p>${bi(T.rule)}</p>

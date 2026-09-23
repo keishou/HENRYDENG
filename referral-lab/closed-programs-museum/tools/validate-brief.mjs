@@ -62,8 +62,11 @@ ok(reqLits.includes('点击 ≠ 收入 / Clicks ≠ income'), 'required_copy lac
 ok(reqLits.includes('not investment advice'), 'required_copy lacks "not investment advice"');
 ok(/^[\x00-\x7F]*$/.test(JSON.stringify(L.forbidden.map((g) => g.patterns))), 'forbidden pattern sources must be ASCII (CJK as \\u escapes)');
 for (const lit of reqLits) {
-  // A required literal must survive: it is never itself a forbidden hit, even before the allowlist.
-  const hits = scan(lit, 'rendered_text', compiled, { allowlist: false }).filter((h) => !['investment_advice', 'gravity_branding'].includes(h.group));
+  // A required literal must not trip a forbidden group even before the allowlist, except the groups
+  // whose words the disclosure uses only in the negative ("not investment advice", "not gravity.li",
+  // "no referral codes"), which the allowlist step removes.
+  const negated = ['investment_advice', 'gravity_branding', 'referral_code_generation_or_storage'];
+  const hits = scan(lit, 'rendered_text', compiled, { allowlist: false }).filter((h) => !negated.includes(h.group));
   ok(hits.length === 0, `required literal trips forbidden group ${hits.map((h) => h.group)}: ${lit}`);
 }
 for (const id of ['earnings_estimate', 'take_rate_calculator', 'ni_neng_na', 'guaranteed_income', 'bi_zhuan', 'multiplier_10000x', 'referral_code_generation_or_storage', 'outbound_ref_via_code_params', 'urgency_ui', 'confetti', 'neon', 'live_badge', 'countdown', 'join_cta', 'honesty_bar_hidden', 'freshness_claim_without_evidence', 'investment_advice', 'gravity_branding'])
@@ -72,18 +75,20 @@ for (const id of ['earnings_estimate', 'take_rate_calculator', 'ni_neng_na', 'gu
 // 4. Copy -----------------------------------------------------------------------
 const C = B.copy;
 for (const k of ['title', 'subtitle', 'filters', 'empty_state', 'row_labels', 'source_label', 'reason_label', 'stale_state', 'internal_links', 'footer'])
-  ok(C[k] && JSON.stringify(C[k]).includes('"zh"') && JSON.stringify(C[k]).includes('"en"') || (k === 'stale_state' && C[k]?.label && C[k]?.helper?.zh), `copy.${k} lacks zh/en`);
+  ok(C[k] && JSON.stringify(C[k]).includes('"zh"') && JSON.stringify(C[k]).includes('"en"'), `copy.${k} lacks zh/en`);
+const disp = (o) => `${o.zh} / ${o.en}`;
 ok(C.title.zh === '关门博物馆' && C.title.en === 'Closed Programs Museum', 'title');
-ok(C.internal_links.back_to_claim_shredder.text === '回到 Claim Shredder / Back to Claim Shredder', 'shredder link text');
-ok(C.internal_links.view_rules_board.text === '查看规则板 / View rules board', 'rules link text');
-ok(C.footer.short_line === '仅供参考，不构成投资建议 / For information only; not investment advice', 'footer short line');
-ok(C.stale_state.label === '复核已过期 / Last check has expired', 'stale label');
-ok(C.unconfirmed_state.label === '待核对 / Unconfirmed', 'unconfirmed label');
+ok(disp(C.internal_links.back_to_claim_shredder) === '回到 Claim Shredder / Back to Claim Shredder', 'shredder link text');
+ok(disp(C.internal_links.view_rules_board) === '查看规则板 / View rules board', 'rules link text');
+ok(disp(C.footer.short_line) === '仅供参考，不构成投资建议 / For information only; not investment advice', 'footer short line');
+ok(disp(C.stale_state.label) === '复核已过期 / Last check has expired', 'stale label');
+ok(disp(C.unconfirmed_state.label) === '待核对 / Unconfirmed', 'unconfirmed label');
 ok(C.as_of_unverified === UNVERIFIED_AS_OF, 'unverified literal');
-ok(JSON.stringify(C.footer.disclosure) === JSON.stringify(brief.standing_disclosure), 'footer disclosure === standing_disclosure');
+ok(/standing_disclosure/.test(C.footer.disclosure), 'footer.disclosure must point at standing_disclosure');
+ok(reqLits.includes(brief.standing_disclosure.zh) && reqLits.includes(brief.standing_disclosure.en), 'standing_disclosure must be required_copy literals');
 
 // Every UI string (copy, labels, seed text, disclosure) must pass the lexicon as rendered text.
-const META_KEYS = new Set(['link_text_rule', 'order', 'href']);
+const META_KEYS = new Set(['link_text_rule', 'order', 'href', 'display_rule', 'element', 'placement', 'disclosure']);
 const uiStrings = [];
 (function collect(o, path) {
   if (typeof o === 'string') uiStrings.push([path, o]);
@@ -97,8 +102,8 @@ for (const [path, s] of uiStrings) {
 
 // Disclosure content requirements.
 const dz = brief.standing_disclosure.zh, de = brief.standing_disclosure.en;
-for (const w of ['独立站点', '并非 gravity.li', '无关联', '认可或背书', '官方页面为准', '变更', '推荐码', '推荐参数', '不计算', '承诺', '仅供参考', '投资', '法律', '税务']) ok(dz.includes(w), `disclosure.zh lacks ${w}`);
-for (const w of ['independent site', 'not gravity.li', 'not affiliated', 'endorsed', 'Official pages prevail', 'change', 'referral codes', 'referral parameters', 'calculated', 'promised', 'For information only', 'investment', 'legal', 'tax advice']) ok(de.includes(w), `disclosure.en lacks ${w}`);
+for (const w of ['独立站点', '并非 gravity.li', '无关联', '认可或背书', '官方页面为准', '变更', '推荐码', '推荐参数', '不计算', '承诺', '仅供参考', '不构成投资建议', '法律', '税务']) ok(dz.includes(w), `disclosure.zh lacks ${w}`);
+for (const w of ['independent site', 'not gravity.li', 'not affiliated', 'endorsed', 'Official pages prevail', 'change', 'referral codes', 'referral parameters', 'calculated', 'promised', 'For information only', 'not investment advice', 'legal', 'tax advice']) ok(de.includes(w), `disclosure.en lacks ${w}`);
 
 // 5. Contrast (WCAG 2.x) ----------------------------------------------------------
 const tok = B.ia.tokens;
@@ -150,7 +155,9 @@ for (const f of brief.fixtures) {
     if (fr === 'stale' && f.row.page_read === true && daysBetween(f.row.verified_on, f.client_date) > 90) staleFixture = true;
   }
   ok(f.expect.cta_count === 0, `fixture ${f.id} must assert cta_count 0`);
-  for (const k of Object.keys(f.patch || {})) patchedKeys.add(k);
+  const base = f.mutation_of && byId[f.mutation_of];
+  ok(!f.patch, `fixture ${f.id} must not carry a patch (row is the source of truth)`);
+  if (base) for (const k of new Set([...Object.keys(base), ...Object.keys(f.row)])) if (JSON.stringify(base[k]) !== JSON.stringify(f.row[k])) patchedKeys.add(k);
 }
 for (const id of ['FX-01-notion-closed', 'FX-02-ibkr-capped-geo', 'FX-03-binance-geo']) {
   const f = brief.fixtures.find((x) => x.id === id);

@@ -28,15 +28,17 @@ export function compile(lexicon) {
   return { allow, groups };
 }
 
+const normalize = (text) => String(text).normalize('NFC').replace(/[\u2018\u2019\u02BC]/g, "'");
+
 export function applyAllowlist(text, compiled) {
-  let t = String(text).normalize('NFC');
+  let t = normalize(text);
   for (const lit of compiled.allow) t = t.split(lit.normalize('NFC')).join(' ');
   return t;
 }
 
 // scope: rendered_text | control_names | hrefs | built_assets | built_css | row_text_not_current
 export function scan(text, scope, compiled, { allowlist = scope !== 'hrefs' } = {}) {
-  const t = allowlist ? applyAllowlist(text, compiled) : String(text).normalize('NFC');
+  const t = allowlist ? applyAllowlist(text, compiled) : normalize(text);
   const hits = [];
   for (const g of compiled.groups) {
     const res = [];

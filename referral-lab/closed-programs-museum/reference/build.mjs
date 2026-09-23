@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateRow, freshness, recheckDue, UNVERIFIED_AS_OF } from './museum-core.mjs';
-import { renderRow, esc, bi } from './museum-render.mjs';
+import { renderRow, esc, bi, biText } from './museum-render.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -51,6 +51,7 @@ rows.sort((a, b) => {
 const cards = rows.map((r) => renderRow(r, 'unconfirmed', null)).join('\n');
 
 const p = (o) => bi([o.zh, o.en]);
+const disp = (o) => `${o.zh} / ${o.en}`;
 const radios = (name, opts) =>
   Object.entries(opts).map(([value, o], i) =>
     `<label class="pill"><input type="radio" name="${name}" value="${value}"${i === 0 ? ' checked' : ''}><span>${esc(o.zh)} / <span lang="en">${esc(o.en)}</span></span></label>`).join('');
@@ -65,7 +66,8 @@ const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; form-action 'none'; base-uri 'none'">
+<link rel="icon" href="data:,">
 <title>${esc(B.ia.document_title)}</title>
 <style>${readFileSync(join(here, 'museum.css'), 'utf8')}</style>
 </head>
@@ -73,7 +75,7 @@ const html = `<!doctype html>
 <a class="skip-link" href="#collection">${p(C.skip_link)}</a>
 <div class="page">
 <header role="banner" data-museum-header>
-<nav class="crumbs" aria-label="${esc(C.breadcrumb.label.display)}"><ol><li>Referral Lab</li><li aria-current="page">${p(C.breadcrumb.items[1])}</li></ol></nav>
+<p class="crumbs">${biText(C.breadcrumb.display)}</p>
 <h1>${esc(C.title.zh)} <span lang="en" class="en">${esc(C.title.en)}</span></h1>
 <p class="subtitle">${esc(C.subtitle.zh)} <span lang="en" class="en">${esc(C.subtitle.en)}</span></p>
 </header>
@@ -82,23 +84,23 @@ const html = `<!doctype html>
 <p id="museum-label" class="museum-label">${p(C.museum_label)}</p>
 <p class="purpose">${esc(C.purpose.zh)} <span lang="en" class="en">${esc(C.purpose.en)}</span></p>
 </section>
-<p role="note" data-honesty-bar aria-label="${esc(C.honesty_bar.aria_label.display)}"><strong>点击 ≠ 收入 / <span lang="en">Clicks ≠ income</span></strong><span class="note">${p(C.honesty_bar.note)}</span></p>
+<p role="note" data-honesty-bar aria-label="${esc(disp(C.honesty_bar.aria_label))}"><strong>${biText(C.honesty_bar.literal)}</strong></p>
 <div class="board">
 <form role="search" data-filter-form aria-labelledby="filter-heading" hidden>
 <h2 id="filter-heading">${p(F.region_heading)}</h2>
 <div class="field field-search"><label for="museum-q">${p(F.search_label)}</label>
-<input type="search" id="museum-q" name="q" autocomplete="off" spellcheck="false" placeholder="${esc(F.search_placeholder.display)}" aria-describedby="museum-q-hint">
+<input type="search" id="museum-q" name="q" autocomplete="off" spellcheck="false" placeholder="${esc(disp(F.search_placeholder))}" aria-describedby="museum-q-hint">
 <p id="museum-q-hint" class="hint">${p(F.search_hint)}</p></div>
 <fieldset><legend>${p(F.status_legend)}</legend><div class="pills">${radios('status', F.status_options)}</div></fieldset>
 <fieldset><legend>${p(F.freshness_legend)}</legend><div class="pills">${radios('freshness', F.freshness_options)}</div></fieldset>
 <div class="field"><label for="museum-sort">${p(F.sort_label)}</label>
-<select id="museum-sort" name="sort" aria-describedby="museum-sort-hint">${Object.entries(F.sort_options).map(([v, o]) => `<option value="${v}">${esc(o.display)}</option>`).join('')}</select>
+<select id="museum-sort" name="sort" aria-describedby="museum-sort-hint">${Object.entries(F.sort_options).map(([v, o]) => `<option value="${v}">${esc(disp(o))}</option>`).join('')}</select>
 <p id="museum-sort-hint" class="hint">${p(F.sort_note)}</p></div>
 <button type="reset">${p(F.clear)}</button>
 </form>
 <section id="collection" aria-labelledby="collection-heading" tabindex="-1">
 <h2 id="collection-heading">${p(C.collection_heading)}</h2>
-<p role="status" aria-live="polite" data-result-count tabindex="-1">显示 ${rows.length} / ${rows.length} 件 · Showing ${rows.length} of ${rows.length}</p>
+<p role="status" aria-live="polite" data-result-count tabindex="-1">显示 ${rows.length} / ${rows.length} 件 · <span lang="en">Showing ${rows.length} of ${rows.length}</span></p>
 <p data-rejected-notice hidden></p>
 <ol class="cards" data-museum-list>
 ${cards}
@@ -106,18 +108,18 @@ ${cards}
 <div data-empty-state hidden><p><strong>${p(C.empty_state.title)}</strong></p><p>${p(C.empty_state.body)}</p><button type="button" data-clear>${p(C.empty_state.action)}</button></div>
 </section>
 </div>
-<nav data-internal-nav aria-label="${esc(C.internal_links.nav_label.display)}">
-<ul><li><a href="${esc(C.internal_links.back_to_claim_shredder.href)}">${esc(C.internal_links.back_to_claim_shredder.text)}</a></li><li><a href="${esc(C.internal_links.view_rules_board.href)}">${esc(C.internal_links.view_rules_board.text)}</a></li></ul>
+<nav data-internal-nav aria-label="${esc(disp(C.internal_links.nav_label))}">
+<ul><li><a href="${esc(C.internal_links.back_to_claim_shredder.href)}">${p(C.internal_links.back_to_claim_shredder)}</a></li><li><a href="${esc(C.internal_links.view_rules_board.href)}">${p(C.internal_links.view_rules_board)}</a></li></ul>
 <p class="hint">${p(C.internal_links.reopened_note)}</p>
 </nav>
 </main>
 </div>
-<p data-disclosure-strip aria-hidden="true">${esc(D.short_line)}</p>
+<p data-disclosure-strip aria-hidden="true">${p(D.short_line)}</p>
 <footer role="contentinfo" data-standing-disclosure id="disclosure"><div class="page">
-<p data-nia-short>${esc(D.short_line)}</p>
+<p data-nia-short>${p(D.short_line)}</p>
 <h2>${p(D.disclosure_heading)}</h2>
-<p lang="zh-CN" data-disclosure-body>${nonAffil(D.disclosure.zh, D.non_affiliation_literal.zh)}</p>
-<p lang="en" data-disclosure-body>${nonAffil(D.disclosure.en, D.non_affiliation_literal.en)}</p>
+<p lang="zh-CN" data-disclosure-body>${nonAffil(brief.standing_disclosure.zh, D.non_affiliation_literal.zh)}</p>
+<p lang="en" data-disclosure-body>${nonAffil(brief.standing_disclosure.en, D.non_affiliation_literal.en)}</p>
 <p class="hint">${p(D.data_note)}</p>
 </div></footer>
 <script>

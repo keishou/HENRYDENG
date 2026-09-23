@@ -108,16 +108,15 @@
 
     empty.hidden = !(shown === 0 && total > 0);
     rejectedNotice.hidden = rejected === 0;
-    rejectedNotice.textContent = rejected
-      ? `${rejected} 条记录未通过校验，未显示。 / ${rejected} record(s) failed validation and are not shown.`
+    rejectedNotice.innerHTML = rejected
+      ? `${rejected} 条记录未通过校验，未显示。 / <span lang="en">${rejected} record(s) failed validation and are not shown.</span>`
       : '';
 
-    const text = `显示 ${shown} / ${total} 件 · Showing ${shown} of ${total}`;
-    if (!announce) count.textContent = text;
-    else {
-      clearTimeout(announceTimer);
-      announceTimer = setTimeout(() => { count.textContent = text; }, 250);
-    }
+    const html = `显示 ${shown} / ${total} 件 · <span lang="en">Showing ${shown} of ${total}</span>`;
+    const write = () => { if (count.innerHTML !== html) count.innerHTML = html; };
+    clearTimeout(announceTimer);
+    if (!announce) write();
+    else announceTimer = setTimeout(write, 700);
   }
 
   form.addEventListener('submit', (e) => e.preventDefault());
