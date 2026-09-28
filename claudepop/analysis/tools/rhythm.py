@@ -5,7 +5,8 @@ Inputs (analysis copies, never the song itself):
   <scratch>/stems/instrumental.wav  MDX-Net (Kim_Vocal_2) instrumental
   <scratch>/stems/vocals.wav        MDX-Net vocal stem
   <scratch>/mm_db_34.npy            madmom DBNDownBeatTracker output [time, beat-in-bar]
-Output: <out>/rhythm.json
+Output: <out>/rhythm.json (grid, 10 Hz loudness/brightness curves, per-beat instrumental level).
+Drum hits are transcribed separately by hits.py.
 
 usage: python3 rhythm.py <scratch_dir> <out_dir>
 """
@@ -34,7 +35,7 @@ mm = np.load(f"{SCR}/mm_db_34.npy")
 # phase estimates: madmom linear fit (0.2351), broadband flux comb (0.2435), kick-attack max-rise (0.229-0.240)
 k = np.arange(len(mm))
 fit = np.polyfit(k, mm[:, 0], 1)
-T0 = 0.238  # chosen compromise of the three estimates; uncertainty about +-8 ms
+T0 = 0.235  # consensus of madmom fit (0.2351), onset-envelope comb (0.243), kick attacks (0.229-0.240), CNN onsets (0.231); +-8 ms
 first_db_beat = int(mm[0, 1])  # madmom says the first detected beat is beat 1 of a bar
 nbeats = int(np.floor((DUR - T0) / T)) + 1
 beats = [round(T0 + i * T, 4) for i in range(nbeats)]
@@ -78,81 +79,6 @@ lowE = 10 * np.log10((S[(freqs < 150)] ** 2).sum(0) + 1e-9)
 highE = 10 * np.log10((S[(freqs > 5000)] ** 2).sum(0) + 1e-9)
 integrated = meter.integrated_loudness(mix)
 
-# ---------------------------------------------------------------- drum hits (instrumental stem)
-HOP = 128
-fps = sr / HOP
-Sx = np.abs(librosa.stft(insm, n_fft=2048, hop_length=HOP))
-H, P = librosa.decompose.hpss(Sx, margin=(1.0, 2.0))
-fq = librosa.fft_frequencies(sr=sr, n_fft=2048)
-
-
-def band_flux(M, lo, hi):
-    L = np.log1p(1000 * M[(fq >= lo) & (fq < hi)])
-    return np.maximum(0, np.diff(L, axis=1, prepend=L[:, :1])).mean(0)
-
-
-def band_db(M, lo, hi):
-    return 10 * np.log10((M[(fq >= lo) & (fq < hi)] ** 2).sum(0) + 1e-10)
-
-
-fl_kick = band_flux(P, 30, 130)
-fl_clap = band_flux(P, 1500, 9000)
-fl_hat = band_flux(P, 9000, 15500)
-db_kick = band_db(P, 30, 130)
-db_clap = band_db(P, 1500, 9000)
-db_hat = band_db(P, 9000, 15500)
-
-
-def pick(fl, thr_k, min_gap):
-    # adaptive threshold: median over +-1 s plus k * MAD
-    med = ss.medfilt(fl, 2 * int(fps * 0.5) + 1)
-    mad = ss.medfilt(np.abs(fl - med), 2 * int(fps * 0.5) + 1)
-    th = med + thr_k * mad + 1e-3
-    pk, _ = ss.find_peaks(fl, height=th, distance=max(1, int(min_gap * fps)))
-    return pk
-
-
-def grid_pos(t):
-    """bar (1-based), beat (1..4), sixteenth (1..4) of time t, plus offset (s) from nearest 16th."""
-    q = (t - T0) / (T / 4)
-    qi = int(np.round(q))
-    return {"bar": qi // 16 + 1, "beat": (qi // 4) % 4 + 1, "six": qi % 4 + 1, "off": round((q - qi) * T / 4, 4)}
-
-
-hits = []
-for name, fl, dbc, kk, gap in [("kick", fl_kick, db_kick, 4.0, 0.09), ("clap", fl_clap, db_clap, 4.0, 0.09),
-                               ("hat", fl_hat, db_hat, 5.0, 0.07)]:
-    pk = pick(fl, kk, gap)
-    for p in pk:
-        t = librosa.frames_to_time(p, sr=sr, hop_length=HOP, n_fft=2048)
-        # strength = dB rise over the 60 ms before the onset
-        a = max(0, p - int(0.06 * fps))
-        rise = float(dbc[p:p + 4].max() - dbc[a:p].min()) if p > a else 0.0
-        if rise < 3.0:
-            continue
-        g = grid_pos(t)
-        hits.append({"t": round(float(t), 3), "type": name, "rise_db": round(rise, 1), "flux": round(float(fl[p]), 3), **g})
-hits.sort(key=lambda h: (h["t"], h["type"]))
-
-# relative strength 0..1 per type
-for name in ("kick", "clap", "hat"):
-    hs = [h for h in hits if h["type"] == name]
-    if not hs:
-        continue
-    ref = np.percentile([h["flux"] for h in hs], 95)
-    for h in hs:
-        h["s"] = round(min(1.0, h["flux"] / ref), 2)
-
-# ---------------------------------------------------------------- per-beat drum pattern summary
-beat_rows = []
-for i, bt in enumerate(beats):
-    row = {"i": i, "t": bt, "bar": i // 4 + 1, "beat": i % 4 + 1}
-    for name in ("kick", "clap", "hat"):
-        row[name] = sum(1 for h in hits if h["type"] == name and bt - 0.03 <= h["t"] < bt + T - 0.03)
-    j = int(round(bt * 10))
-    row["lufs"] = round(float(lufs[min(j, N10 - 1)]), 1)
-    beat_rows.append(row)
-
 # ---------------------------------------------------------------- instrumental level per beat (for stops/drops)
 ins_db_beat = []
 for bt in beats:
@@ -180,10 +106,7 @@ out = {
         "low_db": [round(float(v), 1) for v in lowE],
         "high_db": [round(float(v), 1) for v in highE],
     },
-    "hits": hits,
-    "beat_rows": beat_rows,
     "ins_db_beat": [round(float(v), 1) for v in ins_db_beat],
 }
 json.dump(out, open(f"{OUT}/rhythm.json", "w"))
-print("beats", len(beats), "hits", {n: sum(h["type"] == n for h in hits) for n in ("kick", "clap", "hat")},
-      "integrated LUFS", integrated)
+print("beats", len(beats), "integrated LUFS", integrated)

@@ -14,7 +14,7 @@ import numpy as np
 from lyrics_lex import load_lines
 
 SP, LY, OUT = sys.argv[1:4]
-OVR = json.load(open(sys.argv[4])) if len(sys.argv) > 4 else {}
+OVR = {k: v for k, v in json.load(open(sys.argv[4])).items() if not k.startswith("_")} if len(sys.argv) > 4 else {}
 lines = load_lines(LY)
 
 LAG = {"PK": 0.08, "FC": 0.05, "PS": -0.02}  # calibrated by onset coincidence (see REPORT.md)
@@ -162,8 +162,12 @@ for li, L in enumerate(lines):
     # enforce monotonic word order
     for j in range(1, len(words)):
         if words[j]["t"] <= words[j - 1]["t"] + 0.05:
-            words[j]["t"] = round(words[j - 1]["t"] + 0.06, 3)
-            words[j]["src"] += ",forced-monotonic"
+            if words[j]["src"] == "manual" and words[j - 1]["src"] != "manual":
+                words[j - 1]["t"] = round(words[j]["t"] - 0.12, 3)
+                words[j - 1]["src"] += ",forced-monotonic"
+            else:
+                words[j]["t"] = round(words[j - 1]["t"] + 0.06, 3)
+                words[j]["src"] += ",forced-monotonic"
     out_lines.append({"i": li, "text": L["text"], "sub_start": L["start"], "sub_end": L["end"], "words": words})
 
 # word ends and line boundaries

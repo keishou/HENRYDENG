@@ -1,0 +1,38 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>p5.brush bench</title>
+<script src="file:///home/user/johnheibel/pdoomvideo/node_modules/p5/lib/p5.min.js"></script>
+<script src="file:///home/user/johnheibel/pdoomvideo/node_modules/p5.brush/dist/p5.brush.js"></script>
+</head><body>
+<script>
+// Micro-benchmark of p5.brush 2.x primitives at 1920x1080 in WEBGL mode (SwiftShader). Mirrors pdoomvideo's usage.
+const W = 1920, H = 1080; let JOB = null;
+function polyAt(cx, cy, r, n, seed) { const out = []; let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2; const rr = r * (0.75 + 0.5 * rnd()); out.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); } return out; }
+const JOBS = {
+  strokes_ink_50() { brush.noFill(); brush.noWash(); brush.noHatch(); brush.set('ink', '#1b1b2a', 1);
+    for (let i = 0; i < 50; i++) { const pts = []; for (let k = 0; k < 8; k++) pts.push([100 + (i % 10) * 180 + k * 20, 100 + Math.floor(i / 10) * 190 + Math.sin(k + i) * 40]); brush.spline(pts, 0.5); } },
+  fills_watercolour_10() { brush.noStroke(); brush.noHatch(); brush.noWash(); brush.fill('#e94f8a', 170); brush.fillBleed(0.1); brush.fillTexture(0.4, 0.35);
+    for (let i = 0; i < 10; i++) brush.polygon(polyAt(200 + (i % 5) * 380, 280 + Math.floor(i / 5) * 500, 150, 9, i + 1)); brush.noFill(); },
+  fills_flat_10() { brush.noStroke(); brush.noHatch(); brush.noWash(); brush.fill('#2d6ad6', 200); brush.fillBleed(0); brush.fillTexture(0, 0);
+    for (let i = 0; i < 10; i++) brush.polygon(polyAt(200 + (i % 5) * 380, 280 + Math.floor(i / 5) * 500, 150, 9, i + 11)); brush.noFill(); },
+  wash_10() { brush.noStroke(); brush.noHatch(); brush.noFill(); brush.wash('#f2b134', 255);
+    for (let i = 0; i < 10; i++) brush.polygon(polyAt(200 + (i % 5) * 380, 280 + Math.floor(i / 5) * 500, 150, 9, i + 21)); brush.noWash(); },
+  hatch_5() { brush.noStroke(); brush.noFill(); brush.noWash(); brush.hatch(12, 0.8, { rand: 0.15 }); brush.hatchStyle('HB', '#1b1b2a', 1);
+    for (let i = 0; i < 5; i++) brush.polygon(polyAt(250 + i * 360, 540, 160, 8, i + 31)); brush.noHatch(); },
+};
+async function setup() {
+  createCanvas(W, H, WEBGL); pixelDensity(1); noLoop();
+  brush.scaleBrushes(5);
+  brush.add('ink', { type: 'default', weight: 5, scatter: .25, sharpness: .8, grain: 40, opacity: 235, spacing: .2, pressure: [1.15, .75], rotate: 'natural', noise: .15 });
+  window.bready = true;
+}
+function draw() { if (!JOB) return; push(); translate(-W / 2, -H / 2); background('#f4eee2'); JOB(); pop(); }
+window.runBrushBench = async (reps = 2) => {
+  const out = {};
+  for (const [name, fn] of Object.entries(JOBS)) {
+    const times = [];
+    for (let r = 0; r < reps + 1; r++) { JOB = fn; const t0 = performance.now(); await redraw(); const gl = drawingContext; gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); if (r > 0) times.push(performance.now() - t0); }
+    times.sort((a, b) => a - b); out[name] = Math.round(times[Math.floor(times.length / 2)]);
+  }
+  JOB = null; return out;
+};
+</script></body></html>

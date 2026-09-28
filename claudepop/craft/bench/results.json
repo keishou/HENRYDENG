@@ -1,0 +1,105 @@
+{
+ "cpu2d": {
+  "info": {
+   "paperGenMs": 246.59999999962747,
+   "bake40CutoutsMs": 47.799999999813735,
+   "fonts": {
+    "weight_100": 573,
+    "weight_550": 644,
+    "weight_1000": 786,
+    "stretch_ultra-condensed": 354,
+    "stretch_condensed": 476,
+    "stretch_normal": 597,
+    "stretch_expanded": 745,
+    "stretch_ultra-expanded": 898,
+    "font_shorthand_percent_stretch": "rejected",
+    "fontface_variation_descriptor_RFX_vs_RF": [
+     740,
+     597
+    ],
+    "letterSpacing_supported": true,
+    "width_with_letterSpacing_minus8": 493,
+    "anybody_50_vs_150": [
+     136,
+     463
+    ]
+   },
+   "gl": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+  },
+  "ms": {
+   "paper_multiply": 4,
+   "strokes_2000": 22,
+   "ink_ribbons_300": 19,
+   "stamps_12000": 96,
+   "cutout_sprites_40": 35,
+   "live_shadowBlur_40": 18,
+   "filter_blur6_fullframe": 36,
+   "js_pixel_pass": 18,
+   "big_type_10_lines": 13,
+   "riso_gl_3layers": 164,
+   "riso_gl_shader_only": 110,
+   "encode_jpeg_q92": 43,
+   "encode_png": 129
+  }
+ },
+ "_date": "2026-09-28T08:24:23.644Z",
+ "gpu2d_swiftshader": {
+  "info": {
+   "paperGenMs": 349.1000000005588,
+   "bake40CutoutsMs": 24.59999999962747,
+   "fonts": {
+    "weight_100": 573,
+    "weight_550": 644,
+    "weight_1000": 786,
+    "stretch_ultra-condensed": 354,
+    "stretch_condensed": 476,
+    "stretch_normal": 597,
+    "stretch_expanded": 745,
+    "stretch_ultra-expanded": 898,
+    "font_shorthand_percent_stretch": "rejected",
+    "fontface_variation_descriptor_RFX_vs_RF": [
+     740,
+     597
+    ],
+    "letterSpacing_supported": true,
+    "width_with_letterSpacing_minus8": 493,
+    "anybody_50_vs_150": [
+     136,
+     463
+    ]
+   },
+   "gl": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+  },
+  "ms": {
+   "paper_multiply": 5,
+   "strokes_2000": 28,
+   "ink_ribbons_300": 21,
+   "stamps_12000": 100,
+   "cutout_sprites_40": 104,
+   "live_shadowBlur_40": 22,
+   "filter_blur6_fullframe": 34,
+   "js_pixel_pass": 16,
+   "big_type_10_lines": 11,
+   "riso_gl_3layers": 292,
+   "riso_gl_shader_only": 132,
+   "encode_jpeg_q92": 39,
+   "encode_png": 135
+  }
+ },
+ "p5brush": {
+  "gpu2d_swiftshader": {
+   "strokes_ink_50": 542,
+   "fills_watercolour_10": 24422,
+   "fills_flat_10": 6624,
+   "wash_10": 802,
+   "hatch_5": 327
+  },
+  "cpu2d": {
+   "strokes_ink_50": 520,
+   "fills_watercolour_10": 3127,
+   "fills_flat_10": 3201,
+   "wash_10": 707,
+   "hatch_5": 214
+  }
+ }
+}

@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: RF; src: url(fonts/RobotoFlex.ttf); font-weight: 100 1000; font-stretch: 25% 151%; }
+@font-face { font-family: RF_DESC; src: url(fonts/RobotoFlex.ttf); font-variation-settings: 'wdth' 25, 'wght' 1000; }
+@font-face { font-family: RF_PIN; src: url(fonts/RobotoFlex.ttf); font-weight: 1000; font-stretch: 25%; }
+</style></head><body><script>
+window.probe = async () => {
+  const buf = await (await fetch('fonts/RobotoFlex.ttf')).arrayBuffer().catch(() => null);
+  const r = {};
+  for (const f of ['400 100px RF', '1000 100px RF', '100px RF_DESC', '100px RF_PIN', '1000 100px RF_PIN']) await document.fonts.load(f);
+  const c = document.createElement('canvas'), x = c.getContext('2d'); const w = (f, s = 'normal') => { x.font = f; x.fontStretch = s; return Math.round(x.measureText('P(DOOM)').width); };
+  r.RF_400_normal = w('400 100px RF'); r.RF_1000_normal = w('1000 100px RF'); r.RF_1000_ultracond50 = w('1000 100px RF', 'ultra-condensed');
+  r.RF_DESC_default = w('100px RF_DESC'); r.RF_DESC_ultracond = w('100px RF_DESC', 'ultra-condensed');
+  r.RF_PIN_default = w('100px RF_PIN'); r.RF_PIN_1000 = w('1000 100px RF_PIN');
+  // FontFace API with pinned ranges + custom axes, created at runtime (e.g. one face per quantised axis step)
+  if (buf) { const t0 = performance.now(); for (let i = 0; i < 16; i++) { const ff = new FontFace('Q' + i, buf, { weight: String(100 + i * 60), stretch: (25 + i * 8) + '%', variationSettings: `'XTRA' ${323 + i * 17}` }); await ff.load(); document.fonts.add(ff); }
+    r.fontface_16_instances_ms = Math.round(performance.now() - t0); r.Q0 = w('100px Q0'); r.Q8 = w('100px Q8'); r.Q15 = w('100px Q15'); } else r.fetch = 'blocked (file://)';
+  return r;
+};
+</script></body></html>

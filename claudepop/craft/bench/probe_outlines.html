@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>@font-face { font-family: RF; src: url(fonts/RobotoFlex.ttf); font-weight: 100 1000; font-stretch: 25% 151%; }</style>
+<script src="node_modules/opentype.js/dist/opentype.min.js"></script></head><body><canvas id="c" width="1800" height="1000"></canvas><script>
+window.go = async () => {
+  await document.fonts.load('1000 100px RF');
+  const buf = await (await fetch('fonts/RobotoFlex.ttf')).arrayBuffer(); const f = opentype.parse(buf);
+  const x = document.getElementById('c').getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 1800, 1000); x.fillStyle = '#000'; x.font = '24px sans-serif';
+  const row = (y, label, draw) => { x.fillStyle = '#c00'; x.fillText(label, 10, y - 150); x.fillStyle = '#000'; draw(y); };
+  row(200, 'native canvas: 1000 weight, fontStretch ultra-condensed (50%)', y => { x.font = '1000 180px RF'; x.fontStretch = 'ultra-condensed'; x.fillText('P(DOOM)', 10, y); x.fontStretch = 'normal'; });
+  row(440, 'opentype.js 2.0 variation.set wght 1000 wdth 50', y => { f.variation.set({ wght: 1000, wdth: 50 }); x.fill(new Path2D(f.getPath('P(DOOM)', 10, y, 180).toPathData(2))); });
+  row(680, 'opentype.js 2.0 variation.set wght 1000 wdth 25', y => { f.variation.set({ wght: 1000, wdth: 25 }); x.fill(new Path2D(f.getPath('P(DOOM)', 10, y, 180).toPathData(2))); });
+  row(920, 'native canvas: 1000 weight, normal width', y => { x.font = '1000 180px RF'; x.fillText('P(DOOM)', 10, y); });
+  return document.getElementById('c').toDataURL('image/png');
+};
+</script></body></html>
