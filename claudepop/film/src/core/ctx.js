@@ -19,6 +19,10 @@
 //   ctx.avatar                the stand-in (src/avatar.js Avatar) once any scene has needs.avatar, else null. Shared:
 //                             re-parent ctx.avatar.root into your scene and set its look in every frame().
 //   ctx.frame                 the frame being rendered: { t, f, shot, s, rect (window, design px), layer, previsTags, W, H }
+//   ctx.flags                 { faceSafe, faceSafeShots, safe(id) } (set by main.js from the URL / shots.json flags):
+//                             faceSafe true = render the BIBLE 12.1 fallbacks of the consent-pending shots (S12 S37 S50
+//                             S51); a scene of one of those shots tests ctx.flags.faceSafe (or ctx.flags.safe(s.shot.id))
+//                             every frame. URL ?safe=1 / render.mjs --safe; default shots.json flags.faceSafe.default.
 import * as THREE from 'three';
 import * as rng from './rng.js';
 
@@ -35,7 +39,7 @@ export function createCtx({ renderer, assets, tl, win, Post, Hud }) {
     W: 0, H: 0, res: 0, k: 1, hud: null,
     get post() { return ctx.postFor(4); },
     type: null, words: null, pencil: null, proof: null, grades: null, grade: null, plates: null,
-    avatar: null, frame: null,
+    avatar: null, frame: null, flags: { faceSafe: false, faceSafeShots: [], safe: () => false },
     color: name => new THREE.Color(PALETTE[name] || name),
     setSize(W, H) {
       if (W === ctx.W && H === ctx.H) return;

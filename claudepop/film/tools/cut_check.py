@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Frame-accurate cut check on rendered frames (BIBLE 9.8.4), part 3 (part 1: render.mjs checks every rendered frame's
-shot id against shots.json; part 2: the cut-pair sheets of sheets.mjs --cuts, looked at by eye).
+"""Frame-accurate cut check on rendered frames (BIBLE 9.8.4): the pixel check (render.mjs runs it on the cuts it touched;
+the cut-pair sheets of sheets.mjs --cuts are the by-eye check).
 
     claudepop/out/venv/bin/python claudepop/film/tools/cut_check.py out/film/frames/540 [--json out.json]
+        [--shots S01,S04]   only the cuts into and out of these shots
+        [--skip-missing]    a cut whose frames are not all rendered is skipped (reported), not failed
 
 For every cut (shots.json frames[0] of each shot after the first) it measures the frame-to-frame change (mean absolute
 difference of 240-px-wide greyscale thumbnails) for the five pairs (f0-3, f0-2) .. (f0+1, f0+2) and requires the change
@@ -34,13 +36,22 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('frames')
     ap.add_argument('--json')
+    ap.add_argument('--shots')
+    ap.add_argument('--skip-missing', action='store_true')
     a = ap.parse_args()
     doc = json.load(open(os.path.join(CP, 'shots.json')))
-    rows, bad = [], 0
-    for s in doc['shots'][1:]:
+    shots = doc['shots']
+    want = set(a.shots.split(',')) if a.shots else None
+    rows, bad, skipped = [], 0, 0
+    for i, s in enumerate(shots[1:], 1):
+        if want is not None and s['id'] not in want and shots[i - 1]['id'] not in want:
+            continue
         f0 = s['frames'][0]
         ts = [thumb(a.frames, f) for f in range(f0 - 3, f0 + 3)]
         if any(t is None for t in ts):
+            if a.skip_missing:
+                skipped += 1
+                continue
             rows.append({'shot': s['id'], 'f0': f0, 'status': 'missing'})
             bad += 1
             continue
@@ -67,7 +78,7 @@ def main():
     near = sum(1 for r in rated if r['largest_at'] != 0)
     print(f'cut check: {ok}/{len(rows)} cuts change the picture exactly on shots.json frames[0]'
           + (f' (weakest {lo["shot"]}: {lo["ratio"]}x its neighbours; {near} cuts have a larger change nearby, e.g. a hit tick)' if lo else '')
-          + f'; {bad} failing')
+          + f'; {bad} failing' + (f'; {skipped} skipped (frames not rendered)' if skipped else ''))
     if a.json:
         json.dump(rows, open(a.json, 'w'), indent=1)
     return 1 if bad else 0

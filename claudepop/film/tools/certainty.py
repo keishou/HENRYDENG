@@ -16,11 +16,17 @@ Outputs (gitignored, face data: never commit, never copy numbers from them into 
     out/film/data/regions_1024.png     RGB8 feature masks for the development schedule: R pupils, G irises (incl. pupils),
                                             B brows + lash line
     out/film/data/regions2_1024.png    RGB8 R nostrils + lip line, G hair mass, B distance from the nearer eye
-                                            (0 at the iris centre -> 1 at 400 px), for "midtones fill outward from the eyes"
-    out/film/data/certainty_1024.json  iris centres / radii and the photo's own catchlights in image px (top-left origin)
+                                            (0 at the iris centre -> 1 at EYEDIST interocular distances), for "midtones
+                                            fill outward from the eyes"
+    out/film/data/certainty_1024.json  iris centres / radii, the photo's own catchlights, the eye line, the chin and the
+                                       top of the hair in image px (top-left origin), for the framing rule in
+                                       src/fx/print.js
     out/film/data/certainty_preview.jpg (--preview) the maps beside the photo, for review
 The region masks are generous on purpose: develop.js only moves a masked pixel from its chemical density to its capped
 final density, so light skin inside a mask barely changes and the dark feature inside it snaps.
+
+Every length below is a proportion of the interocular distance D (iris centre to iris centre, measured at run time from
+the landmarks), never a pixel count tuned to this photograph: the tracked file holds rules, the JSON holds the numbers.
 """
 import argparse
 import json
@@ -35,6 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CP = os.path.abspath(os.path.join(HERE, '..', '..'))
 OUT = os.path.join(CP, 'out/film/data')
 N = 1024
+EYEDIST = 2.4      # regions2 B channel: distance from the nearer iris in interocular distances (0 .. 1 over 0 .. 2.4 D)
 
 # MediaPipe face-mesh topology (index sets from mediapipe's face_mesh_connections; generic, not measured from the face)
 FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176,
@@ -109,7 +116,7 @@ def catchlight(lum, cx, cy, r):
     y, x = np.mgrid[0:N, 0:N]
     inside = (np.hypot(x - cx, y - cy) < r * 0.6) & (y < cy - 0.1 * r)       # catchlights sit above the centre (a light from above)
     sm = ndimage.gaussian_filter(lum, 1.0)
-    top = sm - ndimage.gaussian_filter(lum, 5.0)
+    top = sm - ndimage.gaussian_filter(lum, 0.28 * r)
     v = np.where(inside, top, -1)
     iy, ix = np.unravel_index(np.argmax(v), v.shape)
     return float(ix), float(iy), float(v[iy, ix])
@@ -128,8 +135,10 @@ def main():
     head = np.asarray(Image.open(os.path.join(CP, 'out/avatar/identity/face_hair_matte.png')).convert('L'), np.float32) / 255
     person = np.asarray(Image.open(os.path.join(CP, 'out/avatar/identity/matte.png')).convert('L'), np.float32) / 255
 
+    D = float(np.hypot(L[IRIS_L[0]][0] - L[IRIS_R[0]][0], L[IRIS_L[0]][1] - L[IRIS_R[0]][1]))   # interocular distance
+    u = lambda k: k * D
     oval = poly_mask(L[FACE_OVAL])
-    oval_s = ndimage.gaussian_filter(oval, 3)
+    oval_s = ndimage.gaussian_filter(oval, u(.018))
     d_oval_in = ndimage.distance_transform_edt(oval > 0.5)               # px inside the face oval to its outline
     d_head_in = ndimage.distance_transform_edt(head > 0.5)                # px inside the head silhouette to its edge
     d_person_in = ndimage.distance_transform_edt(person > 0.5)
@@ -142,50 +151,51 @@ def main():
     pupil = np.maximum(disc(ir[0], ir[1], ir[2] * 0.46), disc(il[0], il[1], il[2] * 0.46))
     iris = np.maximum(disc(ir[0], ir[1], ir[2] * 1.1), disc(il[0], il[1], il[2] * 1.1))
     eye_open = np.maximum(poly_mask(L[EYE_R]), poly_mask(L[EYE_L]))
-    iris *= np.clip(ndimage.gaussian_filter((ndimage.distance_transform_edt(eye_open < 0.5) <= 1.5).astype(np.float32), 1), 0, 1)
-    pupil *= np.clip(ndimage.gaussian_filter((ndimage.distance_transform_edt(eye_open < 0.5) <= 1.5).astype(np.float32), 1), 0, 1)
-    brows = np.maximum(poly_mask(L[BROW_R], dilate=9, blur=3), poly_mask(L[BROW_L], dilate=9, blur=3))
-    lash = np.maximum.reduce([line_mask(L[LID_R], 9, 1.5), line_mask(L[LID_L], 9, 1.5),
-                              line_mask(L[LOWLID_R], 4, 1.2), line_mask(L[LOWLID_L], 4, 1.2)])
+    lidcut = np.clip(ndimage.gaussian_filter((ndimage.distance_transform_edt(eye_open < 0.5) <= u(.009)).astype(np.float32), u(.006)), 0, 1)
+    iris *= lidcut
+    pupil *= lidcut
+    brows = np.maximum(poly_mask(L[BROW_R], dilate=u(.055), blur=u(.018)), poly_mask(L[BROW_L], dilate=u(.055), blur=u(.018)))
+    lash = np.maximum.reduce([line_mask(L[LID_R], u(.055), u(.009)), line_mask(L[LID_L], u(.055), u(.009)),
+                              line_mask(L[LOWLID_R], u(.024), u(.007)), line_mask(L[LOWLID_L], u(.024), u(.007))])
     brow_lash = np.clip(np.maximum(brows, lash), 0, 1)
-    nose_low = poly_mask(hull(L[NOSE_LOW]), dilate=5, blur=2.5)
-    lips = poly_mask(L[LIPS_OUT], dilate=5, blur=2.5)
-    lipline = line_mask(L[LIPS_IN + LIPS_IN[:1]], 6, 1.5)
+    nose_low = poly_mask(hull(L[NOSE_LOW]), dilate=u(.03), blur=u(.015))
+    lips = poly_mask(L[LIPS_OUT], dilate=u(.03), blur=u(.015))
+    lipline = line_mask(L[LIPS_IN + LIPS_IN[:1]], u(.037), u(.009))
     nose_lip = np.clip(np.maximum.reduce([nose_low, lips, lipline]), 0, 1)
     # ears: the head silhouette outside the face oval, at ear height, skin-light
-    band = smooth01(eye_y - 90, eye_y - 50, yy) * (1 - smooth01(eye_y + 150, eye_y + 190, yy))
+    band = smooth01(eye_y - u(.55), eye_y - u(.30), yy) * (1 - smooth01(eye_y + u(.91), eye_y + u(1.16), yy))
     outside = np.clip(head - oval_s, 0, 1)
-    light = smooth01(0.30, 0.45, ndimage.gaussian_filter(lum_d, 2))
+    light = smooth01(0.30, 0.45, ndimage.gaussian_filter(lum_d, u(.012)))
     ears = np.clip(outside * band * light, 0, 1)
     # hair: the rest of the head outside the oval, plus the dark fringe strands inside it above the eyes
-    dark = 1 - smooth01(0.22, 0.36, ndimage.gaussian_filter(lum_d, 1.5))
-    fringe = oval * dark * (1 - smooth01(eye_y - 40, eye_y - 18, yy))
-    hair = np.clip(np.maximum(outside * (1 - ears) * (1 - smooth01(0.30, 0.5, ndimage.gaussian_filter(lum_d, 3))), fringe), 0, 1)
-    hair = ndimage.gaussian_filter(hair, 2.5)
+    dark = 1 - smooth01(0.22, 0.36, ndimage.gaussian_filter(lum_d, u(.009)))
+    fringe = oval * dark * (1 - smooth01(eye_y - u(.24), eye_y - u(.11), yy))
+    hair = np.clip(np.maximum(outside * (1 - ears) * (1 - smooth01(0.30, 0.5, ndimage.gaussian_filter(lum_d, u(.018)))), fringe), 0, 1)
+    hair = ndimage.gaussian_filter(hair, u(.015))
     # distance from the nearer eye
     y, x = np.mgrid[0:N, 0:N].astype(np.float32)
     deye = np.minimum(np.hypot(x - ir[0], y - ir[1]), np.hypot(x - il[0], y - il[1]))
-    eyedist = np.clip(deye / 400.0, 0, 1)
+    eyedist = np.clip(deye / u(EYEDIST), 0, 1)
 
     # certainty
     neck_clothes = np.clip(person - head, 0, 1)
-    skin = smooth01(0.33, 0.45, ndimage.gaussian_filter(lum_d, 2))
+    skin = smooth01(0.33, 0.45, ndimage.gaussian_filter(lum_d, u(.012)))
     neck = neck_clothes * skin
     shirt = neck_clothes * (1 - skin)
     feats = np.clip(np.maximum.reduce([
-        np.maximum(poly_mask(L[EYE_R], dilate=12, blur=4), poly_mask(L[EYE_L], dilate=12, blur=4)),
-        np.maximum(poly_mask(L[BROW_R], dilate=10, blur=4), poly_mask(L[BROW_L], dilate=10, blur=4)),
-        poly_mask(hull(L[NOSE]), dilate=8, blur=4),
-        poly_mask(L[LIPS_OUT], dilate=10, blur=4)]), 0, 1)
+        np.maximum(poly_mask(L[EYE_R], dilate=u(.073), blur=u(.024)), poly_mask(L[EYE_L], dilate=u(.073), blur=u(.024))),
+        np.maximum(poly_mask(L[BROW_R], dilate=u(.061), blur=u(.024)), poly_mask(L[BROW_L], dilate=u(.061), blur=u(.024))),
+        poly_mask(hull(L[NOSE]), dilate=u(.049), blur=u(.024)),
+        poly_mask(L[LIPS_OUT], dilate=u(.061), blur=u(.024))]), 0, 1)
     # the face: 0.9 inside, down to 0.22 on the jaw outline (below the eyes; the outline above is under the fringe)
-    lower = smooth01(eye_y + 10, eye_y + 90, yy)
-    jaw = 0.22 + (0.9 - 0.22) * smooth01(2, 38, d_oval_in)
+    lower = smooth01(eye_y + u(.06), eye_y + u(.55), yy)
+    jaw = 0.22 + (0.9 - 0.22) * smooth01(u(.012), u(.23), d_oval_in)
     face_c = np.maximum(0.9 * (1 - lower) + jaw * lower, feats)
     # hair: dense inside, thin toward the outer silhouette
-    hair_c = 0.08 + 0.77 * smooth01(3, 95, d_head_in)
-    ear_c = 0.07 + 0.33 * smooth01(2, 26, d_head_in)
-    neck_c = 0.1 + 0.42 * smooth01(2, 34, d_person_in) * (1 - smooth01(chin_y + 150, chin_y + 260, yy) * 0.3)
-    shirt_c = 0.1 + 0.25 * smooth01(2, 40, d_person_in)
+    hair_c = 0.08 + 0.77 * smooth01(u(.018), u(.58), d_head_in)
+    ear_c = 0.07 + 0.33 * smooth01(u(.012), u(.16), d_head_in)
+    neck_c = 0.1 + 0.42 * smooth01(u(.012), u(.21), d_person_in) * (1 - smooth01(chin_y + u(.91), chin_y + u(1.58), yy) * 0.3)
+    shirt_c = 0.1 + 0.25 * smooth01(u(.012), u(.24), d_person_in)
     # outside the face: every head pixel is hair or ear, every body pixel neck or shirt (no gaps at the oval seam)
     c_head = ears * ear_c + (1 - ears) * hair_c
     c_body = skin * neck_c + (1 - skin) * shirt_c
@@ -193,7 +203,7 @@ def main():
     c = c_out * (1 - oval_s) + face_c * oval_s
     c = np.maximum(c, feats * np.clip(oval_s * 2, 0, 1))
     c = np.where(ears > 0.5, np.minimum(c, ear_c + 0.02), c)                # the ear rims stay a guess
-    c = ndimage.gaussian_filter(c, 3.0) * np.clip(person * 1.2, 0, 1)
+    c = ndimage.gaussian_filter(c, u(.018)) * np.clip(person * 1.2, 0, 1)
     c = np.clip(c, 0, 1)
 
     save_l = lambda arr, name: Image.fromarray(np.round(np.clip(arr, 0, 1) * 255).astype(np.uint8), 'L').save(os.path.join(OUT, name))
@@ -201,6 +211,11 @@ def main():
     save_l(c, 'certainty_1024.png')
     save_rgb(pupil, iris, brow_lash, 'regions_1024.png')
     save_rgb(nose_lip, hair, eyedist, 'regions2_1024.png')
+    # the top of the hair and the head's width (the framing rule in src/fx/print.js: the hair top inside the print)
+    rows = np.where((head > 0.5).sum(1) > 3)[0]
+    cols = np.where((head > 0.5).sum(0) > 3)[0]
+    hair_top = float(rows.min()) if len(rows) else 0.0
+    head_x = [float(cols.min()), float(cols.max())] if len(cols) else [0.0, float(N)]
     cr, cl = catchlight(lum, *ir), catchlight(lum, *il)
     # one light made both: use the clearer catchlight's offset (in iris radii) for both eyes
     ref, ri = (cr, ir) if cr[2] >= cl[2] else (cl, il)
@@ -209,7 +224,7 @@ def main():
     meta = {'_about': 'face-derived (gitignored): iris centres / radii and the photo catchlights, image px, top-left origin, '
                       'aligned to out/avatar/identity/face_clean_1024.png. Built by film/tools/certainty.py.',
             'size': N, 'iris': [list(ir), list(il)], 'catch': [list(cr[:2]), list(cl[:2])],
-            'eye_y': eye_y, 'chin_y': chin_y}
+            'eye_y': eye_y, 'chin_y': chin_y, 'hair_top': hair_top, 'head_x': head_x, 'iod': D, 'eyedist_iod': EYEDIST}
     json.dump(meta, open(os.path.join(OUT, 'certainty_1024.json'), 'w'), indent=1)
     print('wrote', os.path.join(OUT, 'certainty_1024.png'), '+ regions_1024.png, regions2_1024.png, certainty_1024.json')
 

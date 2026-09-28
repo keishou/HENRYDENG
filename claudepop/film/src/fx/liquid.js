@@ -1,7 +1,8 @@
 // liquid.js - the developer in the tray (BIBLE 4.8 TRAY; lane C). A closed-form height field over the tray interior, so
 // every frame is a pure function of t (BIBLE 9.2): nothing is simulated or carried between frames.
 //
-//   const liq = new Liquid(ctx, { width = 0.34, depth = 0.42, res = 1, corner = 0.015 })
+//   const liq = new Liquid(ctx, { width = 0.34, depth = 0.42, res = 1, corner = 0.015, center = [0, 0] (the interior's
+//                                 centre in tray coordinates: the print lies off centre in the tray) })
 //   liq.update(t, events)      sets the field for film time t (call first in every frame; unset events are cleared):
 //     events = {
 //       rock:  { amp = 0.0015 m, lambda = 0.3 m, period = 2 bars, t0 = 0.2356, dir = [0.26, 0.97] (unit, tray x/z),
@@ -22,6 +23,11 @@
 //   liq.uniforms                 the uniform objects the chunk reads (merge into your ShaderMaterial's uniforms)
 //   liq.mesh                     a flat plane of the tray interior at local y 0 (its material is the owner's: tray.js
 //                                replaces it with the refraction + Fresnel shader; the default is invisible)
+//   liq.bake(renderer)           after update(): renders the field's gradient + laplacian over the interior into two
+//                                small float textures (2.5 mm / 1.4 mm texels): the swell (+ tilt) and the local events (only while
+//                                one is live). liq.bakedGlsl reads them: vec3 lqBakedS(vec2 p), vec3 lqBakedL(vec2 p)
+//                                (grad.xy, laplacian) - one bilinear fetch each instead of evaluating the closed form (and
+//                                five samples of the local part) per screen pixel. liq.bakedUniforms for the host material.
 //
 // Shading contract (tray.js): print UV refracted by -grad(h) * refract, Fresnel reflection of the safelight rectangle,
 // transmission 0.96. The same numbers drive the CPU copy (height/grad), so a VOICE catchlight drawn in 2D rides the same
@@ -34,8 +40,8 @@ const MAXD = 8;
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 export class Liquid {
-  constructor(ctx, { width = 0.34, depth = 0.42, res = 1, corner = 0.015 } = {}) {
-    this.ctx = ctx; this.width = width; this.depth = depth; this.corner = corner;
+  constructor(ctx, { width = 0.34, depth = 0.42, res = 1, corner = 0.015, center = [0, 0] } = {}) {
+    this.ctx = ctx; this.width = width; this.depth = depth; this.corner = corner; this.center = center;
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, depth, res, res).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0, depthWrite: false }));
     this.uniforms = {
@@ -54,18 +60,53 @@ export class Liquid {
     };
     this.ev = this._norm({});
     this.glsl = GLSL;
+    this.bakedGlsl = BAKED_GLSL;
+    const blank = new THREE.DataTexture(new Uint16Array([0, 0, 0, 0]), 1, 1, THREE.RGBAFormat, THREE.HalfFloatType); blank.needsUpdate = true;
+    this._blank = blank;
+    const c = center;
+    this.bakedUniforms = {
+      uLqBakeS: { value: blank }, uLqBakeL: { value: blank },
+      uLqBakeRect: { value: new THREE.Vector4(c[0] - width / 2, c[1] - depth / 2, width, depth) },
+    };
+  }
+
+  // the field's gradient + laplacian over the interior into textures (see the header); pure: a function of update()'s t
+  bake(renderer, texelS = 0.0025, texelL = 0.0014) {
+    if (!this._bake) {
+      const mk = tx => new THREE.WebGLRenderTarget(Math.round(this.width / tx), Math.round(this.depth / tx), { type: THREE.HalfFloatType, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+      const mat = new THREE.ShaderMaterial({
+        uniforms: { ...this.uniforms, ...this.bakedUniforms, uLqWhich: { value: 0 }, uLqSize: { value: new THREE.Vector2(1, 1) } },
+        vertexShader: 'void main(){ gl_Position = vec4(position.xy, 0., 1.); }',
+        fragmentShader: GLSL + `uniform vec4 uLqBakeRect; uniform float uLqWhich; uniform vec2 uLqSize;
+          void main(){ vec2 p = uLqBakeRect.xy + gl_FragCoord.xy / uLqSize * uLqBakeRect.zw;
+            vec3 g = lqGradLap(p); gl_FragColor = vec4(uLqWhich > .5 ? lqLocalGL : g - lqLocalGL, 1.); }`,
+        depthTest: false, depthWrite: false });
+      const scene = new THREE.Scene(); scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+      this._bake = { S: mk(texelS), L: mk(texelL), mat, scene, cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1) };
+    }
+    const B = this._bake, prev = renderer.getRenderTarget(), U = B.mat.uniforms;
+    U.uLqWhich.value = 0; U.uLqSize.value.set(B.S.width, B.S.height); renderer.setRenderTarget(B.S); renderer.render(B.scene, B.cam);
+    this.bakedUniforms.uLqBakeS.value = B.S.texture;
+    if (this.uniforms.uLqLocal.value > 0.5) {
+      U.uLqWhich.value = 1; U.uLqSize.value.set(B.L.width, B.L.height); renderer.setRenderTarget(B.L); renderer.render(B.scene, B.cam);
+      this.bakedUniforms.uLqBakeL.value = B.L.texture;
+    } else this.bakedUniforms.uLqBakeL.value = this._blank;
+    renderer.setRenderTarget(prev);
+    return this;
   }
 
   _norm(e) {
+    // events change the surface ON the frame of their time (BIBLE 8.1, tl.reached): times are quantised to frames
+    const q = T => Math.round(T * 24) / 24 - 1e-6;
     const r = e.rock ? { amp: 0.0015, lambda: 0.3, period: 2 * BAR, t0: 0.2356, dir: [0.26, 0.97], amp2: 0.4, seiche: 0.0022, enter: true, boosts: [], ...e.rock } : null;
     if (r) { const l = Math.hypot(r.dir[0], r.dir[1]) || 1; r.dir = [r.dir[0] / l, r.dir[1] / l]; }
-    const drops = (e.drops || []).slice(0, MAXD).map(d => ({ amp: 1, ...d }));
+    const drops = (e.drops || []).slice(0, MAXD).map(d => ({ amp: 1, ...d, t: q(d.t) }));
     const surges = (Array.isArray(e.surge) ? e.surge : e.surge ? [e.surge] : []).slice(0, 3).map(x => {
-      const S = { dir: [0, 1], amp: 0.004, speed: 0.45, width: 0.05, ...x }, l = Math.hypot(S.dir[0], S.dir[1]) || 1;
+      const S = { dir: [0, 1], amp: 0.004, speed: 0.45, width: 0.05, ...x, t: q(x.t) }, l = Math.hypot(S.dir[0], S.dir[1]) || 1;
       S.dir = [S.dir[0] / l, S.dir[1] / l]; S.s0 = S.from ?? (this._upstream(S.dir) - S.width * 2); return S;
     });
     const tilt = Array.isArray(e.tilt) ? e.tilt : typeof e.tilt === 'number' ? [0, Math.tan(e.tilt)] : [0, 0];
-    const ring = e.ring ? { amp: 0.003, speed: 0.35, ...e.ring } : null;
+    const ring = e.ring ? { amp: 0.003, speed: 0.35, ...e.ring, t: q(e.ring.t) } : null;
     return { rock: r, drops, surges, tilt, ring };
   }
 
@@ -106,7 +147,8 @@ export class Liquid {
   }
 
   _upstream(dir) {   // the most upstream s = dot(p, dir) over the tray interior (the rocking train enters there)
-    return -(Math.abs(dir[0]) * this.width / 2 + Math.abs(dir[1]) * this.depth / 2);
+    const c = this.center || [0, 0];
+    return c[0] * dir[0] + c[1] * dir[1] - (Math.abs(dir[0]) * this.width / 2 + Math.abs(dir[1]) * this.depth / 2);
   }
 
   // closed form; mirrors lqH() in the GLSL below term for term
@@ -160,9 +202,16 @@ function dropH(r, tt) {
   const spread = 1 / Math.sqrt(1 + r / 0.012);
   let h = 0.0022 * Math.exp(-tt / 1.2) * spread * Math.exp(-(u * u) / (2 * sig * sig)) * Math.cos(TAU * u / lam) * (u < 0 ? 1 : Math.exp(-u / 0.01));
   const crown = Math.exp(-tt / 0.06);
-  h += 0.0018 * crown * Math.exp(-(r * r) / (0.0045 * 0.0045)) * Math.cos(TAU * tt / 0.14);
+  h += 0.0018 * crown * Math.exp(-(r * r) / (0.0065 * 0.0065)) * Math.cos(TAU * tt / 0.14);
   return h;
 }
+
+const BAKED_GLSL = /* glsl */`
+uniform sampler2D uLqBakeS, uLqBakeL;
+uniform vec4 uLqBakeRect;
+vec3 lqBakedS(vec2 p){ return texture(uLqBakeS, (p - uLqBakeRect.xy) / uLqBakeRect.zw).xyz; }
+vec3 lqBakedL(vec2 p){ return texture(uLqBakeL, (p - uLqBakeRect.xy) / uLqBakeRect.zw).xyz; }
+`;
 
 const GLSL = /* glsl */`
 #define LQ_TAU 6.28318530718
@@ -182,7 +231,7 @@ float lqDrop(float r, float tt){
   float rf = .25 * tt, sig = .009 + .024 * tt, lam = .015 + .016 * tt, u = r - rf;
   float spread = inversesqrt(1. + r / .012);
   float h = .0022 * exp(-tt / 1.2) * spread * exp(-(u * u) / (2. * sig * sig)) * cos(LQ_TAU * u / lam) * (u < 0. ? 1. : exp(-u / .01));
-  h += .0018 * exp(-tt / .06) * exp(-(r * r) / (.0045 * .0045)) * cos(LQ_TAU * tt / .14);
+  h += .0018 * exp(-tt / .06) * exp(-(r * r) / (.0065 * .0065)) * cos(LQ_TAU * tt / .14);
   return h;
 }
 float lqHLocal(vec2 p);
@@ -229,8 +278,11 @@ vec2 lqGrad(vec2 p){
   return vec2(lqH(p + vec2(e, 0.)) - lqH(p - vec2(e, 0.)), lqH(p + vec2(0., e)) - lqH(p - vec2(0., e))) / (2. * e);
 }
 // gradient and laplacian: closed form for the rocking swell, seiche and tilt; five samples of the local part only
-// while a drop, surge or ring is live
+// while a drop, surge or ring is live. lqLocalGL holds the local part alone after the call (drops, surges, the ring:
+// tray.js refracts it less than the swell and compresses its slopes)
+vec3 lqLocalGL;
 vec3 lqGradLap(vec2 p){
+  lqLocalGL = vec3(0.);
   vec3 r = vec3(uLqTilt, 0.);
   float A = uLqRock.x, tt = uLqT - uLqRock.w;
   if (A > 0. && tt > 0.) {
@@ -249,7 +301,8 @@ vec3 lqGradLap(vec2 p){
   if (uLqLocal > .5) {
     const float e = .0007;
     float a = lqHLocal(p + vec2(e, 0.)), b = lqHLocal(p - vec2(e, 0.)), c = lqHLocal(p + vec2(0., e)), d = lqHLocal(p - vec2(0., e)), h = lqHLocal(p);
-    r += vec3((a - b) / (2. * e), (c - d) / (2. * e), (a + b + c + d - 4. * h) / (e * e));
+    lqLocalGL = vec3((a - b) / (2. * e), (c - d) / (2. * e), (a + b + c + d - 4. * h) / (e * e));
+    r += lqLocalGL;
   }
   return r;
 }

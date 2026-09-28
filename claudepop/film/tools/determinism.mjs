@@ -1,6 +1,6 @@
 // determinism.mjs - BIBLE 9.2 / 9.8.4: frames rendered out of order, in parallel or in a fresh browser are identical.
 //
-//   node film/tools/determinism.mjs --res 540 [--frames 12,1500,3001 | --n 3] [--previs-tags]
+//   node film/tools/determinism.mjs --res 540 [--frames 12,1500,3001 | --n 3] [--previs-tags] [--safe]
 //   node film/tools/determinism.mjs --res 540 --frames 2680,2690,2700 --override S40=/film/src/core/scene_template.js
 //        (a 3D scene through the core: 'stored' is then a second fresh browser rendering in film order)
 //
@@ -10,16 +10,17 @@
 // and reports the max channel difference. The render options must match the stored frames' (e.g. --previs-tags).
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import { args, serve, openPage, grabFrame, framePath, shotsDoc } from './farm.mjs';
+import { args, serve, openPage, grabFrame, framePath, shotsDoc, pageQuery } from './farm.mjs';
 
 const o = args();
 const res = +(o.res || 540), doc = shotsDoc(), q = res >= 1080 ? 0.95 : 0.92;
 const opts = { res, layer: 'final', previsTags: !!o['previs-tags'] };
+const variant = o.safe ? 'safe' : '';
 let frames = o.frames ? String(o.frames).split(',').map(Number) : [];
 if (!frames.length) { const n = +(o.n || 3); while (frames.length < n) { const f = crypto.randomInt(doc.frames); if (!frames.includes(f)) frames.push(f); } }
 const md5 = b => crypto.createHash('md5').update(b).digest('hex');
 const server = await serve();
-const query = o.override ? { override: o.override } : {};
+const query = pageQuery({ safe: !!o.safe }, o.override ? { override: o.override } : {});
 const A = await openPage(server, { query });
 const fresh = {};
 for (const f of [...frames].reverse()) fresh[f] = (await grabFrame(A.page, f, opts, q)).jpeg;       // fresh browser, reverse order
@@ -34,7 +35,7 @@ if (o.override) {                                    // no stored frames for an 
 }
 const report = [];
 for (const f of frames) {
-  const stored = second ? second[f] : fs.existsSync(framePath(res, f)) ? fs.readFileSync(framePath(res, f)) : null;
+  const stored = second ? second[f] : fs.existsSync(framePath(res, f, 'final', variant)) ? fs.readFileSync(framePath(res, f, 'final', variant)) : null;
   const r = { frame: f, shot: doc.shots.find(s => f >= s.frames[0] && f < s.frames[1]).id, fresh: md5(fresh[f]), same_page_later: md5(again[f]),
     stored: stored ? md5(stored) : null };
   r.identical = r.fresh === r.same_page_later && (!stored || r.fresh === r.stored);

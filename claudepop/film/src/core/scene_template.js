@@ -19,14 +19,20 @@
 //     post     { halftoneAngle, pitch, exposure, grainFrozen, ...any grade.js preset key (overrides the preset);
 //                flash 0..1 (to white), dim (stops, image only), fade 0..1 (whole frame to black) }
 //     msaa     4 (default) | 0 | 2   MSAA samples for this frame (4x costs ~230 ms at 1080p under SwiftShader)
-//     accent   [{ scene, camera } (3D VOICE objects, rendered on their own and composited after the grade)
-//               | { draw(g2d, frame) } (2D marks on the HUD canvas in 1920x1080 design px, under the type)]
+//     accent   [{ scene, camera, occlude } (3D VOICE objects, rendered on their own and composited after the grade;
+//                 occlude: true lets the main layers hide them - same camera only, one extra depth-only pass)
+//               | { draw(g2d, frame) } (2D marks on the HUD canvas in 1920x1080 design px, after the grade, under the
+//                 HUD and the type)]
 //     plate    { id: 'P04', from: 50.49, over: false } | null   stage 2 switches the previs for the plate when
 //              out/plates/<P>/plate.json exists; stage 1 always renders your layers (tagged PREVIS with --previs-tags)
 //     hud      { proof, wedge, slug, caption, job, counter, marks } | null   EVALUATED strings (src/hud/proof.js);
 //              omit for the default (registration marks only); null for none
 //     text     shot.text (default when omitted) | a modified copy | null (no type)
 //     clear    0x0a0a09   the HDR clear colour
+//   ctx.flags.faceSafe   true = render the BIBLE 12.1 fallback (the consent-pending shots S12 S37 S50 S51 test it every
+//                        frame; URL ?safe=1, render.mjs --safe)
+//   ctx.tl lookups are BY FRAME (beatAt, lineAt, wordAt, live, sectionAt); test events with tl.reached(T, t) /
+//   tl.framesSince(T, t), never t >= T.
 //     overlay  (hud, frame) => {}   optional 2D drawing on the HUD canvas after the window mask (debug labels)
 import * as THREE from 'three';
 
@@ -34,12 +40,7 @@ export default {
   id: 'TEMPLATE',
   needs: { sets: ['hall'], avatar: true },
   async init(ctx) {
-    const hall = ctx.sets.hall;                       // the set api (stub today: scene + camera)
-    this.key = new THREE.DirectionalLight(0xdce3e8, 2.2); this.key.position.set(0, 6, -12);
-    this.fill = new THREE.DirectionalLight(0xffffff, 0.35); this.fill.position.set(0, 0.3, 4);
-    this.floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 60).rotateX(-Math.PI / 2).translate(0, 0, -28),
-      new THREE.MeshStandardMaterial({ color: 0x0d0e0f, roughness: 0.9 }));
-    hall.scene.add(this.key, this.fill, this.floor);
+    // the hall set (lane E) owns its lights, floor, haze and prints; a scene only adds its own objects and a camera
     this.cam = new THREE.PerspectiveCamera(14, 16 / 9, 0.1, 200);
     // accent layer: a VOICE point (like the Omega point), composited after the grade so it stays pure orange
     this.accScene = new THREE.Scene();
@@ -48,17 +49,22 @@ export default {
   },
   frame(ctx, t, s) {
     const hall = ctx.sets.hall, av = ctx.avatar, tl = ctx.tl;
-    hall.update(t);
-    // the stand-in: re-parent into this scene, set the look, pose it (pure function of t)
+    // the stand-in (shared across shots): re-parent into this scene, make him visible (a set may have hidden him),
+    // set the look, pose it (pure function of t)
     if (av.root.parent !== hall.scene) hall.scene.add(av.root);
+    av.root.visible = true;
     av.setLook('silhouette');
+    if (hall.avatarLook) hall.avatarLook(av);
     const speed = av.beatSpeed('walk_runway_loop', 66);
     const pose = av.pose('walk_runway_loop', s.tl, { speed, place: { x: 0, z: -9, yaw: 0 } });
     av.apply(pose, { breath: { amp: 0.8 }, hands: { curl: 0.5 } }, t);
     // camera: chorus master (0, 1.55, 0) looking down -Z, a slow seeded drift
     this.cam.position.set(0.02 * ctx.rng.noise1(t * 0.3, 7), 1.55, 0); this.cam.lookAt(0, 1.4, -10);
-    this.key.intensity = 1.6 + 0.8 * tl.env(t);      // the voice is the light
-    this.spark.position.copy(av.headAnchor()).add(new THREE.Vector3(0.03, 0, 0.12));
+    this.cam.updateMatrixWorld();
+    const head = av.headAnchor();
+    // the set's per-frame update after posing (lane E: it renders the floor reflection now); the voice is the light
+    hall.update(t, { camera: this.cam, avatar: true, head, rim: 0.8 + 0.4 * tl.env(t) });
+    this.spark.position.copy(head).add(new THREE.Vector3(0.03, 0, 0.12));
     return {
       layers: [{ scene: hall.scene, camera: this.cam }],
       grade: 'HALL',

@@ -18,8 +18,11 @@
 //   proof.proofAt(t) -> the PROOF Nº string at t (or null)
 //
 // Layout (design px): marks (24 px, hairline, TYPE 40 %) centred 40 px outside the window corners, or 40 px inside
-// the frame corners when the window is full width; text elements share the marks' centre line (y 40 / 1040); PROOF Nº
-// top right (IBM Plex Mono 500, 20 px, digits VOICE); job line / plate caption / counter top left (15 px); step wedge on
+// the frame corners when the window is full width. Marks outside the window sit on the INK surround, so they are always
+// TYPE at 40 % (whatever the register); only marks inside a full-width window follow the register (INK TYPE on the white
+// registers). Text elements share the marks' centre line (y 40 / 1040); PROOF Nº top right (IBM Plex Mono 500, 20 px;
+// digits TYPE until "sparks" (2.852, BIBLE 3 / 6.7: the catchlights are the first colour inside the window), VOICE
+// after); job line / plate caption / counter top left (15 px); step wedge on
 // the left edge (11 patches PAPER -> INK, VOICE marker, "+n STOP"); slug line bottom centre (14 px). Every element
 // types on with a block cursor (2 characters per frame; captions 3) when its run starts.
 const TYPE = '#FAF9F5', INK_TYPE = '#111110', VOICE = '#D97757';
@@ -30,6 +33,7 @@ const fmt = n => n < 10000 ? String(n).padStart(4, '0') : n.toLocaleString('en-U
 const SLUG_TAIL = ' · f/8 · GRADE 3 · 20 °C';
 const KEYS = ['job', 'caption', 'counter', 'wedge', 'slug', 'proof'];   // priority when more than two want the frame
 const LIMIT = { premise: 0, low: 1, medium: 2, off: 0, none: 0, proof: 1, end: 0, card: 0 };
+const VOICE_DIGITS_FROM = 2.852;   // "sparks": the first colour inside the window is the catchlights (BIBLE 3, 6.7)
 
 export class Proof {
   constructor(ctx) {
@@ -180,7 +184,7 @@ export class Proof {
     if (st.marks) {
       const m = st.marks, a = m.alpha ?? 0.4, rot = (m.rotate || 0) * Math.PI / 180;
       const cs = full ? [[40, 40], [1880, 40], [40, 1040], [1880, 1040]] : [[r.x - 40, 40], [r.x + r.w + 40, 40], [r.x - 40, 1040], [r.x + r.w + 40, 1040]];
-      c.strokeStyle = col; c.lineWidth = hair;
+      c.strokeStyle = full ? col : TYPE; c.lineWidth = hair;      // outside the window: on INK, always TYPE
       for (const [x, y] of cs) {
         mark(c, x, y, rot, a);
         if (m.doubled > 0.002) {                          // S06: the ghost set, offset like the projection, converging
@@ -212,7 +216,8 @@ export class Proof {
         const wAll = c.measureText(all).width, x0 = right - wAll, y = yT + 7;
         const shownL = all.slice(0, Math.min(n, label.length)), shownD = n > label.length ? digits.slice(0, n - label.length) : '';
         c.globalAlpha = 0.72; c.fillStyle = col; c.fillText(shownL, x0, y);
-        c.globalAlpha = 1; c.fillStyle = st.inkDigits ? INK_TYPE : VOICE; c.fillText(shownD, x0 + c.measureText(label).width, y);
+        c.globalAlpha = 1; c.fillStyle = st.inkDigits ? INK_TYPE : f < F(VOICE_DIGITS_FROM, fps) ? col : VOICE;
+        c.fillText(shownD, x0 + c.measureText(label).width, y);
         if (n < all.length) cursor(c, x0 + c.measureText(all.slice(0, n)).width, y, 20, col);
       } else if (e.key === 'job' || e.key === 'caption' || e.key === 'counter') {
         if (tlUsed) continue; tlUsed = true;

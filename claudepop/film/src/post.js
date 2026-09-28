@@ -10,9 +10,11 @@
 //     grade   a src/grade.js preset (merged with the scene's post overrides)
 //     seed    grain seed (frame index; frozen grain: the shot's seed)       hud  src/hud.js Hud (type + HUD) or null
 //     window  { x, y, w, h } output px, top-left origin: outside -> INK (no grain, no dots), under the HUD
-//     accent  [{ scene, camera }] VOICE objects: rendered alone (2x supersampled, scissored to their screen box, no
-//             MSAA), composited AFTER the grade with a 6 px bloom, so VOICE stays pure. They are not occluded by the
-//             main layers (keep them in front: catchlights, the Omega point, marks on sheets)
+//     accent  [{ scene, camera, occlude }] VOICE objects: rendered alone (2x supersampled, scissored to their screen
+//             box, no MSAA), composited AFTER the grade with a 6 px bloom, so VOICE stays pure. By default they are not
+//             occluded by the main layers (keep them in front: catchlights, the Omega point, marks on sheets);
+//             occlude: true first writes the main layers' depth (depth only, same scissor) so the scene hides them -
+//             use it when the accent camera is the layer camera (costs one depth-only pass of the main layers)
 //     layer   'final' | 'pregrade' (exposure + tone curve only: for the likeness scorer)
 //     flash   0..1 to white (whole frame)   fade 0..1 to black (whole frame)   dim  stops, image only (card / freeze dim)
 //     Chain per pixel: HDR (+ bloom / halation by register) -> exposure x 2^-dim -> ACES fit -> display sRGB ->
@@ -303,7 +305,7 @@ export class Post {
     // 2 / 9. VOICE accents
     const acc = pre ? [] : (o.accent || []).filter(a => a && a.scene && a.camera);
     let accOn = 0;
-    if (acc.length && this._renderAccent(acc)) accOn = 1;
+    if (acc.length && this._renderAccent(acc, (o.layers || []).filter(L => L && L.scene && L.camera))) accOn = 1;
     // uniforms
     u.tScene.value = src.texture; u.tNear.value = this.rtA.texture; u.tFar.value = this.rtD.texture;
     u.uExposure.value = exposure;
@@ -337,7 +339,7 @@ export class Post {
 
   // the accent layers alone: 2x supersampled RGBA8 (no MSAA; an MSAA resolve costs ~160 ms at 720p under SwiftShader),
   // scissored to the screen box their objects cover; then a half-res blurred copy for the 6 px bloom
-  _renderAccent(layers) {
+  _renderAccent(layers, main = []) {
     const v2 = this.v2, r = this.r, W = this.W, H = this.H;
     v2.alloc();
     const box = new THREE.Box3(), v = new THREE.Vector3();
@@ -365,7 +367,13 @@ export class Post {
       v2.acc.scissor.set(x0 * 2, y0 * 2, (x1 - x0) * 2, (y1 - y0) * 2); v2.acc.scissorTest = true;
       r.setRenderTarget(v2.acc);
       r.autoClear = false;
-      layers.forEach((L, i) => { if (i) r.clearDepth(); r.render(L.scene, L.camera); });
+      const occ = layers.some(L => L.occlude) && main.length;
+      if (occ) {                                   // the main layers' depth only (no colour) as the occluder
+        v2.depthMat ??= new THREE.MeshDepthMaterial({ colorWrite: false });
+        for (const M of main) { const prev = M.scene.overrideMaterial, bg = M.scene.background; M.scene.overrideMaterial = v2.depthMat; M.scene.background = null;
+          r.render(M.scene, M.camera); M.scene.overrideMaterial = prev; M.scene.background = bg; }
+      }
+      layers.forEach((L, i) => { if (i && !(occ && L.occlude)) r.clearDepth(); r.render(L.scene, L.camera); });
       r.autoClear = ac; v2.acc.scissorTest = false;
     }
     r.setRenderTarget(null);

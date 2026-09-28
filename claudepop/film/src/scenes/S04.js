@@ -1,13 +1,15 @@
 // S04 - The drop (9.545-13.180 s, frames 229-315; lane C). L3 "There was a sudden drop in your training loss" (grokking).
 //
-// 7:9 window, the tray lens again (as S01). His face lies soft under the rocking developer: the same print, out of focus
-// and a little thin. A single drop falls into frame and strikes the liquid on "drop" (10.70, f257): a crown, then rings
-// at 0.25 m/s; behind the ring front the face is sharp and at full density. A hairline loss curve in the upper left
-// margin steps down on the same frame. The bass swells in at 12.054 and is full at 12.963 (beat hits): the rocking
-// deepens, each time with a swell that enters on the hit frame. Held to "now" (13.18) so the live man never enters
-// before the voice. Text: the shot's SUBTITLE (left margin, bottom) and the vertical ZH, via the core's type path.
+// 7:9 window, the tray lens again (as S01). His face lies soft under the rocking developer: the same print, thin, flat
+// and out of focus AFTER its screen (the dots are blurred with the image, so none show; develop's soft option). A single
+// drop - a glint of the lamp - falls into frame and strikes the liquid on "drop" (10.70, f257): a small crown, then a
+// bright refraction ring at 0.25 m/s trailing a soft band; behind it the face grades in sharp, dense and screened over
+// about a ring width (grokking). A hairline loss curve in the upper left margin steps down on the same frame. The bass
+// swells in at 12.054 and is full at 12.963 (beat hits): the rocking deepens, each time with a swell that is already
+// over the print on its hit frame. Held to "now" (13.18) so the live man never enters before the voice. Text: the shot's
+// SUBTITLE (left margin, bottom) and the vertical ZH, via the core's type path.
 import { develop } from '../fx/develop.js';
-import { loadPrint, PRINT_ASSETS } from '../fx/print.js';
+import { loadPrint, PRINT_ASSETS, cropUV } from '../fx/print.js';
 
 const T = { drop: 10.7, swell: 12.0538, full: 12.9629 };
 // the strike point, as a framing rule relative to the eyes (no face numbers in the source): in the hair above the
@@ -25,19 +27,22 @@ export default {
   },
   frame(ctx, t, s) {
     const tl = ctx.tl, tray = ctx.sets.tray, P = this.print;
-    const DROP_UV = pass0UV(P, this.dropPx);
+    const DROP_UV = cropUV(P.crop, ...this.dropPx);
+    const ht = (ctx.grades && ctx.grades.DARKROOM && ctx.grades.DARKROOM.halftone) || {};
     const pass = develop(ctx, {
       key: 'S04', src: P.src, certainty: P.cert, crop: P.crop, t, tStart: -60, clock: 'linear', midLift: 0.8,
-      halftone: { pitch: 4 * tray.metresPerPx1080, angle: 45 },
-      soft: { lod: 3.3, sharpLod: 0, density: 0.8, rings: [{ t: T.drop, uv: DROP_UV, speed: 0.25 / tray.PRINT.h, width: 0.08 }] },
+      halftone: { pitch: 4 * tray.metresPerPx1080, angle: 45, amount: ht.amount ?? 0.38 },
+      // the ring front runs with the liquid's ripple packet (0.25 m/s); sharpness grades in over its width behind it
+      soft: { lod: 2.3, sharpLod: 0, density: 0.85, contrast: 0.72,
+        rings: [{ t: T.drop, uv: DROP_UV, speed: 0.25 / tray.PRINT.h, width: 0.1, grow: 0.1 }] },
     });
     const d = tray.printUVToLocal(DROP_UV[0], DROP_UV[1]);
-    const dir = [0.26, 0.97], from = -0.19;            // swells enter at the top edge of the print, on their hit frame
+    const dir = [0.26, 0.97], from = -0.1;             // swells are already over the print's upper part on their hit frame
     tray.update(t, {
       print: pass,
       liquid: {
         rock: { t0: 0.2356, enter: false, boosts: [{ t: T.swell, gain: 1.45 }, { t: T.full, gain: 1.9 }] },
-        drops: [{ t: T.drop, x: d.x, z: d.z, amp: 0.07 }],
+        drops: [{ t: T.drop, x: d.x, z: d.z, amp: 0.55 }],
         surge: [{ t: T.swell, dir, amp: 0.0024, speed: 0.3, width: 0.04, from }, { t: T.full, dir, amp: 0.0032, speed: 0.3, width: 0.045, from }],
       },
       falling: [{ t: T.drop, x: d.x, z: d.z, h: 0.45 }],
@@ -45,16 +50,13 @@ export default {
     return {
       layers: [{ scene: tray.scene, camera: tray.camera }],
       grade: 'DARKROOM',
-      post: { halftone: null },
+      post: { halftone: null, vignette: 0.25 },
       msaa: 0,
       accent: [{ draw: (g, fr) => lossCurve(g, fr.rect, t, tl) }],
       hud: { proof: '0006', marks: {} },
     };
   },
 };
-
-// source px (top-left origin) -> print uv through the print's crop
-function pass0UV(P, [px, py]) { const c = P.crop; return [(px - c[0]) / c[2], 1 - (py - c[1]) / c[3]]; }
 
 // the machine's training loss, a hairline in the upper left margin: a long noisy plateau, then on "drop" (f257) the
 // sudden fall (grokking), then a low floor. Drawn up to the current frame; the step lands on its own frame.

@@ -9,9 +9,10 @@
 //     lumaProbe (x, y, w, h) -> { mean, std }: luma 0..1 of the pre-type frame under a design-px box (optional)
 //     frame     { shot, s, rect (window, design px), register (the grade name), card (full-frame card shot) }
 //   returns
-//     blocks    [{ mode, box: [x, y, w, h] (design px), on: true, line, ink, band, contrast, safe }]  what is on screen
-//               (contrast = WCAG ratio of the type colour against the mean luma under the box; safe = inside the BIBLE
-//               6.6 phone area and out of the player-overlay zones)
+//     blocks    [{ mode, box: [x, y, w, h] (design px), on: true, line, ink, band, contrast, safe, layout, critical, luma,
+//               alpha }]  what is on screen (contrast = WCAG ratio of the type colour against the mean luma under the box;
+//               luma = { mean, std } of the pre-type frame under the box when it was probed; safe = inside the BIBLE 6.6
+//               phone area and out of the player-overlay zones; alpha = the block's fade, 1 when fully up)
 //     dim       stops the core dims the image by: the card dim, -1 stop over 4 frames while a CARD is over an image
 //     draw(hud) draws into the Hud canvas (1920x1080 design space, already scaled)
 //
@@ -45,6 +46,7 @@ const { TYPE, INK_TYPE, VOICE } = COLORS;
 export const SAFE = { x0: 72, x1: 1848, y0: 60, y1: 1020, overlays: [[0, 960, 480, 120], [1560, 960, 360, 120]] };
 const TOP = 104;          // the cap-top line of the triptych (premise, stack, thought, ZH columns)
 const GAP = 48;           // margin type <-> window edge
+const STACK_GAP = 36;     // the S01 margin stack's gutter (cap 100 needs a 432 px column; see _cardStack)
 const L = 72, R = 1848;
 
 export const ROLES = {
@@ -187,7 +189,8 @@ export class Type {
     for (const b of blocks) if (b.dim) dim = Math.max(dim, b.dim);
     return {
       blocks: blocks.map(b => ({ mode: b.mode, box: b.box.map(v => Math.round(v)), on: true, line: b.line, ink: !!b.ink, band: !!b.band,
-        contrast: b.contrast ? +b.contrast.toFixed(2) : null, safe: b.safe, layout: b.layout })),
+        contrast: b.contrast ? +b.contrast.toFixed(2) : null, safe: b.safe, layout: b.layout, critical: b.critical !== false,
+        luma: b.luma ? { mean: b.luma.mean, std: b.luma.std } : null, alpha: b.alpha ?? 1 })),
       dim,
       draw: hud => { const c = hud.ctx; for (const b of blocks) { c.save(); if (b.band) drawBand(c, b.bandBox || b.box); b.draw(c, b.ink ? INK_TYPE : TYPE); c.restore(); } },
     };
@@ -319,6 +322,9 @@ export class Type {
     let hardF = Infinity;
     if (nxt) hardF = F(nxt.mode === 'NONE' ? nxt.from : (nxt.line !== undefined ? lineWords(this.tl, nxt.line, { extras: false })[0].t : nxt.on), fps);
     const ff = spec.fade_frames || 4;
+    // a fade that would cross the cut exits WITH the cut instead (BIBLE 6.2: "exit with the cut or a 4-frame fade"):
+    // a 4-frame fade starting 1-3 frames before a cut would only flicker. Also when the card continues in the next shot.
+    if (this._holdToCut(untilF, ff, E, !!this._nextSpec(E, spec))) untilF = E.f1;
     if (f >= hardF || f >= untilF + ff) return null;
     const fade = f < untilF ? 1 : clamp01((untilF + ff - f) / (ff + 1));
     const over = !E.card && !/margin|small/.test(layout);
@@ -333,8 +339,20 @@ export class Type {
     else if (spec.build || spec.words_from === 'transformers') b = this._cardBuild(spec, E, ws, fade);
     else b = this._cardLine(spec, E, ws, fade, layout);
     if (!b) return null;
-    b.dim = dimK; b.line = spec.line; b.layout = layout;
+    b.dim = dimK; b.line = spec.line; b.layout = layout; b.alpha = fade;
     return b;
+  }
+
+  // true when a fade starting on frame fadeF and lasting n frames would be cut short by the shot's cut (it starts before
+  // the cut and does not finish by it); `continues`: the same block carries on in the next shot (it may span the cut,
+  // so it holds to the cut and the next shot takes over)
+  _holdToCut(fadeF, n, E, continues = false) {
+    if (fadeF >= E.f1) return false;
+    return continues || fadeF + n > E.f1;
+  }
+  _nextThought(E, spec) {
+    const i = this.tl.shots.indexOf(E.shot), nx = this.tl.shots[i + 1];
+    return !!(nx && (nx.text || []).some(x => x.mode === 'THOUGHT' && x.line === spec.line));
   }
 
   // word colour: VOICE while sung, settling to the base colour over 8 frames; constVoice (the Omega) stays VOICE
@@ -366,16 +384,20 @@ export class Type {
     }
   }
 
-  // S01: the left-margin stack, one row per spec row, cap ~100 sized to fit the margin column
+  // S01: the left-margin stack, one row per spec row, cap 100 (the phone minimum, BIBLE 6.6; "~9.5 %" in 6.2). Re-fit
+  // after the foundation review: at cap 100 the widest row ("in your", 431 px) does not fit the 420 px column the 48 px
+  // gutter leaves, so the stack's gutter to the window is 36 px (column 432 px) and the leading 1.02 keeps the last
+  // row's descender (the y of "eyes") above the bottom-left player-overlay zone (y 960). Shrinks to fit only if a row
+  // is still wider (never below cap 100 for the S01 rows).
   _cardStack(spec, E, ws, alpha) {
-    const r = this.layoutRect(E, F(ws[0].t, E.fps)), m = this.margins(r);
-    const colW = m.left[1] - m.left[0];
+    const r = this.layoutRect(E, F(ws[0].t, E.fps));
+    const colW = (r.x - STACK_GAP) - L;
     let wi = 0;
     const rows = spec.rows.map(row => { const n = row.split(' ').length, rw = ws.slice(wi, wi + n); wi += n; return rw; });
-    const cap = Math.min(0.095 * 1080, 100);
+    const cap = 100;
     let size = this.sizeForCap('card', cap);
     for (const rw of rows) { const wd = this.line('card', size, rw.map(w => w.w)).width; if (wd > colW) size *= colW / wd; }
-    const pitch = size * 1.04, capPx = size * this.cap.card;
+    const pitch = size * 1.02, capPx = size * this.cap.card;
     const y0 = TOP + capPx, self = this;
     const lay = rows.map(rw => this.line('card', size, rw.map(w => w.w)));
     return {
@@ -537,8 +559,13 @@ export class Type {
     const base = lineWords(tl, spec.line, { extras: false });
     const n = base.length, lead = spec.lead || 0;
     const ws = base.map((w, k) => ({ ...w, t: w.t - lead * (n > 1 ? k / (n - 1) : 1), parts: w.parts && w.parts.map(p => p - lead * (n > 1 ? k / (n - 1) : 1)) }));
-    const fStart = Math.max(F(ws[0].t, fps), E.f0), fEnd = F(l.end, fps);
+    const fStart = Math.max(F(ws[0].t, fps), E.f0);
+    let fEnd = F(l.end, fps);
     const cut = this._cut(spec.line, E);
+    // a dissolve that would be cut short by the shot's cut holds to the cut instead (no dip in the last frames); a
+    // thought that continues in the next shot keeps dissolving across the cut
+    const cont = this._nextThought(E, spec);
+    if (!cont && fEnd < E.f1 && fEnd + 6 > E.f1) fEnd = E.f1;
     if (f < F(ws[0].t, fps) || f >= fEnd + 6 || f >= cut) return null;
     const alpha = f < fEnd ? 1 : clamp01((fEnd + 6 - f) / 7);
     const r = this.layoutRect(E, fStart), m = this.margins(r);
@@ -567,7 +594,7 @@ export class Type {
     const width = Math.max(...lays.map(q => q.width));
     const zhY = y0 + lead2 * (lines.length - 1) + size * 0.3 + (zhb ? zhb.size * 1.3 : 0);
     const blk = {
-      mode: 'THOUGHT', critical: true, zone, probe: !inMargin, line: spec.line, side: spec.side || 'left', zhBeneath: !!zhb,
+      mode: 'THOUGHT', critical: true, zone, probe: !inMargin, line: spec.line, side: spec.side || 'left', zhBeneath: !!zhb, alpha,
       box: [x0, y0 - size * this.cap.thought - 6, width + 8, hText + size * 0.3 + (zhb ? zhb.size * 1.5 : 0) + 12],
       draw(c, col) {
         lines.forEach(([a, b], li) => {
@@ -657,12 +684,14 @@ export class Type {
     if (!l) return null;
     // the ZH column lives as long as its EN partner in this shot (CARD: with the card; THOUGHT: dissolves with it)
     const partner = E.specs.find(s => s !== spec && s.line === spec.line && s.mode !== 'ZH');
-    let a = Math.max(F(l.start, E.fps) - 2, E.f0), b = F(l.end, E.fps) + 6, alpha = 1;
+    let fe = F(l.end, E.fps);
+    if (partner && partner.mode === 'THOUGHT' && !this._nextThought(E, partner) && fe < E.f1 && fe + 6 > E.f1) fe = E.f1;   // as _THOUGHT
+    let a = Math.max(F(l.start, E.fps) - 2, E.f0), b = fe + 6, alpha = 1;
     if (partner && partner.mode === 'CARD') b = E.f1;
     if (partner && partner.mode === 'SUBTITLE') [a, b] = this._subSpan(spec.line, E);
     b = Math.min(b, this._cut(spec.line, E));
     if (f < a || f >= b) return null;
-    if (partner && partner.mode === 'THOUGHT' && f >= F(l.end, E.fps)) alpha = clamp01((F(l.end, E.fps) + 6 - f) / 7);
+    if (partner && partner.mode === 'THOUGHT' && f >= fe) alpha = clamp01((fe + 6 - f) / 7);
     const two = /2col/.test(spec.layout || '');
     return this._zhColumns(spec.line, E, a, { two, alpha });
   }

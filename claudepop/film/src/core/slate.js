@@ -2,6 +2,8 @@
 // grey field inside the shot's window (its value follows the register, so the brightness arc reads), the shot id, title,
 // source tag, timecode, the shot's text through ctx.type (placeholder type until lane B lands), and a 2-frame tick on
 // every beat_hit. It goes through the whole finish chain (post SLATE grade, window mask, HUD canvas) like any scene.
+// Every slate label stays inside y 90-990 (design px), clear of the proof-sheet HUD bands at y 40 / 1040, and the
+// bottom ruler sits below the subtitle lines (EN 880 / ZH 936).
 import * as THREE from 'three';
 
 // display-sRGB value of the field per register (neutral greys; the bright registers flip the labels to INK TYPE)
@@ -48,7 +50,7 @@ export default {
 function drawSlate(c, ctx, fr, t, s, reg, hit) {
   const shot = s.shot, tl = ctx.tl, r = fr.rect, fps = tl.fps;
   const fg = BRIGHT.has(reg) ? INK_TYPE : TYPE;
-  const L = r.x + 40, R = r.x + r.w - 40, top = r.y + 40, narrow = r.w < 1000;
+  const L = r.x + 40, R = r.x + r.w - 40, top = r.y + 86, narrow = r.w < 1000;   // top: the id's cap line sits at y ~93
   c.textBaseline = 'alphabetic'; c.fillStyle = fg; c.strokeStyle = fg; c.letterSpacing = '0px';
   const txt = (s, x, y, size, { w = 400, a = 1, align = 'left', track = 0, max = 0 } = {}) => {
     c.font = `${w} ${size}px ${MONO}`; c.globalAlpha = a; c.textAlign = align; c.letterSpacing = `${track}px`;
@@ -66,6 +68,11 @@ function drawSlate(c, ctx, fr, t, s, reg, hit) {
   txt(shot.title, L, top + 76, 20, { a: 0.95, max: titleMax });
   const live = shot.he_live && (shot.rule_break || tl.live(t)) ? '  ·  HE LIVE' : '';
   txt(`${reg}  ·  ${shot.module.toUpperCase()} (LANE ${LANE[shot.module] || '?'})${live}`, L, top + 104, 14, { a: 0.6, track: 1.5, max: titleMax });
+  // camera and HUD notes under the title block (narrow windows: under the timecode block)
+  const note = s => String(s || '').replace(/\s+/g, ' ');
+  const ny = narrow ? top + 262 : top + 132;
+  txt('CAM  ' + note(shot.camera), L, ny, 13, { a: 0.5, max: R - L });
+  if (shot.hud) txt('HUD  ' + note(Object.entries(shot.hud).map(([k, v]) => v === true ? k : `${k} ${Array.isArray(v) ? v.join('-') : v}`).join(' · ')), L, ny + 20, 13, { a: 0.5, max: R - L });
   // top-right: timecode, frame, shot-local time, bar / beat with a 4-step metronome
   const ty = narrow ? top + 150 : top + 36, TX = narrow ? L : R, al = narrow ? 'left' : 'right';
   txt(tc(s.f, fps), TX, ty, 30, { w: 500, align: al, track: 1 });
@@ -77,20 +84,17 @@ function drawSlate(c, ctx, fr, t, s, reg, hit) {
   // the beat_hit tick: a hairline across the window top and the hit label, for 2 frames
   if (hit >= 0) {
     const h = shot.beat_hits[hit], w = tl.wordAt(h + 1e-4);
-    c.globalAlpha = 1; c.fillRect(r.x, r.y + 6, r.w, 3);
+    c.globalAlpha = 1; c.fillRect(r.x, r.y + 88, r.w, 3);
     txt(`HIT ${hit + 1}/${shot.beat_hits.length}   ${h.toFixed(3)}${w && Math.abs(w.t - h) < 0.06 ? `   “${w.w}”` : ''}`, r.x + r.w / 2, narrow ? top + 222 : top + 150, 17, { w: 500, align: 'center', track: 1 });
   }
-  // bottom: camera, HUD spec, and the shot ruler (bars, hits, playhead)
-  const y = r.y + r.h - 44;
-  const note = s => String(s || '').replace(/\s+/g, ' ');
-  txt('CAM  ' + note(shot.camera), L, y - 56, 13, { a: 0.5, max: R - L });
-  if (shot.hud) txt('HUD  ' + note(Object.entries(shot.hud).map(([k, v]) => v === true ? k : `${k} ${Array.isArray(v) ? v.join('-') : v}`).join(' · ')), L, y - 36, 13, { a: 0.5, max: R - L });
+  // bottom: the shot ruler (bars, hits, playhead); its tick tops (y 954) clear the ZH subtitle, its labels end by y 990
+  const y = r.y + r.h - 112;
   const X = tt => L + (R - L) * Math.min(1, Math.max(0, (tt - shot.t0) / (shot.t1 - shot.t0)));
   c.globalAlpha = 0.35; c.fillRect(L, y, R - L, 1);
   for (const d of tl.downbeats) if (d > shot.t0 && d < shot.t1) c.fillRect(Math.round(X(d)), y - 5, 1, 6);
   c.globalAlpha = 0.9; for (const h of shot.beat_hits || []) c.fillRect(Math.round(X(h)) - 1, y - 14, 2, 15);
   c.globalAlpha = 0.95; c.fillRect(L, y - 1, X(t) - L, 3);
-  txt(shot.t0.toFixed(3), L, y + 24, 13, { a: 0.55 });
-  txt(shot.t1.toFixed(3), R, y + 24, 13, { a: 0.55, align: 'right' });
+  txt(shot.t0.toFixed(3), L, y + 18, 13, { a: 0.55 });
+  txt(shot.t1.toFixed(3), R, y + 18, 13, { a: 0.55, align: 'right' });
   c.globalAlpha = 1;
 }

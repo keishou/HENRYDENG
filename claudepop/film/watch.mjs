@@ -1,6 +1,7 @@
 // watch.mjs - frames -> a watch-through mp4 with the song (lane A).
 //
 //   node film/watch.mjs --res 540 [--burn] [--from 38.4 --to 53] [--crf 20] [--preset medium] [--out file.mp4] [--check]
+//                       [--safe]   (the faceSafe variant: frames from out/film/frames/<res>_safe/, file named watch_<res>_safe_...)
 //
 // Full film: every frame 0..3759 of out/film/frames/<res>/ + the ORIGINAL pdoom.mp3 stream copied (-c:a copy, never
 // re-encoded, no -shortest) -> out/film/watch/watch_<res>_<stamp>.mp4. A segment (--from/--to) re-encodes the audio
@@ -12,21 +13,21 @@ import path from 'node:path';
 import { args, shotsDoc, framePath, frameDir, cacheLoad, fromRanges, ffmpeg, run, stamp, PATHS, tc } from './tools/farm.mjs';
 
 const o = args();
-const res = +(o.res || 540), doc = shotsDoc(), fps = doc.fps;
+const res = +(o.res || 540), doc = shotsDoc(), fps = doc.fps, variant = o.safe ? 'safe' : '';
 const f0 = o.from !== undefined ? Math.round(+o.from * fps) : 0;
 const f1 = o.to !== undefined ? Math.min(doc.frames, Math.round(+o.to * fps)) : doc.frames;
 const full = f0 === 0 && f1 === doc.frames;
 const missing = [];
-for (let f = f0; f < f1; f++) if (!fs.existsSync(framePath(res, f))) missing.push(f);
-if (missing.length) { console.error(`${missing.length} frames missing in ${frameDir(res)} (first ${missing.slice(0, 10).join(',')}); render them first`); process.exit(1); }
-const cache = cacheLoad(res, 'final');
+for (let f = f0; f < f1; f++) if (!fs.existsSync(framePath(res, f, 'final', variant))) missing.push(f);
+if (missing.length) { console.error(`${missing.length} frames missing in ${frameDir(res, 'final', variant)} (first ${missing.slice(0, 10).join(',')}); render them first`); process.exit(1); }
+const cache = cacheLoad(res, 'final', variant);
 for (const s of doc.shots) {
   if (s.frames[1] <= f0 || s.frames[0] >= f1) continue;
   const e = cache.shots[s.id];
   if (!e || !e.complete) console.warn(`warning: ${s.id} not complete in the cache (${e ? 'partial / errors ' + (e.errors || []).join(' | ') : 'never rendered'})`);
 }
 fs.mkdirSync(PATHS.watch, { recursive: true });
-const out = o.out ? path.resolve(o.out) : path.join(PATHS.watch, `watch_${res}${full ? '' : `_${(f0 / fps).toFixed(1)}-${(f1 / fps).toFixed(1)}`}_${stamp()}.mp4`);
+const out = o.out ? path.resolve(o.out) : path.join(PATHS.watch, `watch_${res}${variant ? '_' + variant : ''}${full ? '' : `_${(f0 / fps).toFixed(1)}-${(f1 / fps).toFixed(1)}`}_${stamp()}.mp4`);
 const FF = ffmpeg();
 const vf = [];
 if (o.burn) {
@@ -44,7 +45,7 @@ if (o.burn) {
     '[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n' + lines.join('\n') + '\n');
   vf.push(`subtitles=${ass.replace(/:/g, '\\:')}`);
 }
-const argv = ['-y', '-v', 'error', '-framerate', String(fps), '-start_number', String(f0), '-i', path.join(frameDir(res), '%05d.jpg')];
+const argv = ['-y', '-v', 'error', '-framerate', String(fps), '-start_number', String(f0), '-i', path.join(frameDir(res, 'final', variant), '%05d.jpg')];
 if (full) argv.push('-i', PATHS.mp3);
 else argv.push('-ss', (f0 / fps).toFixed(4), '-t', ((f1 - f0) / fps).toFixed(4), '-i', PATHS.mp3);
 argv.push('-map', '0:v:0', '-map', '1:a:0', '-frames:v', String(f1 - f0));

@@ -48,6 +48,18 @@
    "ease": "smoothstep"
   }
  ],
+ "flags": {
+  "faceSafe": {
+   "default": false,
+   "shots": [
+    "S12",
+    "S37",
+    "S50",
+    "S51"
+   ],
+   "note": "consent pending; true renders the BIBLE 12.1 fallbacks"
+  }
+ },
  "sections": [
   {
    "name": "intro",
@@ -522,7 +534,7 @@
    ],
    "description": "WINDOW 7:9 centred in INK. Top-down, locked: a sheet of white paper under a thin layer of developer in a black tray; the dim overhead safelight lies on the liquid as a soft grey rectangle (luminance only, no hue). Frame 0 is already this image. From 0.2356 the liquid rocks (one slow wave per 2 bars) and development starts in 16 discrete pulses on the 16th grid (0.2356 ... 1.9401): each pulse doubles the number of developed halftone dots, ordered by rate = darkness x certainty, so the pupils and irises lead, the hair mass follows as a soft cloud; by 1.1447 two eyes are readable. 2.045 \"I\": pupils snap to full density. 2.50 \"see\": irises full. 2.852 \"sparks\": a small VOICE-orange catchlight in each eye (the only colour inside the window, 6-frame bloom). 3.635 / 4.32 / 4.54 (A-G-I): brows and lash line; nostrils and lip line; hair mass. 4.77-5.23 \"in your eyes\": midtones fill outward from the eyes; the ear rims, the outer hairline and the jaw outline stay thin (density cap = certainty). 5.40: the print blinks once (stage 1: both catchlights go out for 2 frames; stage 2: P06). The print is the photograph itself (identity/face_clean_1024.png) cropped to the face: no border, no page, no passport framing, no scan line, no lift into 3D.",
    "environment": "darkroom/tray",
-   "camera": "top-down, locked, FOV 16 deg vertical, print fills the 7:9 window (face width ~70 % of window)",
+   "camera": "top-down, locked, FOV 16 deg vertical, print fills the 7:9 window (crop to the face: chin just above the bottom edge, no shoulders or shirt, top of the hair inside the print (never ID framing); face width ~70 % of window)",
    "motion_clips": [],
    "look": "DARKROOM",
    "window": "7:9",
@@ -739,7 +751,11 @@
    "transition_out": "cut on \"now\"",
    "module": "tray",
    "source": "3D",
-   "he_live": false
+   "he_live": false,
+   "hud": {
+    "proof": "0006",
+    "loss": "hairline TRAINING LOSS plot, upper left margin; the cliff lands on 10.70"
+   }
   },
   {
    "id": "S05",
@@ -774,7 +790,7 @@
    "environment": "studio",
    "camera": "eye level, 50 mm equiv, push-in FOV 30 -> 24 deg v over the shot (ease-in-out)",
    "motion_clips": [
-    "pose_sit_stool_upright (static key, to author)",
+    "pose_sit_stool_upright (static key)",
     "layers: breath amp 0.8; look target floor 1.5 m ahead -> lens over 12 frames at 15.675 (head pitch change <= 8 deg, eyes <= 22 deg)"
    ],
    "look": "STUDIO",
@@ -801,7 +817,7 @@
      0.5,
      3.919
     ],
-    "keyframe_prompt": "{ID}. Full figure, frontal, eye level, 50 mm: the man sits upright on a plain wooden stool in the centre of a seamless white photo studio, hands resting on his knees, feet flat, a small tape X on the floor under the stool. Flat, shadowless, even frontal light. White background fills the frame. Vertical composition, figure centred, face small in the upper third, eyes lowered slightly. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "keyframe_prompt": "{ID}. Full figure, frontal, eye level, 50 mm: the man sits upright on a plain wooden stool in the centre of a seamless white photo studio, hands resting on his thighs just above the knees, feet flat, a small tape X on the floor under the stool. Flat, shadowless, even frontal light. White background fills the frame. Vertical composition, figure centred, face small in the upper third, eyes lowered slightly. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
     "video_model": "fal-ai/kling-video/v3/pro/image-to-video (audio off)",
     "alt_models": [
      "minimax/h3-max/image-to-video"
@@ -861,7 +877,7 @@
    "camera": "eye level, 85 mm equiv, locked, MCU (head top at 10 % of window)",
    "motion_clips": [
     "stand_breathe_loop",
-    "layers: breath amp 0.6; look target = lens; eyes closed via lid bones if they test clean, else open"
+    "layers: breath amp 0.6; look target = lens; eyes closed (lids layer; clean at MCU, not for CU)"
    ],
    "look": "BEAM",
    "window": "1:1",
@@ -990,7 +1006,8 @@
     {
      "mode": "CARD",
      "line": 6,
-     "layout": "center-large (plate dimmed 1 stop)"
+     "layout": "center-large (plate dimmed 1 stop)",
+     "until": 25.07
     },
     {
      "mode": "SUBTITLE",
@@ -1088,7 +1105,8 @@
     {
      "mode": "THOUGHT",
      "line": 8,
-     "size": "small"
+     "size": "small",
+     "zh": false
     }
    ],
    "description": "Same tray, another sheet: 困在中文屋里 develops in Noto Serif SC Black and reaches full density on \"room\" (27.508). The machine develops symbols it cannot read; he, who can, is not in the shot.",
@@ -1336,9 +1354,9 @@
    ],
    "description": "ONE TAKE in THE HALL, locked long lens down the aisle. 38.417: the hall is empty (the rows of sheets blank, glowing with the backlight). 38.63 \"We\": he steps out of the backlight at the far end and walks at the lens at half time, heel strikes on beats 1 and 3 (first strike 39.327), as a backlit silhouette with a faint front fill. 41.36-44.095: the WINDOW slides open from 4:3 to 16:9 across \"But now the singularity's begun\"; the new margins fill with more hall (outpainting). From 45.690 every sheet he passes develops his face, one row per 8th note, each a stop glossier than the last (\"optimizing, accelerating\"): the audience becomes him. 50.49 \"atoms\": the halftone screen rotates 45 -> 15 -> 75 -> 45 deg, moire sweeping the whole frame, settling by 52.83; under the rotation (50.49-50.95) the 3D figure hands off to plate P04. He stops at MCU on 51.145, frontal, and holds the lens.",
    "environment": "hall",
-   "camera": "aisle axis, eye height 1.55 m, FOV 11 deg v, locked; he walks from z = -11.2 m to -3.0 m",
+   "camera": "aisle axis, eye height 1.55 m, FOV 11 deg v, locked; he walks from z = -10.5 m to -3.0 m",
    "motion_clips": [
-    "sequence: stand_breathe_loop (hidden in the backlight) -> walk_runway_loop speed 0.715 (beatSpeed 66) from 38.63 -> crossfade to stand_breathe_loop 0.6 s ending 51.145; A/B against walk_slow speed 0.806 at review",
+    "sequence: stand_breathe_loop (hidden in the backlight) -> walk_runway_sym_loop at half time (0.697, footfall warp 0.25) from 38.63, first strike R 39.3265 -> crossfade 0.6 s to stand_breathe_loop, stop on 51.1447",
     "layers: breath amp 0.8; look target = lens from 49.0; noise amp 0.2 seed 5"
    ],
    "look": "HALL",
@@ -1650,7 +1668,10 @@
    "transition_out": "card holds across the cut",
    "module": "cards",
    "source": "TYPE",
-   "he_live": false
+   "he_live": false,
+   "hud": {
+    "wedge": "+2"
+   }
   },
   {
    "id": "S19",
@@ -1694,8 +1715,7 @@
    "beat_hits": [
     60.2356,
     60.5,
-    61.599,
-    62.035
+    61.599
    ],
    "transition_in": "cut",
    "transition_out": "cut on \"boom\"",
@@ -2031,7 +2051,6 @@
    ],
    "beat_hits": [
     74.095,
-    74.7811,
     74.79,
     75.21,
     75.66,
@@ -2067,7 +2086,7 @@
      "line": 24
     }
    ],
-   "description": "One print near the lens; on each beat a copy appears further down the line, copied from the one before, never from the source; each identical but a little harder and glossier (the polish is the symptom). By \"obsolete\" (80.00) they recede to the vanishing point. PROOF doubles per beat.",
+   "description": "One print near the lens; on each beat a copy appears further down the line, copied from the one before, never from the source; each identical but a little harder and glossier (the polish is the symptom). By \"obsolete\" (80.00) they recede to the vanishing point. PROOF doubles on the first three beats (12,288 -> 98,304) and then holds.",
    "environment": "darkroom/line",
    "camera": "eye level, 50 mm equiv, locked, one-point",
    "motion_clips": [],
@@ -2093,7 +2112,7 @@
    "he_live": false,
    "hud": {
     "caption": "PL. VON NEUMANN · THEORY OF SELF-REPRODUCING AUTOMATA · 1966",
-    "proof": "x2 per beat"
+    "proof": "x2 on the first three beats 78.417 / 78.872 / 79.327 (12,288 -> 98,304), then holds (S44's 100,000 is a rise; S17b stays the only decrement)"
    }
   },
   {
@@ -2123,7 +2142,7 @@
    "environment": "hall",
    "camera": "follows 2.5 m behind at 1.5 m height, FOV 20 deg v",
    "motion_clips": [
-    "walk_runway_loop speed 0.715 (away from camera, yaw pi)"
+    "walk_runway_sym_loop at half time (0.697, footfall warp 0.25; away from camera, yaw pi)"
    ],
    "look": "HALL",
    "window": "16:9",
@@ -2167,7 +2186,7 @@
    "environment": "hall",
    "camera": "as S28a, then pan left 90 deg (82.30 -> 82.97, ease) onto the sheet at 2 m",
    "motion_clips": [
-    "sequence: walk_runway_loop 0.715 -> turn_in_place_ccw 0-2.35 s at speed 1.6 (one 90 deg step-turn) -> walk 2 steps into the sheet"
+    "sequence: walk_runway_sym_loop at half time (continuing S28a) -> 90 deg pivot on the planted right foot 82.054-82.50, walk continues into the sheet"
    ],
    "look": "HALL",
    "window": "16:9",
@@ -2278,7 +2297,7 @@
    "environment": "darkroom/line",
    "camera": "frontal, locked",
    "motion_clips": [
-    "print texture: P07b; fallback render of sit_floor (knees up) in the studio, flat light"
+    "print texture: P07b; fallback render of sit_floor t=0, look layer to the lens; knees apart; in the studio, flat light"
    ],
    "look": "DARKROOM",
    "window": "16:9",
@@ -2311,7 +2330,7 @@
      "out/genmedia/sheet/approved/wardrobe_*.png",
      "out/film/previs/S30_print.jpg (layout)"
     ],
-    "fallback": "the stand-in in sit_floor (seated frame, knees up) rendered in the 3D studio, flat light, face small",
+    "fallback": "the stand-in in sit_floor t=0, look layer to the lens; knees apart; rendered in the 3D studio, flat light, face small",
     "gate": "face_similarity >= match on the still (face small: two-scale detection); approved by eye"
    }
   },
@@ -2402,8 +2421,7 @@
    "source": "3D",
    "he_live": false,
    "hud": {
-    "wedge": "+3",
-    "slug": "ENLARGER 64 s"
+    "wedge": "+3"
    }
   },
   {
@@ -2524,7 +2542,7 @@
    "environment": "studio",
    "camera": "eye level, 35 mm equiv, locked",
    "motion_clips": [
-    "still P08 (matted) or the stand-in sit_stool_head_bowed"
+    "still P08 (matted) or the stand-in pose_sit_stool_face_in_hands"
    ],
    "look": "STUDIO",
    "window": "16:9",
@@ -2555,7 +2573,7 @@
      "out/genmedia/sheet/approved/fullbody_*.png",
      "out/film/previs/S35_first.jpg (layout)"
     ],
-    "fallback": "the stand-in in sit_stool_head_bowed (face hidden) in the 3D studio",
+    "fallback": "the stand-in in pose_sit_stool_face_in_hands (face hidden) in the 3D studio",
     "gate": "wardrobe and hair match the sheet; hands clean; face hidden (no score needed)"
    }
   },
@@ -2816,7 +2834,7 @@
    "environment": "beam",
    "camera": "eye level, 85 mm equiv, MCU, locked",
    "motion_clips": [
-    "stand_breathe_loop -> turn (turn_in_place_ccw first step-turn) -> walk_runway_loop off frame, unlit outside the beam"
+    "stand_breathe_loop -> 90 deg pivot on the right foot from 114.02 (0.38 s), walk_runway_sym_loop at 1.0, L strike 114.327, eyes hold the lens until 114.42 (no lit profile) -> off frame, unlit outside the beam"
    ],
    "look": "BEAM",
    "window": "16:9",
@@ -2948,7 +2966,7 @@
    "environment": "hall",
    "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
    "motion_clips": [
-    "walk_runway_loop speed 1.0"
+    "walk_runway_sym_loop at 1.0, one take per cut with a strike on each cut beat (L R L R; this cut L)"
    ],
    "look": "HALL",
    "window": "16:9",
@@ -2995,7 +3013,7 @@
    "environment": "hall",
    "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
    "motion_clips": [
-    "walk_runway_loop speed 1.0"
+    "walk_runway_sym_loop at 1.0, one take per cut with a strike on each cut beat (L R L R; this cut R)"
    ],
    "look": "HALL",
    "window": "16:9",
@@ -3011,7 +3029,9 @@
    "module": "hall",
    "source": "3D",
    "he_live": true,
-   "hud": {}
+   "hud": {
+    "caption": "PL. AXIOS · \"TENS OF THOUSANDS\" OF SECURITY INCIDENTS · 2026-09-26"
+   }
   },
   {
    "id": "S43c",
@@ -3040,7 +3060,7 @@
    "environment": "hall",
    "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
    "motion_clips": [
-    "walk_runway_loop speed 1.0"
+    "walk_runway_sym_loop at 1.0, one take per cut with a strike on each cut beat (L R L R; this cut L)"
    ],
    "look": "HALL",
    "window": "16:9",
@@ -3056,7 +3076,9 @@
    "module": "hall",
    "source": "3D",
    "he_live": true,
-   "hud": {}
+   "hud": {
+    "caption": "PL. AXIOS · \"TENS OF THOUSANDS\" OF SECURITY INCIDENTS · 2026-09-26"
+   }
   },
   {
    "id": "S43d",
@@ -3085,7 +3107,7 @@
    "environment": "hall",
    "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
    "motion_clips": [
-    "walk_runway_loop speed 1.0"
+    "walk_runway_sym_loop at 1.0, one take per cut with a strike on each cut beat (L R L R; this cut R)"
    ],
    "look": "HALL",
    "window": "16:9",
@@ -3101,7 +3123,9 @@
    "module": "hall",
    "source": "3D",
    "he_live": true,
-   "hud": {}
+   "hud": {
+    "caption": "PL. AXIOS · \"TENS OF THOUSANDS\" OF SECURITY INCIDENTS · 2026-09-26"
+   }
   },
   {
    "id": "S44",
@@ -3282,8 +3306,7 @@
     124.7811,
     125.0083,
     125.2356,
-    125.45,
-    125.4629
+    125.45
    ],
    "transition_in": "cut",
    "transition_out": "cut on \"(doom)\"",
@@ -3423,7 +3446,6 @@
    "beat_hits": [
     128.4174,
     128.872,
-    129.32,
     129.3265
    ],
    "transition_in": "cut",
@@ -3599,7 +3621,6 @@
    ],
    "beat_hits": [
     138.4174,
-    138.42,
     139.32,
     140.16
    ],
@@ -3641,9 +3662,9 @@
    ],
    "description": "ONE SHOT: the hall at night, locked on the aisle axis with a slow zoom in. He walks at the lens at half time (heel strikes on beats 1 and 3): the only time he is present without sung words, the film's one broken rule. The rows of sheets are blank again, and they record him as he passes: 12 captures on the beats of bars 78-80 (before each capture the sheet flashes, for its beat, one image from earlier in the film, in film order), 24 on the 8ths of bars 81-83, 16 on the 16ths of bar 84. Each capture fixes a side-view silhouette of his stride on its sheet: the hall behind him fills with a Muybridge sequence of his walk. The backlight climbs from night toward white, with no bloom in the last bar. 151.145: a 2-frame full-frame capture flash, and under it the 3D silhouette hands off to plate P10 (close-up, walking into the lens). On the last beat (152.508) his face fills the frame.",
    "environment": "hall",
-   "camera": "aisle axis, eye height 1.55 m, FOV 12 -> 5 deg v (zoom, ease-in) over the shot; he walks from z = -12.5 m",
+   "camera": "aisle axis, eye height 1.55 m, FOV 12 -> ~3.5 deg v (zoom, ease-in) over the shot; he walks from z = -12.5 m",
    "motion_clips": [
-    "walk_runway_loop speed 0.715 (beatSpeed 66), strikes on beats 1 and 3 from 140.236",
+    "walk_runway_sym_loop at half time (0.697, footfall warp 0.25), strikes on beats 1 and 3, L strike on 140.2356",
     "layers: look target = lens; noise amp 0.15 seed 9"
    ],
    "look": "HALL",

@@ -6,8 +6,13 @@
 //   directory listing endpoint (GET /__ls?dir=film/src/scenes -> ["S01.js", ...]) and CORS (fonts for the compose page).
 // - openPage({ res, previsTags }): headless Chromium (SwiftShader) on film/index.html, resolved when window.ready.
 // - shotHash(): the shot-level cache key = shot JSON + global shots.json fields + song/lyric/voice data + the code closure
-//   (static import graph) of the shot's scene module, its sets and the shared core, + render options. Asset stamps
-//   (mtime + size of every /out/ file the shot used, recorded by the page) are checked separately (cacheValid).
+//   (static import graph) of the shot's scene module, its sets and the shared core, + render options + the shot's
+//   dependencies outside its own entry as the page reports them (window.shotDeps: the next shot's text / window, the
+//   proof-sheet HUD track over the shot's frames, whose run starts and sibling captions come from other shots). Asset
+//   stamps (mtime + size of every /out/ file the shot used, recorded by the page) are checked separately (cacheValid).
+// - variants: --safe renders into out/film/frames/<res>_safe/ (page URL ?safe=1: ctx.flags.faceSafe, the BIBLE 12.1
+//   fallbacks). The flag enters the key only of the shots it changes (shots.json flags.faceSafe.shots), so every other
+//   shot's safe frames are hard links to the main render's (renderOpts / linkFrames).
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -73,8 +78,19 @@ export function targetFrames(doc, o) {
   return byShot;
 }
 export const shotOfFrame = (doc, f) => doc.shots.find(s => f >= s.frames[0] && f < s.frames[1]);
-export const framePath = (res, f, layer = 'final') => path.join(frameDir(res, layer), String(f).padStart(5, '0') + '.jpg');
-export const frameDir = (res, layer = 'final') => PATHS.frames(layer === 'final' ? res : `${res}_${layer}`);
+// variant: '' (the film) | 'safe' (faceSafe fallbacks); dirs out/film/frames/<res>[_<variant>][_<layer>]
+export const frameDir = (res, layer = 'final', variant = '') => PATHS.frames(`${res}${variant ? '_' + variant : ''}${layer === 'final' ? '' : '_' + layer}`);
+export const framePath = (res, f, layer = 'final', variant = '') => path.join(frameDir(res, layer, variant), String(f).padStart(5, '0') + '.jpg');
+// faceSafe: the shots whose frames change with the flag (shots.json flags.faceSafe.shots)
+export const faceSafeShots = doc => ((doc.flags && doc.flags.faceSafe && doc.flags.faceSafe.shots) || []);
+// the render options that enter a shot's key: `safe` only for the shots it changes
+export function renderOpts(doc, shot, opts) {
+  const o = { ...opts }; delete o.safe;
+  if (opts.safe && faceSafeShots(doc).includes(shot.id)) o.safe = true;
+  return o;
+}
+// the page's query string for the options (safe=1)
+export const pageQuery = (o, extra = {}) => ({ ...(o.safe ? { safe: '1' } : {}), ...extra });
 export const tc = (f, fps = 24) => { const s = Math.floor(f / fps); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}:${String(f % fps).padStart(2, '0')}`; };
 
 // ------------------------------------------------------------------------------------------------ server
@@ -176,11 +192,25 @@ export function globalDataHash(doc) {
     h.update(fs.existsSync(f) ? fileHash(f) : 'none:' + f);
   return h.digest('hex');
 }
-export function shotHash(doc, shot, needs, opts, memo = {}) {
+// deps: window.shotDeps()[shot.id] from the page (a string; '' when unknown - tools that have no page)
+export function shotHash(doc, shot, needs, opts, memo = {}, deps = '') {
   const core = (memo.core ??= coreFiles().map(f => path.relative(CLAUDEPOP, f) + ':' + fileHash(f)).join('\n'));
   const glob = (memo.glob ??= globalDataHash(doc));
   const scene = sceneFiles(shot.id, needs).map(f => path.relative(CLAUDEPOP, f) + ':' + fileHash(f)).join('\n');
-  return crypto.createHash('sha1').update([stable(shot), glob, core, scene, 'three@' + THREE_VER, stable(opts)].join('\n#\n')).digest('hex').slice(0, 16);
+  const parts = [stable(shot), glob, core, scene, 'three@' + THREE_VER, stable(renderOpts(doc, shot, opts))];
+  if (deps) parts.push('deps:' + crypto.createHash('sha1').update(deps).digest('hex'));
+  return crypto.createHash('sha1').update(parts.join('\n#\n')).digest('hex').slice(0, 16);
+}
+// the page's view of every shot's outside dependencies (see main.js window.shotDeps)
+export async function pageDeps(page) { return page.evaluate(() => window.shotDeps ? window.shotDeps() : {}); }
+// hard-link (or copy) frames from one frame dir to another (the safe variant reuses the film's unchanged shots)
+export function linkFrames(frames, from, to) {
+  fs.mkdirSync(path.dirname(to(frames[0] ?? 0)), { recursive: true });
+  for (const f of frames) {
+    const a = from(f), b = to(f);
+    try { fs.unlinkSync(b); } catch {}
+    try { fs.linkSync(a, b); } catch { fs.copyFileSync(a, b); }
+  }
 }
 export function assetStamp(url) {
   const f = path.join(CLAUDEPOP, decodeURIComponent(url.replace(/^\//, '').split('?')[0]));
@@ -192,9 +222,13 @@ export function cacheValid(entry, hash) {
   for (const [u, st] of Object.entries(entry.assets || {})) if (assetStamp(u) !== st) return false;
   return true;
 }
-export function cachePath(res, layer = 'final') { return path.join(frameDir(res, layer), '_cache.json'); }
-export function cacheLoad(res, layer) { try { return JSON.parse(fs.readFileSync(cachePath(res, layer), 'utf8')); } catch { return { version: 1, shots: {} }; } }
-export function cacheSave(res, layer, c) { writeAtomic(cachePath(res, layer), JSON.stringify(c, null, 1)); }
+export function cachePath(res, layer = 'final', variant = '') { return path.join(frameDir(res, layer, variant), '_cache.json'); }
+export function cacheLoad(res, layer, variant = '') { try { return JSON.parse(fs.readFileSync(cachePath(res, layer, variant), 'utf8')); } catch { return { version: 1, shots: {} }; } }
+export function cacheSave(res, layer, c, variant = '') { writeAtomic(cachePath(res, layer, variant), JSON.stringify(c, null, 1)); }
+// the type blocks renderAt reported per frame (render.mjs; tools/contrast_report.mjs): { shots: { id: { hash, frames: { f: [...] } } } }
+export function blocksPath(res, layer = 'final', variant = '') { return path.join(frameDir(res, layer, variant), '_blocks.json'); }
+export function blocksLoad(res, layer = 'final', variant = '') { try { return JSON.parse(fs.readFileSync(blocksPath(res, layer, variant), 'utf8')); } catch { return { version: 1, shots: {} }; } }
+export function blocksSave(res, layer, b, variant = '') { writeAtomic(blocksPath(res, layer, variant), JSON.stringify(b)); }
 // frame lists <-> compact ranges "0-141,150"
 export const toRanges = fr => { const s = [...new Set(fr)].sort((a, b) => a - b), out = []; for (let i = 0; i < s.length;) { let j = i; while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++; out.push(i === j ? `${s[i]}` : `${s[i]}-${s[j]}`); i = j + 1; } return out.join(','); };
 export const fromRanges = r => !r ? [] : r.split(',').flatMap(x => { const [a, b] = x.split('-').map(Number); return b === undefined ? [a] : Array.from({ length: b - a + 1 }, (_, i) => a + i); });

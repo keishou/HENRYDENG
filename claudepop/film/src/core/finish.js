@@ -1,9 +1,13 @@
 // finish.js - the per-frame finish chain (BIBLE 4.7) as the core drives it (lane A). Owns: the layer stack, the plate
 // switch, the window mask, the HUD/type canvas, the card dim, the lumaProbe and the call into post.js.
 //
+// Per-shot finish defaults: grade.js SHOT_POST[shot.id] is merged UNDER the scene's frameSpec.post (the chorus trays'
+// coarser screens: S09 4.5, S20 5, S32 6, S47 7 px). frameSpec.post.halftone === null always wins (the tray prints carry
+// their own paper-space screen: no second screen, whatever pitch SHOT_POST or the scene sets).
+//
 // Two post paths:
 //   post v2 (lane B, when src/post.js Post has renderFrame): the core calls
-//       post.renderFrame({ layers, grade, t, seed, hud, window, accent, layer, flash, fade, dim })
+//       post.renderFrame({ layers, grade, t, seed, hud, window, accent, layer, flash, fade, dim, stack, clear })
 //         layers  [{ scene, camera, clearDepth }] (plate layer already inserted)      grade  the merged preset (grade.js vocabulary)
 //         seed    grain seed: frame index, or frozenSeed(shot) when grade.grainFrozen   hud  the Hud (type + HUD drawn, NO mask)
 //         window  { x, y, w, h } output px (post masks outside -> INK after grain/halftone, before the HUD)
@@ -16,6 +20,7 @@
 import * as THREE from 'three';
 import { frozenSeed } from './rng.js';
 import { plateLayer } from '../plates/plates.js';
+import { SHOT_POST } from '../grade.js';
 
 const FS_VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }';
 const INK = 0x0a0a09;
@@ -60,7 +65,10 @@ export class Finish {
     const samples = spec.msaa ?? 4, T = this._t(W, H, samples), post = ctx.postFor(samples);
     const shot = fr.shot, t = fr.t;
     const v2 = typeof post.renderFrame === 'function';
-    const g = ctx.grade(spec.grade || shot.look || 'DARKROOM', spec.post ? pickGrade(spec.post) : {});
+    // SHOT_POST only where the register prints a screen (not the slate, WHITE or CARD)
+    const gname = spec.grade || shot.look || 'DARKROOM', base = ctx.grades && ctx.grades[gname];
+    const sp = mergePost(base && base.halftone ? SHOT_POST && SHOT_POST[shot.id] : null, spec.post);
+    const g = ctx.grade(gname, pickGrade(sp));
     const clear = spec.clear ?? INK;
 
     // layers + plate (stage 2 only: stage 1 has no plates, the scene's layers are the previs)
@@ -103,25 +111,27 @@ export class Finish {
       const acc3 = (spec.accent || []).filter(a => a.scene && a.camera);
       if (acc3.length && !v2) this._accentToHud(acc3, T);
       for (const a of spec.accent || []) if (typeof a.draw === 'function') { c.save(); a.draw(c, fr); c.restore(); }
-      if (typeof spec.overlay === 'function') { c.save(); spec.overlay(hud, fr); c.restore(); }
-      const hudState = spec.hud === undefined ? { marks: {} } : spec.hud;
-      if (hudState) ctx.proof.draw(hudState, rect, t);
-      const text = spec.text === undefined ? shot.text : spec.text;
-      layout = ctx.type.layout(text, t, probe, { shot, s: fr.s, rect, register: g.name, card: !!rect.card }) || layout;
-      c.save(); layout.draw(hud); c.restore();
-      if (o.previsTags && shot.source === 'GEN' && !plateUsed && inGenSpan(shot, t)) previsTag(c, rect, shot);
+      if (!o.clean) {                                              // clean: the picture only (tools/previs.mjs)
+        if (typeof spec.overlay === 'function') { c.save(); spec.overlay(hud, fr); c.restore(); }
+        const hudState = spec.hud === undefined ? { marks: {} } : spec.hud;
+        if (hudState) ctx.proof.draw(hudState, rect, t);
+        const text = spec.text === undefined ? shot.text : spec.text;
+        layout = ctx.type.layout(text, t, probe, { shot, s: fr.s, rect, register: g.name, card: !!rect.card }) || layout;
+        c.save(); layout.draw(hud); c.restore();
+        if (o.previsTags && shot.source === 'GEN' && !plateUsed && inGenSpan(shot, t)) previsTag(c, rect, shot);
+      }
     }
 
     // post
     // dim (stops) darkens the IMAGE, not the type: in the legacy path it is an exposure cut before the tone curve;
     // fade (0..1) takes the whole frame toward black (type included), flash toward white
-    const dim = (spec.post && spec.post.dim || 0) + (layout.dim || 0);
-    const fade = spec.post && spec.post.fade || 0;
-    const flash = spec.post && spec.post.flash || 0;
+    const dim = (sp.dim || 0) + (layout.dim || 0);
+    const fade = sp.fade || 0;
+    const flash = sp.flash || 0;
     const seed = g.grainFrozen ? frozenSeed(shot.id) : fr.f;
     if (v2) {
       post.renderFrame({ layers, grade: g, t, seed, hud: o.layer === 'pregrade' ? null : hud, window: rp, accent: (spec.accent || []).filter(a => a.scene),
-        layer: o.layer, flash, fade, dim, stack: stackReady ? T.stack : null });
+        layer: o.layer, flash, fade, dim, stack: stackReady ? T.stack : null, clear });
     } else {
       const p = o.layer === 'pregrade' ? pregradeParams(g) : legacyParams(g, H);
       p.flash = o.layer === 'pregrade' ? 0 : flash; p.fade = o.layer === 'pregrade' ? 0 : fade; p.clear = clear;
@@ -190,10 +200,23 @@ export class Finish {
   }
 }
 
-// frameSpec.post keys that override the grade preset (the rest are per-frame effects handled above)
+// SHOT_POST defaults under the scene's post: the scene's keys win; halftone: null (the scene's) switches the screen off
+// and drops any pitch / angle from either side
+function mergePost(def, p) {
+  const o = { ...(def || {}), ...(p || {}) };
+  if (p && p.halftone === null) { o.halftone = null; delete o.pitch; delete o.halftoneAngle; }
+  return o;
+}
+// frameSpec.post keys that override the grade preset (the rest are per-frame effects handled above). pitch / angle go
+// into halftone with only the keys given (grade() keeps the preset's other halftone keys, e.g. its amount)
 function pickGrade(p) {
   const o = { ...p };
-  if (p.pitch !== undefined || p.halftoneAngle !== undefined) o.halftone = { pitch: p.pitch ?? 4, angle: p.halftoneAngle ?? 45 };
+  if (p.halftone === null) o.halftone = null;
+  else if (p.pitch !== undefined || p.halftoneAngle !== undefined) {
+    o.halftone = { ...(p.halftone || {}) };
+    if (p.pitch !== undefined) o.halftone.pitch = p.pitch;
+    if (p.halftoneAngle !== undefined) o.halftone.angle = p.halftoneAngle;
+  }
   delete o.flash; delete o.dim; delete o.fade; delete o.pitch; delete o.halftoneAngle;
   return o;
 }
