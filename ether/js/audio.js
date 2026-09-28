@@ -85,6 +85,8 @@ class Engine {
   }
   setScene(id, at){
     const c=this.ctx;
+    // a scene change always brings the master back (silence() may have taken it away)
+    if(this.started){ this.master.gain.cancelScheduledValues(at); this.master.gain.setValueAtTime(Math.max(this.master.gain.value, 0.0001), at); this.master.gain.setTargetAtTime(0.9, at, 1.6); }
     for(const p of this.pads){ p.out.gain.cancelScheduledValues(at); p.out.gain.setValueAtTime(Math.max(p.out.gain.value,0.0001), at); p.out.gain.exponentialRampToValueAtTime(0.0001, at+4.5); for(const o of p.oscs) o.stop(at+4.6); }
     this.pads = [];
     const chord = CHORDS[id]||[];

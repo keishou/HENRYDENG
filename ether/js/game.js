@@ -72,7 +72,7 @@ const Stream = {
   emit(text, style='drift', o={}){
     const it = { text, style, t0:G.t, life:o.life||7.5, x:o.x, y:o.y, size:o.size, color:o.color||'#f2f2f2', font:o.font||F.serif, shadow:o.shadow!==false, dark:o.dark||false };
     if(style==='drift'){ it.x = o.x ?? clamp(G.player.x + (rnd()<0.5?-1:1)*(120+rnd()*160), 120, W-140); it.y = o.y ?? (300 + rnd()*160); it.size=o.size||27; }
-    if(style==='sub'){ it.x = W/2; it.y = o.y ?? 640; it.size=o.size||26; }
+    if(style==='sub'){ const n=this.items.filter(i=>i.style==='sub' && (G.t-i.t0) < i.life-1.0).length; it.x = W/2; it.y = (o.y ?? 640) - n*42; it.size=o.size||26; }
     if(style==='center'){ it.x=W/2; it.y=o.y ?? 330; it.size=o.size||40; it.life=o.life||6; }
     if(style==='vertical'){ it.x = o.x ?? (W-110 - rnd()*60); it.y = o.y ?? 90; it.size=o.size||24; it.life=o.life||9; }
     if(style==='corner'){ it.x = o.x ?? 90; it.y = o.y ?? 120; it.size=o.size||20; }
@@ -473,6 +473,7 @@ else { document.getElementById('gate').classList.add('hidden'); document.getElem
 
 // recording / mute / fullscreen
 (function ui(){ const bRec=document.getElementById('btnRec'), bMute=document.getElementById('btnMute'), bFull=document.getElementById('btnFull'); if(!bRec) return; let rec=null, chunks=[];
+  if(window.ETHER_NO_DOWNLOAD || typeof MediaRecorder==='undefined') bRec.classList.add('hidden');
   bRec.addEventListener('click', ()=>{ if(rec){ rec.stop(); return; }
     const stream = glc.captureStream(30); if(G.actx && G.audio){ const dest=G.actx.createMediaStreamDestination(); G.audio.extraOut(dest); const at=dest.stream.getAudioTracks()[0]; if(at) stream.addTrack(at); }
     const mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
@@ -480,13 +481,14 @@ else { document.getElementById('gate').classList.add('hidden'); document.getElem
     rec.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`以太-意识流-${Date.now()}.webm`; a.click(); rec=null; bRec.classList.remove('on'); bRec.textContent='● 录制'; };
     rec.start(500); bRec.classList.add('on'); bRec.textContent='■ 停止'; });
   bMute.addEventListener('click', ()=>{ if(!G.actx) return; if(G.actx.state==='running'){ G.actx.suspend(); bMute.textContent='取消静音'; } else { G.actx.resume(); bMute.textContent='静音'; } });
-  bFull.addEventListener('click', ()=>{ const st=document.getElementById('stage'); if(document.fullscreenElement) document.exitFullscreen(); else st.requestFullscreen && st.requestFullscreen(); });
+  bFull.addEventListener('click', ()=>{ const st=document.getElementById('stage'); try{ if(document.fullscreenElement) document.exitFullscreen(); else if(st.requestFullscreen) st.requestFullscreen().catch(()=>{}); }catch(e){} });
 })();
 
 // ---------- render-mode hooks ----------
 window.ETHER = {
   ready, W, H,
   step(dt){ update(dt); render(); },
+  stepLogic(dt){ update(dt); },
   frame(q){ return glc.toDataURL('image/jpeg', q||0.93); },
   done(){ return G.finished; },
   time(){ return G.t; }, scene(){ return SCENES[G.scene].name; },

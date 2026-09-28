@@ -55,6 +55,20 @@ function wavHeader(dataLen, sr, ch){ const b = Buffer.alloc(44); b.write('RIFF',
     await browser.close(); srv.close(); return;
   }
 
+  if (has('audio-only')) {
+    // Re-run the deterministic logic without drawing, render the soundtrack, and mux it onto an existing video.
+    const video = opt('audio-only'); let n = 0, done = false;
+    while (!done && n < MAX*FPS) { done = await page.evaluate(dt => { for (let i=0;i<30;i++) window.ETHER.stepLogic(dt); return window.ETHER.done(); }, 1/FPS); n += 30; }
+    const nf = await page.evaluate(() => Math.round(window.ETHER.time()*30)/30);
+    const duration = +opt('duration', String(nf)); console.error(`logic steps=${n} t=${nf}s; rendering audio for ${duration}s…`);
+    const au = await page.evaluate(d => window.ETHER.renderAudio(d), duration + 0.5);
+    const pcm = Buffer.concat(au.chunks.map(c => Buffer.from(c, 'base64')));
+    const wav = OUT.replace(/\.mp4$/, '.wav'); fs.writeFileSync(wav, Buffer.concat([wavHeader(pcm.length, au.sampleRate, au.channels), pcm]));
+    await browser.close(); srv.close();
+    const mux = spawn(FFMPEG, ['-y', '-hide_banner', '-loglevel', 'error', '-i', video, '-i', wav, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', OUT], { stdio: 'inherit' });
+    await new Promise(res => mux.on('close', res)); fs.unlinkSync(wav); console.error('done ->', OUT); return;
+  }
+
   // ---- full render ----
   const tmpWav = OUT.replace(/\.mp4$/, '.wav');
   const ff = spawn(FFMPEG, ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', 'pipe:0',

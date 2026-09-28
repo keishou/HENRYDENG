@@ -8,6 +8,17 @@ Everything on screen is generated in the browser: the scenes are GLSL, the sound
 > 证件照是国家看我的方式，不是我看我的方式。
 > 在以太里没有人需要证件。
 
+## 剧照 / Stills
+
+Frames from the rendered run (`out/ether.mp4`, 1280×720, 3′57″):
+
+| | |
+| --- | --- |
+| ![稻田](shots/01-field.jpg) | ![风筝](shots/02-kite.jpg) |
+| ![以太 BBS](shots/03-bbs.jpg) | ![唱片店](shots/04-disc.jpg) |
+| ![海 · DV](shots/05-sea.jpg) | ![演唱会](shots/06-lights.jpg) |
+| ![黄昏](shots/07-dusk.jpg) | ![终](shots/08-ending.jpg) |
+
 ## 玩 / Play
 
 Serve the folder over HTTP (WebGL2 textures need an origin) and open `index.html`:
