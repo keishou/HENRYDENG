@@ -107,3 +107,11 @@ dist
 
 # Ignore exported files
 # export/*.json
+
+# odyssey: third-party downloads and everything derived from the subject's photo
+# (the repository is public — keep face data out of it)
+odyssey/.cache/
+odyssey/out/
+odyssey/film/node_modules/
+odyssey/film/assets/
+odyssey/work/

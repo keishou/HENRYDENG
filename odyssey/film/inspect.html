@@ -1,0 +1,26 @@
+<!doctype html><html><body style="margin:0;background:#111">
+<canvas id="c" width="1600" height="400"></canvas>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: true });
+r.setScissorTest(true);
+const scene = new THREE.Scene();
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(2, 2, 4); scene.add(key);
+const gltf = await new GLTFLoader().loadAsync('assets/bust.glb');
+const mesh = gltf.scene; scene.add(mesh);
+const mode = new URLSearchParams(location.search).get('mode') || 'tex';
+mesh.traverse(o => { if (o.isMesh) {
+  if (mode === 'clay') o.material = new THREE.MeshStandardMaterial({ color: 0xd8d2c8, roughness: 0.6 }); } });
+const cam = new THREE.PerspectiveCamera(22, 1, 0.1, 100);
+[0, 35, 90, 180].forEach((deg, i) => {
+  const a = THREE.MathUtils.degToRad(deg);
+  cam.position.set(Math.sin(a) * 11, 0.1, Math.cos(a) * 11); cam.lookAt(0, -0.3, 0);
+  key.position.set(Math.sin(a + 0.6) * 4, 2, Math.cos(a + 0.6) * 4);
+  r.setViewport(i * 400, 0, 400, 400); r.setScissor(i * 400, 0, 400, 400);
+  r.setClearColor(0x222222); r.render(scene, cam);
+});
+window.done = true;
+</script></body></html>
