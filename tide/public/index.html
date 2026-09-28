@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+  <meta name="description" content="基于 Oura Ring 数据，找到对身体有益的释放时机，顺手管好作息与专注。">
+  <title>潮汐 · Oura 时机</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon.svg">
+  <link rel="stylesheet" href="./css/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo" aria-hidden="true"></span><span>潮汐</span></div>
+    <div class="topbar-right">
+      <span id="conn-pill" class="pill pill-muted">未连接</span>
+      <button id="btn-refresh" class="icon-btn" title="刷新 Oura 数据" aria-label="刷新">⟳</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 今日 -->
+    <section id="tab-today" class="tab active" aria-labelledby="nav-today">
+      <div id="verdict" class="card verdict verdict-skip">
+        <div class="verdict-row"><span id="verdict-tag" class="verdict-tag">—</span><span id="verdict-meta" class="verdict-meta"></span></div>
+        <h1 id="headline" class="headline">正在计算…</h1>
+        <p id="stale-note" class="note hidden"></p>
+      </div>
+
+      <div id="chips" class="chips" aria-label="身体状态"></div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>今天 24 小时</h2>
+          <button id="btn-table" class="link-btn" aria-pressed="false">表格</button>
+        </div>
+        <div id="chart" class="chart" role="img" aria-label="逐小时评分"></div>
+        <div id="chart-tip" class="tip hidden" role="status"></div>
+        <div class="legend" aria-hidden="true">
+          <span><i class="sw sw-score"></i>评分（越深越适合）</span>
+          <span><i class="sw sw-past"></i>已过</span>
+          <span><i class="sw sw-cool"></i>冷却期</span>
+          <span><i class="sw sw-win"></i>最佳窗口</span>
+        </div>
+        <div id="chart-table" class="hidden"></div>
+      </div>
+
+      <div id="window-card" class="card hidden">
+        <div class="card-head"><h2 id="window-title">最佳窗口</h2><span id="window-score" class="pill"></span></div>
+        <ul id="window-reasons" class="reasons"></ul>
+      </div>
+
+      <div class="card">
+        <h2>判断依据</h2>
+        <ul id="reasons" class="reasons"></ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>提醒</h2><span id="notify-state" class="pill pill-muted">未开启</span></div>
+        <ul id="reminders" class="reminders"></ul>
+        <div class="row gap">
+          <button id="btn-notify" class="btn">开启通知</button>
+          <button id="btn-ics" class="btn btn-ghost">导出到日历 (.ics)</button>
+        </div>
+        <p class="note" id="notify-note">页面打开时按时弹通知；关掉后要靠服务器推送或日历提醒。</p>
+      </div>
+
+      <div class="card">
+        <h2>作息</h2>
+        <div id="schedule" class="kv"></div>
+      </div>
+    </section>
+
+    <!-- 记录 -->
+    <section id="tab-log" class="tab" aria-labelledby="nav-log">
+      <div class="card">
+        <h2>记一笔</h2>
+        <form id="log-form" class="form">
+          <label>时间 <input type="datetime-local" id="log-ts" required></label>
+          <div class="row gap">
+            <label>之前状态
+              <select id="log-before"><option value="">—</option><option value="1">很差</option><option value="2">差</option><option value="3">一般</option><option value="4">好</option><option value="5">很好</option></select>
+            </label>
+            <label>之后状态
+              <select id="log-after"><option value="">—</option><option value="1">很差</option><option value="2">差</option><option value="3">一般</option><option value="4">好</option><option value="5">很好</option></select>
+            </label>
+          </div>
+          <label>备注 <input type="text" id="log-note" placeholder="可选" maxlength="120"></label>
+          <div class="row gap">
+            <button type="submit" class="btn">保存</button>
+            <button type="button" id="btn-log-now" class="btn btn-ghost">就是现在</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>历史</h2><span id="log-count" class="pill pill-muted">0</span></div>
+        <p class="note">每条记录下方显示随后那一夜相对你基线的变化（Oura 同步后才有）。</p>
+        <ul id="log-list" class="log-list"></ul>
+      </div>
+    </section>
+
+    <!-- 洞察 -->
+    <section id="tab-insights" class="tab" aria-labelledby="nav-insights">
+      <div class="card">
+        <h2>你的数据怎么说</h2>
+        <div id="insight-summary" class="summary"></div>
+        <p class="note">对比方式：每次记录后的那一夜（睡眠分、入睡时长、夜间 HRV、最低心率）与次日 Readiness，减去你近 30 天非记录之夜的中位数。每个分桶 ≥3 次才给结论，≥4 次才会反馈到评分。</p>
+      </div>
+      <div class="card"><h2>按时段</h2><div id="insight-hour" class="table-wrap"></div></div>
+      <div class="card"><h2>按间隔</h2><div id="insight-interval" class="table-wrap"></div></div>
+      <div class="card">
+        <h2>规则背后的证据</h2>
+        <ul class="evidence">
+          <li><b>睡前 1–2 小时最佳（中等证据）</b>：高潮后催乳素、催产素上升，交感兴奋下降，问卷与小样本研究报告入睡更快、主观睡眠质量更好。</li>
+          <li><b>避开专注时段及其前 90 分钟（弱证据 + 常识）</b>：高潮后有短暂的动力和警觉下降；把它放在深度工作前是自找麻烦。</li>
+          <li><b>体温偏高 / Readiness 很低时休息（强证据，间接）</b>：这是 Oura 对生病和过度训练的信号，此时任何额外消耗都不划算。</li>
+          <li><b>频率本身（弱证据）</b>：没有可靠研究给出“最佳频率”，禁欲 7 天的睾酮波动很小且短暂。这里的间隔完全由你设定，引擎只负责按你的数据校准。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section id="tab-settings" class="tab" aria-labelledby="nav-settings">
+      <div class="card">
+        <h2>连接 Oura</h2>
+        <div id="conn-server" class="hidden">
+          <p id="conn-server-status" class="note"></p>
+          <div class="row gap">
+            <a id="btn-oauth" class="btn" href="/auth/login">用 Oura 账号登录</a>
+            <button id="btn-logout" class="btn btn-ghost hidden">断开</button>
+          </div>
+          <label id="appkey-row" class="hidden">访问口令（服务器设置了 APP_PASSWORD 时） <input type="password" id="app-key" autocomplete="off"></label>
+        </div>
+        <div id="conn-direct" class="hidden">
+          <p class="note">静态部署模式（没有后端）。需要你在 <a href="https://cloud.ouraring.com/oauth/applications" target="_blank" rel="noopener">Oura 开发者页面</a> 注册应用，Redirect URI 填本页地址，然后用 implicit 授权（30 天有效）。若浏览器直连被 CORS 拒绝，请改用服务器模式。</p>
+          <label>Client ID <input type="text" id="client-id" autocomplete="off"></label>
+          <div class="row gap"><button id="btn-implicit" class="btn">授权（implicit）</button></div>
+          <label>或直接粘贴 access token / 旧 PAT <input type="password" id="direct-token" autocomplete="off"></label>
+          <div class="row gap"><button id="btn-save-token" class="btn btn-ghost">保存 token</button><button id="btn-clear-token" class="btn btn-ghost">清除</button></div>
+          <p id="conn-direct-status" class="note"></p>
+        </div>
+        <label class="switch-row"><input type="checkbox" id="demo-toggle"> 演示模式（合成数据，不连接 Oura）</label>
+      </div>
+
+      <div class="card">
+        <h2>作息与目标</h2>
+        <form id="profile-form" class="form">
+          <label>目标
+            <select id="p-goal">
+              <option value="balance">平衡</option>
+              <option value="sleep">助眠优先</option>
+              <option value="focus">专注优先</option>
+              <option value="recovery">恢复优先</option>
+            </select>
+          </label>
+          <div class="row gap">
+            <label>起床 <input type="time" id="p-wake" required></label>
+            <label>就寝 <input type="time" id="p-bed" required></label>
+          </div>
+          <label class="switch-row"><input type="checkbox" id="p-oura-bed"> 优先用 Oura 的最佳就寝窗口 / 近 14 天实际作息</label>
+          <fieldset>
+            <legend>专注时段（不建议）</legend>
+            <div id="focus-blocks"></div>
+            <button type="button" id="btn-add-focus" class="link-btn">+ 添加时段</button>
+          </fieldset>
+          <div class="row gap">
+            <label>最短间隔（小时） <input type="number" id="p-min" min="0" max="240" step="1" required></label>
+            <label>目标间隔（天） <input type="number" id="p-target" min="0" max="30" step="0.5" required></label>
+          </div>
+          <label>时区 <input type="text" id="p-tz" placeholder="留空用系统时区，如 Asia/Shanghai"></label>
+          <button type="submit" class="btn">保存</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>推送（关掉页面也能提醒）</h2>
+        <p id="push-status" class="note"></p>
+        <div class="row gap">
+          <button id="btn-push" class="btn">订阅推送</button>
+          <button id="btn-push-test" class="btn btn-ghost">发一条测试</button>
+          <button id="btn-plan-now" class="btn btn-ghost">让服务器现在算一次</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>数据</h2>
+        <div class="row gap">
+          <button id="btn-export" class="btn btn-ghost">导出 JSON</button>
+          <label class="btn btn-ghost">导入 JSON <input type="file" id="import-file" accept="application/json" hidden></label>
+          <button id="btn-clear" class="btn btn-danger">清空本地数据</button>
+        </div>
+        <p class="note">所有记录只存在这台设备的浏览器里（服务器模式下会同步档案与记录给你自己的服务器，用于每日推送）。</p>
+      </div>
+    </section>
+  </main>
+
+  <button id="fab" class="fab" aria-label="记一笔">＋ 记一笔</button>
+
+  <nav class="tabs" aria-label="主导航">
+    <button id="nav-today" class="tab-btn active" data-tab="today">今日</button>
+    <button id="nav-log" class="tab-btn" data-tab="log">记录</button>
+    <button id="nav-insights" class="tab-btn" data-tab="insights">洞察</button>
+    <button id="nav-settings" class="tab-btn" data-tab="settings">设置</button>
+  </nav>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

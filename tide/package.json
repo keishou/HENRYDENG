@@ -1,0 +1,18 @@
+{
+  "name": "tide",
+  "version": "0.1.0",
+  "private": true,
+  "description": "基于 Oura Ring 数据的释放时机管理与提醒（PWA + 小型 Node 服务）",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

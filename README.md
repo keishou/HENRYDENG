@@ -1,3 +1,5 @@
+> **本仓库新增：[`tide/`](./tide/README.md) — 基于 Oura Ring 数据的释放时机管理 PWA**（逐时评分、个人数据学习、按时提醒）。进入 `tide/` 运行 `npm install && npm start`，详见其 README。下面是原 RNBO 模板的说明。
+
 # RNBO Webpage Example
 
 This example shows you how to add dynamic audio to a webpage, using the web export feature of RNBO, part of [Max 8](https://cycling74.com/products/max) made by [Cycling '74](https://cycling74.com).
