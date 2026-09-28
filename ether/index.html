@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>以太 · ETHER</title>
+<meta name="description" content="一场意识流：一张证件照，穿过 Lily Chou-Chou 的风景。A stream-of-consciousness walking game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Sans+SC:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; }
+  body { display:flex; align-items:center; justify-content:center; font-family: "Cormorant Garamond", "Noto Serif SC", serif; color:#ddd; }
+  #stage { position:relative; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+  canvas#gl { display:block; width:100%; height:auto; max-height:100vh; max-width:100vw; aspect-ratio:16/9; object-fit:contain; background:#000; cursor:none; }
+  #gate { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:#000; z-index:5; cursor:pointer; transition: opacity 1.2s ease; letter-spacing:0.35em; }
+  #gate h1 { font-family:"Noto Serif SC", serif; font-weight:400; font-size:44px; margin:0; letter-spacing:0.5em; color:#e8e8e8; }
+  #gate p { margin:0; font-size:15px; color:#8a8a8a; letter-spacing:0.3em; }
+  #gate .blink { animation: bl 1.1s steps(2,start) infinite; }
+  @keyframes bl { to { visibility:hidden; } }
+  #ui { position:absolute; right:14px; bottom:12px; display:flex; gap:10px; z-index:4; opacity:0.35; transition:opacity .3s; font-size:12px; letter-spacing:0.15em; }
+  #ui:hover { opacity:1; }
+  #ui button { background:transparent; border:1px solid #666; color:#ccc; padding:5px 10px; font-family:inherit; cursor:pointer; letter-spacing:0.15em; }
+  #ui button.on { border-color:#e33; color:#e33; }
+  #ime { position:absolute; left:-9999px; top:0; opacity:0; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1280" height="720"></canvas>
+  <div id="gate">
+    <h1>以太</h1>
+    <p>ETHER · 一场意识流</p>
+    <p class="blink">按任意处 登录 / click to log in</p>
+    <p style="font-size:12px;color:#555;margin-top:24px">耳机推荐 · headphones recommended</p>
+  </div>
+  <div id="ui">
+    <button id="btnRec" title="录制这一段意识流为 webm">● 录制</button>
+    <button id="btnMute" title="静音">静音</button>
+    <button id="btnFull" title="全屏">全屏</button>
+  </div>
+  <input id="ime" type="text" autocomplete="off">
+</div>
+<script src="js/text.js"></script>
+<script src="js/shaders.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

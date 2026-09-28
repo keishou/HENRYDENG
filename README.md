@@ -1,3 +1,6 @@
+> ## 以太 · ETHER
+> A stream-of-consciousness walking game lives in [`ether/`](ether/README.md): an ID photo walks through Lily Chou-Chou-like landscapes (rice field, kite, BBS, record shop, DV sea, concert, dusk), with GLSL scenes, generated audio, and a headless renderer that turns the autopilot run into a video.
+
 # RNBO Webpage Example
 
 This example shows you how to add dynamic audio to a webpage, using the web export feature of RNBO, part of [Max 8](https://cycling74.com/products/max) made by [Cycling '74](https://cycling74.com).
