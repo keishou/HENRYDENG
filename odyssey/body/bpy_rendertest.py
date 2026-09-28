@@ -182,7 +182,13 @@ def main():
     ap.add_argument("--engine", default="CYCLES", choices=["CYCLES", "EEVEE"])
     ap.add_argument("--samples", type=int, default=64)
     ap.add_argument("--threads", type=int, default=os.cpu_count() or 4)
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out", required=True, help="png path; with --frames N, '#' is replaced by the frame index")
+    ap.add_argument("--frames", type=int, default=1, help="render N frames in one process (camera orbits a little)")
+    ap.add_argument("--res", default="1920x1080")
+    ap.add_argument("--no-sss", action="store_true")
+    ap.add_argument("--no-denoise", action="store_true")
+    ap.add_argument("--threshold", type=float, default=0.01, help="Cycles adaptive noise threshold")
+    ap.add_argument("--persistent", action="store_true", help="Cycles persistent data between frames")
     a = ap.parse_args(argv)
 
     t0 = time.time()
@@ -192,21 +198,72 @@ def main():
         settings = setup_cycles(scene, a.samples, a.threads)
     else:
         settings = setup_eevee(scene, a.samples)
+    rx, ry = (int(v) for v in a.res.split("x"))
+    scene.render.resolution_x, scene.render.resolution_y = rx, ry
+    if a.no_sss:
+        bpy.data.materials["clay"].node_tree.nodes["Principled BSDF"].inputs["Subsurface Weight"].default_value = 0.0
+    if a.engine == "CYCLES":
+        scene.cycles.use_denoising = not a.no_denoise
+        scene.cycles.adaptive_threshold = a.threshold
+        scene.render.use_persistent_data = a.persistent
+        settings["denoise"] = scene.cycles.use_denoising
+        settings["adaptive_threshold"] = round(scene.cycles.adaptive_threshold, 4)
+        settings["persistent_data"] = scene.render.use_persistent_data
+    settings["res"] = f"{rx}x{ry}"
+    settings["sss"] = not a.no_sss
     settings["view_transform"] = scene.view_settings.view_transform
     settings["look"] = scene.view_settings.look
     settings["engine"] = scene.render.engine
-    scene.render.filepath = a.out
-    t1 = time.time()
-    bpy.ops.render.render(write_still=True)
-    t_render = time.time() - t1
+    import resource
+
+    marks = []  # (t, stats) on phase changes, to split sync / sampling / denoise
+    last = {"phase": None}
+
+    def on_stats(stats):
+        # stats look like "Fra:1 | Mem:.. | Sample 12/32" / "Denoising" / "Updating ..."
+        s = str(stats)
+        ph = s.split("|")[-1].strip()
+        import re
+
+        key = re.sub(r"[0-9.:]+", "", ph)
+        if key != last["phase"]:
+            last["phase"] = key
+            marks.append((round(time.time() - t1, 2), ph[:80]))
+
+    bpy.app.handlers.render_stats.append(on_stats)
+    ru0 = resource.getrusage(resource.RUSAGE_SELF)
+    la0 = os.getloadavg()[0]
+    cam = scene.camera
+    per_frame = []
+    t_start = time.time()
+    for f in range(a.frames):
+        if f:
+            # small orbit so every frame differs (like an animation)
+            cam.location.x += 0.05
+            look_at(cam, (0, 0, 0.72))
+        scene.render.filepath = a.out.replace("#", f"{f:03d}")
+        t1 = time.time()
+        rf0 = resource.getrusage(resource.RUSAGE_SELF)
+        bpy.ops.render.render(write_still=True)
+        rf1 = resource.getrusage(resource.RUSAGE_SELF)
+        per_frame.append({"wall_s": round(time.time() - t1, 2),
+                          "cpu_s": round((rf1.ru_utime - rf0.ru_utime) + (rf1.ru_stime - rf0.ru_stime), 1)})
+    t_render = time.time() - t_start
+    ru1 = resource.getrusage(resource.RUSAGE_SELF)
+    cpu_s = (ru1.ru_utime - ru0.ru_utime) + (ru1.ru_stime - ru0.ru_stime)
     res = {
         "bpy": bpy.app.version_string,
         "build_hash": bpy.app.build_hash.decode() if isinstance(bpy.app.build_hash, bytes) else bpy.app.build_hash,
         "settings": settings,
         "scene_build_s": round(t_build, 2),
         "render_s": round(t_render, 2),
+        "cpu_s": round(cpu_s, 1),
+        "effective_cores": round(cpu_s / max(t_render, 1e-6), 2),
+        "loadavg_before": round(la0, 2),
+        "loadavg_after": round(os.getloadavg()[0], 2),
+        "per_frame": per_frame,
+        "phases": [m for m in marks if any(k in m[1] for k in ("Sample", "Rendering", "enois", "Finished", "Time:", "Compiling", "Building BVH", "Importance"))][:60],
         "out": a.out,
-        "exists": os.path.exists(a.out),
     }
     print("RESULT " + json.dumps(res))
 
