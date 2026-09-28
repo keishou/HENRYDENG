@@ -132,10 +132,14 @@ if (mode === 'seqsheets') {
     S54: { times: [140.2356, 140.69, 141.145, 142.054, 143.872, 145.69, 147.51, 149.33, 150.24, 151.145, 151.6, 152.05, 152.5, 153.5, 154.5, 155.6], cam: { pos: [0, 1.55, 0], target: [0, 1.25, -12], fov: 12 } },
     S28: { times: [81.0, 81.145, 81.365, 81.6, 81.8, 82.0, 82.054, 82.15, 82.25, 82.35, 82.45, 82.53, 82.7, 82.96, 83.3, 83.6], follow: { off: [0, 1.5, 2.5], aim: [0, 1.2, -4] }, cam: { fov: 20 } },
     S41: { times: [113.36, 113.8, 113.95, 114.02, 114.1, 114.15, 114.2, 114.25, 114.3, 114.327, 114.4, 114.45, 114.5, 114.6, 114.67, 115.2], cam: { pos: [0, 1.62, 2.4], target: [0, 1.5, 0], fov: 16 } },
+    S43: { times: [117.03, 117.054, 117.2, 117.4, 117.5083, 117.51, 117.7, 117.9, 117.9629, 117.97, 118.2, 118.4, 118.4174, 118.42, 118.6, 118.88], cam: { pos: [0, 1.55, 3.5], target: [0, 1.1, -4], fov: 20 } },
   };
-  for (const [id, pl] of Object.entries(plans)) {
+  const only = arg('only', '');
+  for (const [id0, pl] of Object.entries(plans)) {
+    if (only && !only.split(',').includes(id0)) continue;
     const cells = [];
     for (const view of ['shot', 'top']) for (const t of pl.times) {
+      const id = id0 === 'S43' ? (t < 117.5083 ? 'S43a' : t < 117.9629 ? 'S43b' : t < 118.4174 ? 'S43c' : 'S43d') : id0;
       let cam = pl.cam, follow = pl.follow;
       if (view === 'top') {
         const m = await page.evaluate(([id, t]) => { const p = window.SEQ.poseAt(window.av, id, t); return [p.root[0], p.root[2]]; }, [id, t]);
@@ -144,7 +148,7 @@ if (mode === 'seqsheets') {
       const img = await frame({ envName: 'grid', shot: id, t, cam: follow ? { ...cam, pos: [0, 0, 0], target: [0, 0, 0] } : cam, follow, w: 220, h: 260, lens: cam.pos || [0, 1.55, 0] });
       cells.push({ img, label: `${view} ${t.toFixed(3)}`, label2: `f${Math.round(t * 24)}` });
     }
-    await sheet(path.join(OUT, `sheets/M4_${id}.jpg`), `M4 ${id} sequence (film times; row 1 shot camera, row 2 side / 3-4 view following the root)`, cells, 16, 220, 260);
+    await sheet(path.join(OUT, `sheets/M4_${id0}.jpg`), `M4 ${id0} sequence (film times; row 1 shot camera, row 2 side / 3-4 view following the root)`, cells, 16, 220, 260);
   }
 }
 
@@ -197,11 +201,36 @@ if (mode === 'atlas') {
   console.log('atlas', r.cols, 'x', r.rows, 'cells', r.meta.length);
 }
 
+if (mode === 'stand') {
+  // the standing base (stand_breathe_loop): front, side, back, feet close (both soles on the floor)
+  const clip = arg('clip', 'stand_breathe_loop');
+  const views = [['front', { pos: [0, 1.0, 4.2], target: [0, 0.9, 0], fov: 30 }], ['side +X', { pos: [4.2, 1.0, 0], target: [0, 0.9, 0], fov: 30 }],
+    ['side -X', { pos: [-4.2, 1.0, 0], target: [0, 0.9, 0], fov: 30 }], ['back', { pos: [0, 1.0, -4.2], target: [0, 0.9, 0], fov: 30 }],
+    ['feet front', { pos: [0, 0.25, 1.3], target: [0, 0.1, 0], fov: 30 }], ['feet side', { pos: [1.3, 0.2, 0.05], target: [0, 0.1, 0.05], fov: 30 }]];
+  const cells = [];
+  for (const t of [0, 1.2]) for (const [label, cam] of views)
+    cells.push({ img: await frame({ envName: 'studio', clip, t, stool: false, cam, w: 300, h: 420, layers: { hands: { curl: 0.5 } } }), label: `${label} t${t}` });
+  await sheet(path.join(OUT, `sheets/M4_stand_${clip}.jpg`), `${clip} after plant_feet (both soles on the floor)`, cells, 6, 300, 420);
+}
+
+if (mode === 'survey') {
+  // a clip from the front at many clip times (pick a frame for a still)
+  const clip = arg('clip', 'sit_floor'), n = +arg('n', 20), T = await page.evaluate(c => window.av.clip(c).seconds, clip);
+  const cells = [];
+  for (let i = 0; i < n; i++) {
+    const t = +(i * (T - 0.05) / (n - 1)).toFixed(2);
+    const r = await page.evaluate(([c, t]) => { const p = window.av.pose(c, t); return [p.root[0], p.root[2]]; }, [clip, t]);
+    const cam = { pos: [r[0], 0.7, r[1] + 3.2], target: [r[0], 0.45, r[1]], fov: 30 };
+    cells.push({ img: await frame({ envName: 'studio', clip, t, stool: false, cam, w: 240, h: 300, layers: { hands: { curl: 0.45 }, look: { target: cam.pos, weight: 1, maxDeg: 50 } } }), label: `t ${t}` });
+  }
+  await sheet(path.join(OUT, `sheets/M6_survey_${clip}.jpg`), `M6 survey ${clip} (front, look at lens)`, cells, 10, 240, 300);
+}
+
 if (mode === 'prints') {
   // S30: seated on the studio floor, knees drawn up, looking into the lens; a 4:5 print, frontal, eye level, 50 mm
   const t30 = +arg('t30', 0.0);
   const w = +arg('w', 1600), h = Math.round(w * 5 / 4);
-  const cam30 = { pos: [0, 0.62, 3.6], target: [0, 0.46, 0], fov: 27 };
+  const cam30 = { pos: [0, 0.78, 4.8], target: [0, 0.62, 0], fov: 33 };
   const p30 = await page.evaluate(t => { const p = window.av.pose('sit_floor', t); return [p.root[0], p.root[2]]; }, t30);
   const place30 = { x: -p30[0], z: -p30[1] + 0.1 };
   let img = await frame({ envName: 'studio', clip: 'sit_floor', t: t30, place: place30, stool: false, cam: cam30, w, h, fmt: 'png',

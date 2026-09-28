@@ -62,19 +62,21 @@ function studioEnv() {
   const PAPER = lin(0xf2efe8);
   s.background = PAPER.clone();
   const mat = new THREE.MeshLambertMaterial({ color: PAPER });
-  // cyclorama: floor, 1 m cove, back wall (8 x 6 x 4), the stool on the tape X at the origin
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 5).rotateX(-Math.PI / 2), mat); floor.position.set(0, 0, 0.5); s.add(floor);
-  const cove = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 8, 48, 1, true, Math.PI, Math.PI / 2).rotateZ(Math.PI / 2), mat);
-  cove.material = mat.clone(); cove.material.side = THREE.BackSide; cove.position.set(0, 1, -2); s.add(cove);
-  const wall = new THREE.Mesh(new THREE.PlaneGeometry(8, 3), mat); wall.position.set(0, 2.5, -3); s.add(wall);
+  // cyclorama: floor, 1 m cove, back wall (BIBLE 8 x 6 x 4; drawn 16 m wide so a 35 mm frame never sees its ends)
+  const cyc = new THREE.Group(); s.add(cyc);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(16, 7).rotateX(-Math.PI / 2), mat); floor.position.set(0, 0, 1.5); cyc.add(floor);
+  const cove = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 16, 48, 1, true, Math.PI, Math.PI / 2).rotateZ(Math.PI / 2), mat);
+  cove.material = mat.clone(); cove.material.side = THREE.BackSide; cove.position.set(0, 1, -2); cyc.add(cove);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(16, 5), mat); wall.position.set(0, 3.5, -3); cyc.add(wall);
   const stool = buildStool(); s.add(stool);
   const sh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ map: shadowTex(), transparent: true, opacity: 0.14, depthWrite: false, color: 0x000000 }));
   sh.scale.set(0.75, 1, 0.6); sh.position.set(0, 0.0012, 0.12); s.add(sh);
   // flat, shadowless frontal light: a big soft source behind the camera + hemisphere fill
   const hemi = new THREE.HemisphereLight(0xffffff, 0xf3efe7, 1.9); s.add(hemi);
+  const top = new THREE.DirectionalLight(0xffffff, 0.35); top.position.set(0, 5, 1.5); s.add(top);   // evens floor vs wall
   const front = new THREE.DirectionalLight(0xffffff, 1.25); s.add(front); s.add(front.target);
-  return { scene: s, look: 'photo', front, stool, shadow: sh };
+  return { scene: s, look: 'photo', front, stool, shadow: sh, cyc };
 }
 function silEnv() {
   const s = new THREE.Scene();
@@ -125,13 +127,14 @@ window.frame = (o) => {
   const c = camera({ ...cam, w, h });
   if (E.stool) {
     E.stool.visible = !!stool || envName === 'studio' && stool !== false;
-    if (stool) E.stool.position.set(stool.x, 0, stool.z);
-    E.shadow.position.set(E.stool.position.x, 0.0012, E.stool.position.z + 0.12);
+    if (stool && typeof stool === 'object') E.stool.position.set(stool.x, 0, stool.z); else E.stool.position.set(0, 0, 0);
+    if (E.stool.visible) E.shadow.position.set(E.stool.position.x, 0.0012, E.stool.position.z + 0.12);
+    else { const r = av.worldPos('root'); E.shadow.position.set(r.x, 0.0012, r.z + 0.1); }
     E.front.position.copy(c.position).add(new THREE.Vector3(0, 0.6, 0)); E.front.target.position.set(...cam.target); E.front.target.updateMatrixWorld();
   }
-  if (transparent) { renderer.setClearColor(0x000000, 0); E.scene.background = null; }
+  if (transparent) { renderer.setClearColor(0x000000, 0); E.scene.background = null; if (E.cyc) { E.cyc.visible = false; E.shadow.visible = false; } }
   renderer.render(E.scene, c);
-  if (transparent) E.scene.background = envName === 'studio' ? lin(0xf2efe8) : new THREE.Color(0x000000);
+  if (transparent) { E.scene.background = envName === 'studio' ? lin(0xf2efe8) : new THREE.Color(0x000000); if (E.cyc) { E.cyc.visible = true; E.shadow.visible = true; } }
   av.root.visible = true;
   return canvas.toDataURL(fmt === 'png' ? 'image/png' : 'image/jpeg', q);
 };

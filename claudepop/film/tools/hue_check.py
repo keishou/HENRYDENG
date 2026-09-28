@@ -3,13 +3,18 @@
 a hue within +-12 deg of VOICE (#D97757, 14.8 deg); S38 also allows the cyanotype bands (pale yellow-green and blue).
 
     claudepop/out/venv/bin/python claudepop/film/tools/hue_check.py out/film/frames/540 [more dirs / images]
-        [--every 1] [--max-frac 0.0002] [--width 480] [--json out.json] [--shots S01,S04]
+        [--every 1] [--max-frac 0.0002] [--width 240] [--json out.json] [--shots S01,S04]
 
 Frames named <frame:05d>.jpg map to shots through shots.json (for S38's allowance and the per-shot report); other images
 (contact sheets) get the strict rule. A frame fails when the fraction of off-palette pixels exceeds --max-frac (JPEG chroma
-noise at colour edges stays far below the default 0.02 %). Images are box-downscaled to --width first. A pixel also needs a
+noise at colour edges stays far below the default 0.02 %). Images are box-downscaled to --width (240 px: 8 px cells at 1080p,
+which average out the zero-mean chroma ringing JPEG leaves around VOICE words; a 24 px off-palette patch at 1080p still
+fails, verified) first. A pixel also needs a
 chroma (max - min of RGB) above --min-chroma (0.04 = 10 levels) to count: near the value threshold, JPEG chroma noise of
-2-5 levels on the dark greys reads as saturation > 0.15 but is not visible colour. Exit 1 on failure.
+2-5 levels on the dark greys reads as saturation > 0.15 but is not visible colour. The hue tolerance is +-12 deg plus the
+hue error that 4 levels of chroma noise cause at the pixel's chroma (atan(4 / chroma)): +20 deg at 11 levels (the
+antialiased rim of a VOICE word on INK), +4 deg at 60 levels (a solid VOICE fill). The rule on the rendered pixels is
+the BIBLE's; the allowance is for the JPEG the check reads. Exit 1 on failure.
 """
 import argparse
 import glob
@@ -24,6 +29,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 CP = os.path.abspath(os.path.join(HERE, '..', '..'))
 VOICE_HUE, TOL = 14.8, 12.0
+JPEG_Q = 4.0                                            # chroma quantisation noise of a q92 4:2:0 JPEG, in 8-bit levels
 CYAN_BANDS = [(55.0, 100.0), (190.0, 235.0)]          # S38: yellow-green start of the ramp, CYANOTYPE #1E3F66 (212 deg)
 
 
@@ -49,9 +55,11 @@ def check(path, allow_cyan, width, min_chroma=0.04):
     if im.width > width:
         im = im.resize((width, max(1, round(im.height * width / im.width))), Image.BOX)
     h, s, v = hsv(np.asarray(im))
-    live = (s > 0.15) & (v > 0.10) & (s * v > min_chroma)
+    chroma = s * v
+    live = (s > 0.15) & (v > 0.10) & (chroma > min_chroma)
     dh = np.abs((h - VOICE_HUE + 180) % 360 - 180)
-    bad = live & (dh > TOL)
+    tol = TOL + np.degrees(np.arctan(JPEG_Q / np.maximum(chroma * 255, 1e-3)))   # +-12 deg + the hue error of JPEG noise
+    bad = live & (dh > tol)
     if allow_cyan:
         for lo, hi in CYAN_BANDS:
             bad &= ~((h >= lo) & (h <= hi))
@@ -66,7 +74,7 @@ def main():
     ap.add_argument('paths', nargs='+')
     ap.add_argument('--every', type=int, default=1)
     ap.add_argument('--max-frac', type=float, default=0.0002)
-    ap.add_argument('--width', type=int, default=480)
+    ap.add_argument('--width', type=int, default=240)
     ap.add_argument('--min-chroma', type=float, default=0.04)
     ap.add_argument('--shots', default=None)
     ap.add_argument('--json', default=None)

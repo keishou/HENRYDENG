@@ -14,6 +14,7 @@
 //   tl.extras (song.json extra_vocals), tl.events, tl.eventsIn(a, b), tl.sections, tl.sectionAt(t)
 //   tl.env(t) -> 0..1 vocal envelope (Demucs vocal stem, 50 ms attack, 1.5 s release; tools/voice_env.py); tl.hasEnv
 //   tl.live(t) -> bool: inside a sung-word span (line start - 2 f .. line end + 6 f, gaps < 0.6 s merged; BIBLE 2.3)
+//   tl.reached(T, t) -> frame(t) >= frame(T)    tl.framesSince(T, t) -> frame(t) - frame(T)   (test events by FRAME)
 //   tl.hitFrames(shot) -> [f...] (round(beat_hit * fps)); tl.hitAt(shot, f) -> index or -1;
 //   tl.lastHit(shot, t) -> { i, t, f, df } | null   (the latest beat_hit at or before t; df = frames since it)
 export class Timeline {
@@ -95,6 +96,11 @@ export class Timeline {
   }
   live(t) { return this.liveSpans.some(([a, b]) => t >= a && t <= b); }
 
+  // frame-level event tests (BIBLE 8.1, 9.8.1: an event at time T changes the picture ON frame round(T * 24)). Film
+  // time t is always a frame time f / 24, so compare frames, never raw seconds: t >= 2.852 would show "sparks" (f68.45)
+  // one frame late, on f69.
+  reached(T, t) { return this.frameOf(t) >= this.frameOf(T); }
+  framesSince(T, t) { return this.frameOf(t) - this.frameOf(T); }
   hitFrames(shot) { return (shot.beat_hits || []).map(h => this.frameOf(h)); }
   hitAt(shot, f) { return this.hitFrames(shot).indexOf(f); }
   lastHit(shot, t) {

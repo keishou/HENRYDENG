@@ -76,7 +76,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const strip = n => n.replace(/[.:\/\[\]]/g, '');
 // eyelid travel at close = 1 (degrees about the head's horizontal axis through the eye centre); see the lids layer
-const LID_UPPER_DEG = 30, LID_LOWER_DEG = 6;
+const LID_UPPER_DEG = 27, LID_LOWER_DEG = 8;   // M3: clean at MCU; at CU the stretched lid texture shows
 const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 // ------------------------------------------------------------------------------------------------ quaternion math

@@ -258,6 +258,12 @@ widening reveals real picture at the sides. Plates for window spans are generate
 (P01, P02 at 9:16 cropped to 7:9; P03 at 1:1). These are the only window moves: no other ratio changes.
 
 ### 4.5 Texture
+- **Prints of the photograph (revised after the foundation review).** Crop to the face: chin just above the bottom edge of
+  the print, no shoulders or shirt, the top of the hair inside the print (never ID framing). A paper-space screen on a
+  print is mixed with continuous tone at the grade's halftone amount (≈0.35-0.45), with dot edges softened by paper tooth
+  and ink spread, and fades out below ~3 output px (so 720p deliveries do not moiré); it is never applied in the
+  `pregrade` layer (likeness scoring). Softness under liquid is applied after the screen, or expressed as thin,
+  low-contrast development, never as a blurred image under sharp dots.
 - **Halftone as printing.** A round-dot AM screen at 45°, pitch 4 px at 1080p (scale with output height), applied in
   display space to everything the machine prints (3D, plates, prints). The pitch is fixed per shot: 4 px by default; the
   chorus trays coarsen with exposure (+1: 4.5, +2: 5, +3: 6, +4: 7 px). S15 at "atoms" (50.49-52.83) rotates the screen
@@ -315,7 +321,7 @@ All sets are built once, reused, and matched by the plates. Materials are matte 
   (S20). Shading: print UV refracted by ∇h × 0.8, Fresnel reflection of the safelight rectangle, transmission 0.96.
 - Development (`src/fx/develop.js`, lane C, used by lanes D and E): density D(x,t) = cap(x) · C((t − t_start) · k(x)),
   C = characteristic curve with toe and shoulder, k = k0 · (0.35 + 0.65·darkness) · (0.25 + 0.75·certainty),
-  cap = D_target · (0.35 + 0.65·certainty); options: 16th-pulse quantisation (S01 until 2.054), exposure stops +n (each
+  cap = D_target · (0.2 + 0.8·certainty^1.5) (revised after the foundation review: the old floor left the shirt and hair outline readable); options: 16th-pulse quantisation (S01 until 2.054), exposure stops +n (each
   stop darkens midtones about one zone; +4 leaves only speculars), fog (S24), fuse front (S36-S37: front advances from
   low-certainty edges inward and stops at the eyes), cyanotype ramp (S38), test-strip bands (S39), multiple exposure
   accumulation (S42), freeze (S53: evaluate at min(t, 138.4174)).
@@ -464,10 +470,10 @@ and **the window** (every widening is outpainting).
 | S54 | final silhouette walk; previs of P10 | walk at half time from 140.236 (M2) | look = lens; noise 0.15 seed 9 | backlight + rising low fill |
 | S54 captures | side silhouettes | the same walk sampled at capture times, side camera | — | silhouette material |
 
-**Gait.** Every walk is at half time: one step per two beats (66 steps/min), heel strikes on beats 1 and 3. Primary:
-`walk_runway_loop` at speed 0.715 (`beatSpeed('walk_runway_loop', 66)`); A/B at review against `walk_slow` at 0.806; pick
-the more natural by eye on the contact sheet. The acceleration lives in the hall (prints developing on 8ths, captures on
-beats → 8ths → 16ths), never in his gait. No walk is sped up beyond 1.15× of its capture.
+**Gait.** Every walk is at half time: one step per two beats (66 steps/min), heel strikes on beats 1 and 3. The gait is
+`walk_runway_sym_loop` at half time (speed ≈ 0.697 with footfall warp; lane F's M2 result, 2026-09-28): `walk_slow`'s
+true step is 1.467 s, so it cannot serve as the half-time alternative. The acceleration lives in the hall (prints
+developing on 8ths, captures on beats → 8ths → 16ths), never in his gait. No walk is sped up beyond 1.15× of its capture.
 
 ### 5.6 Procedural layers (`avatar.js apply`)
 Breath amp 0.6-1.0, period 4.4 s; `look` targets in front of the face (≤ 22° eyes); `noise` amp ≤ 0.3 with a fixed seed
@@ -555,7 +561,7 @@ rect (inset 32 px) and move out as it widens.
 - **Premise** (S01 only, section 3).
 - **Job line** (top left; two lines in narrow spans): `LATENT IMAGE · JOB 0928` / `FROM 1 PHOTOGRAPH · FRONT ONLY`; only in
   S06, S15 (38.42-41.36) and S40.
-- **PROOF Nº** (top right, IBM Plex Mono 500, 20 px, digits VOICE): prints made. 0001 from 2.045; 0002-0006 in S03;
+- **PROOF Nº** (top right, IBM Plex Mono 500, 20 px, digits TYPE until 2.852 so the catchlights are the first colour inside the window, VOICE after): prints made. 0001 from 2.045; 0002-0006 in S03;
   0060 after S13; ~0200 → 0480 through S15; 0479 at S17b (the only decrement); 12,288 at 72.963; ×2 per beat in S27;
   hidden in the breakdown; 100,000 in S44; 2^n in S51; gone at 133.38; spinning through S54 (INK digits on S55);
   `PROOF 1 OF 1` in S57. Numbers are designed, not facts.

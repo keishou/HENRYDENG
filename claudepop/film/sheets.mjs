@@ -57,7 +57,7 @@ if (o.cuts) {
       const sa = a === null ? null : doc.shots.find(s => a >= s.frames[0] && a < s.frames[1]);
       panels.push(a === null ? { src: dataUrl(await frameJpeg(0)), label: 'START', sub: '' } :
         { src: dataUrl(await frameJpeg(a)), label: `${sa.id} last  F${a}`, sub: `${tc(a)}  (${sa.t1.toFixed(3)} s)` });
-      panels.push({ src: dataUrl(await frameJpeg(b)), label: `${sb.id} first F${b}`, sub: `${tc(b)}  t0 ${sb.t0.toFixed(3)} · cut on ${sb.anchor || ''}`.slice(0, 60), hot: true });
+      panels.push({ src: dataUrl(await frameJpeg(b)), label: `${sb.id} first F${b}`, sub: `${tc(b)}  t0 ${sb.t0.toFixed(3)} · cut on ${sb.anchor || ''}`.slice(0, 44), hot: true });
     }
     await compose(path.join(PATHS.sheets, `cuts_${res}_${p + 1}.jpg`), { title: `CUTS ${p + 1}/${Math.ceil(pairs.length / per)} · ${res}p`,
       sub: 'each pair: last frame of the outgoing shot | first frame of the incoming shot (outlined) = shots.json frames[0]', panels, cellW: 360, cellH: 203, cols: 8 });

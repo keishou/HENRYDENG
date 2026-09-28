@@ -62,11 +62,11 @@ export const SHOTS = {
     t0: 13.18, t1: 16.5992,
     pose: { clip: 'pose_sit_stool_upright', t: 0 },
     segments: [{ clip: 'pose_sit_stool_upright', at: 13.18, yaw: 0 }],
-    layers: (t, lens, av) => {
+    layers: (t, lens, av, origin = [0, 0, 0]) => {
       const l = lens ? V(lens) : null;
       let target;
       if (l) {
-        const floor = [0, 0, 1.5];                                   // 1.5 m ahead of the sitter, on the floor
+        const floor = [origin[0], 0, origin[2] + 1.5];               // 1.5 m ahead of the sitter (facing +Z), on the floor
         target = lerp3(floor, l, ease((t - 15.675) / (12 / 24)));
       }
       return { breath: { amp: 0.8, period: 4.4 }, look: target ? { target, weight: 1, maxDeg: 8, eyesMax: 14 } : undefined };
@@ -77,7 +77,7 @@ export const SHOTS = {
     t0: 16.5992, t1: 22.9629,
     segments: [{ clip: 'stand_breathe_loop', at: 16.5992, loop: true, yaw: 0 }],
     layers: (t, lens) => ({ hands: { curl: 0.5 }, breath: { amp: 0.6, period: 4.4 }, lids: { close: 1 },
-      look: lens ? { target: lens, weight: 1, eyes: false } : undefined }),
+      look: lens ? { target: [lens[0], lens[1] + 0.25, lens[2]], weight: 1, eyes: false, maxDeg: 10 } : undefined }),
   },
   // S15 ONE TAKE: stand hidden in the backlight -> half-time walk at the lens from "We" 38.63 (first strike 39.3265,
   // bar 22 beat 3) -> the stopping step lands on 51.1447 (bar 29 beat 1), MCU, frontal, holding the lens.
@@ -90,8 +90,10 @@ export const SHOTS = {
       { clip: 'stand_breathe_loop', at: beatT(29, 1) - 0.6, fade: 0.6, loop: true, yaw: 0 },
     ],
     anchor: { t: beatT(29, 1) + 0.25, x: 0, z: -3.0 },
+    // gaze: level and ahead (down the axis, i.e. toward the camera end) while walking, which also steadies the
+    // captured walk's chin-up swagger; from 49.0 the eyes lock on the lens and the head follows
     layers: (t, lens) => ({ hands: { curl: 0.5 }, breath: { amp: 0.8, period: 4.4 }, noise: { amp: 0.2, seed: 5 },
-      look: lens && t >= 49.0 ? { target: lens, weight: ease((t - 49.0) / 0.8), maxDeg: 25 } : undefined }),
+      look: lens ? { target: lens, weight: 0.6 + 0.4 * ease((t - 49.0) / 0.8), eyes: t >= 49.0, maxDeg: 25 } : undefined }),
     strikes: { from: 39.0, to: 50.8 },     // the M2 check window (strikes expected on every half-time beat)
   },
   // S16 previs of P05: his back to us at the far end, facing the backlight
@@ -110,7 +112,9 @@ export const SHOTS = {
         turn: { at: beatT(46, 1), dur: 0.45, deg: 90, pivot: 'R' } },
     ],
     anchor: { t: 81.365, x: 0, z: -14.0 },
-    layers: () => ({ hands: { curl: 0.5 }, breath: { amp: 0.8, period: 4.4 } }),
+    // gaze level toward the backlight; the head leads the sharp left turn (target swings to his left from 81.95)
+    layers: (t, lens, av, o = [0, 0, 0]) => ({ hands: { curl: 0.5 }, breath: { amp: 0.8, period: 4.4 },
+      look: { target: lerp3([o[0], 1.62, o[2] - 60], [o[0] - 60, 1.62, o[2] - 14.8], ease((t - 81.95) / 0.35)), weight: 0.7, eyes: false, maxDeg: 40 } }),
     strikes: { from: 79.8, to: 82.2 },
   },
   // S40: small, backlit, frontal, standing in the aisle under the crane
@@ -130,8 +134,10 @@ export const SHOTS = {
         walk: { foot: 'L', strike: beatT(63, 4) }, turn: { at: 114.02, dur: 0.38, deg: 90, pivot: 'R' } },
     ],
     place: { x: 0, z: 0 },
+    // the head holds the lens while the body turns and steps out (face yaw <= 30 deg while he is in the beam, so no
+    // lit profile: BIBLE 5.4), then lets go as he leaves the beam (114.42-114.58)
     layers: (t, lens) => ({ hands: { curl: 0.5 }, breath: { amp: 0.6, period: 4.4 },
-      look: lens && t < 114.1 ? { target: lens, weight: 1 - ease((t - 113.95) / 0.15) } : undefined }),
+      look: lens ? { target: lens, weight: 1 - ease((t - 114.42) / 0.16), maxDeg: 60 } : undefined }),
   },
   // S54 THE WALK: at the lens at half time, a strike on every beat 1 and 3 from the cut 140.2356 (bar 78 beat 1),
   // from z = -12.5 until the P10 previs segment ends (155.645)
@@ -152,7 +158,8 @@ export const SHOTS = {
     t0, t1: i + 1 < all.length ? all[i + 1][1] : 118.887,
     segments: [{ ...GAIT_TEAR, at: t0 - 1.0, loop: true, yaw: 0, walk: { foot, strike } }],
     anchor: { t: strike, x: 0, z: -4.0 },
-    layers: () => ({ hands: { curl: 0.5 }, breath: { amp: 0.8, period: 4.4 } }),
+    layers: (t, lens) => ({ hands: { curl: 0.5 }, breath: { amp: 0.8, period: 4.4 },
+      look: lens ? { target: lens, weight: 0.6, eyes: false, maxDeg: 25 } : undefined }),
     strikes: { from: t0, to: t0 + 0.47 },
   };
 });
@@ -228,9 +235,11 @@ export function poseAt(av, id, t) {
   return sequenceFor(av, id).pose(t);
 }
 
-export function layersAt(id, t, { lens, av } = {}) {
+// origin: world position of the shot's clip origin when the scene moves the avatar with av.root (default: none);
+// look targets written as world points in the specs (S28 aisle, S05 floor) are offset by it
+export function layersAt(id, t, { lens, av, origin } = {}) {
   const spec = SHOTS[id];
-  return spec.layers ? spec.layers(t, lens ? V(lens) : null, av) : {};
+  return spec.layers ? spec.layers(t, lens ? V(lens) : null, av, origin ? V(origin) : undefined) : {};
 }
 
 export function apply(av, id, t, opts = {}) {

@@ -39,9 +39,10 @@ export class Finish {
     if (!this.targets.has(key)) {
       const stack = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples, depthBuffer: true });
       const probe = new THREE.WebGLRenderTarget(W >> 2, H >> 2, { type: THREE.UnsignedByteType, depthBuffer: false });
-      const accent = new THREE.WebGLRenderTarget(W, H, { type: THREE.UnsignedByteType, samples: 4, depthBuffer: true });
+      // accents: 2x supersampled without MSAA (an MSAA resolve costs ~160 ms at 720p under SwiftShader, even scissored)
+      const accent = new THREE.WebGLRenderTarget(W * 2, H * 2, { type: THREE.UnsignedByteType, samples: 0, depthBuffer: true });
       accent.texture.colorSpace = THREE.SRGBColorSpace;
-      this.targets.set(key, { stack, probe, accent, probeBuf: new Uint8Array((W >> 2) * (H >> 2) * 4), accBuf: new Uint8Array(W * H * 4) });
+      this.targets.set(key, { stack, probe, accent, probeBuf: new Uint8Array((W >> 2) * (H >> 2) * 4), accBuf: new Uint8Array(W * H * 16) });
     }
     return this.targets.get(key);
   }
@@ -108,7 +109,7 @@ export class Finish {
       const text = spec.text === undefined ? shot.text : spec.text;
       layout = ctx.type.layout(text, t, probe, { shot, s: fr.s, rect, register: g.name, card: !!rect.card }) || layout;
       c.save(); layout.draw(hud); c.restore();
-      if (o.previsTags && shot.source === 'GEN' && !plateUsed) previsTag(c, rect, shot);
+      if (o.previsTags && shot.source === 'GEN' && !plateUsed && inGenSpan(shot, t)) previsTag(c, rect, shot);
     }
 
     // post
@@ -136,17 +137,56 @@ export class Finish {
     return { dim, blocks: layout.blocks || [], plate: plateUsed };
   }
 
+  // legacy accent composite: render the VOICE layers to RGBA8 (2x supersampled) and draw them onto the HUD canvas (after
+  // the grade). Only the screen region the accent objects cover is cleared, rendered (scissor) and read back.
   _accentToHud(layers, T) {
     const { W, H } = this.ctx, r = this.ctx.renderer;
+    const box = new THREE.Box3(), v = new THREE.Vector3();
+    let x0 = W, y0 = H, x1 = 0, y1 = 0, all = false;
+    for (const L of layers) {
+      L.scene.updateMatrixWorld(); L.camera.updateMatrixWorld(); box.setFromObject(L.scene);
+      if (box.isEmpty()) continue;
+      for (let i = 0; i < 8; i++) {
+        v.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z);
+        v.applyMatrix4(L.camera.matrixWorldInverse);
+        if (L.camera.isPerspectiveCamera && v.z > -L.camera.near) { all = true; break; }
+        v.applyMatrix4(L.camera.projectionMatrix);
+        x0 = Math.min(x0, (v.x + 1) / 2 * W); x1 = Math.max(x1, (v.x + 1) / 2 * W); y0 = Math.min(y0, (v.y + 1) / 2 * H); y1 = Math.max(y1, (v.y + 1) / 2 * H);
+      }
+    }
+    if (all) { x0 = 0; y0 = 0; x1 = W; y1 = H; }
+    x0 = Math.max(0, Math.floor(x0) - 8); y0 = Math.max(0, Math.floor(y0) - 8); x1 = Math.min(W, Math.ceil(x1) + 8); y1 = Math.min(H, Math.ceil(y1) + 8);
+    const w = x1 - x0, h = y1 - y0;                    // (y is bottom-up here, as in GL)
+    if (w <= 0 || h <= 0) return;
+    r.setScissorTest(true); T.accent.scissor.set(x0 * 2, y0 * 2, w * 2, h * 2); T.accent.scissorTest = true;
     this._renderLayers(T.accent, layers, 0x000000, 0);
-    r.readRenderTargetPixels(T.accent, 0, 0, W, H, T.accBuf);
-    if (!this.accCanvas || this.accCanvas.width !== W) { this.accCanvas = new OffscreenCanvas(W, H); this.accCtx = this.accCanvas.getContext('2d'); }
-    const img = new ImageData(W, H), row = W * 4;
-    for (let y = 0; y < H; y++) img.data.set(T.accBuf.subarray((H - 1 - y) * row, (H - y) * row), y * row);
-    const d = img.data;                                  // antialiased edges come back premultiplied: un-premultiply
-    for (let i = 3; i < d.length; i += 4) { const a = d[i]; if (a > 0 && a < 255) { const k = 255 / a; d[i - 3] = Math.min(255, d[i - 3] * k); d[i - 2] = Math.min(255, d[i - 2] * k); d[i - 1] = Math.min(255, d[i - 1] * k); } }
-    this.accCtx.putImageData(img, 0, 0);
-    const c = this.ctx.hud.ctx; c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(this.accCanvas, 0, 0); c.restore();
+    r.setScissorTest(false); T.accent.scissorTest = false;
+    const W2 = w * 2, buf = T.accBuf.subarray(0, W2 * h * 2 * 4);
+    r.readRenderTargetPixels(T.accent, x0 * 2, y0 * 2, W2, h * 2, buf);
+    // 2x2 box filter (the 2x2 samples of opaque objects over a transparent clear average to premultiplied colour),
+    // flip to top-down, then un-premultiply for putImageData
+    const img = new ImageData(w, h), d = img.data;
+    for (let y = 0; y < h; y++) {
+      const r0 = (2 * y) * W2 * 4, r1 = r0 + W2 * 4, o = (h - 1 - y) * w * 4;
+      for (let x = 0; x < w; x++) {
+        const i0 = r0 + x * 8, i1 = r1 + x * 8, j = o + x * 4;
+        const a = buf[i0 + 3] + buf[i0 + 7] + buf[i1 + 3] + buf[i1 + 7];
+        if (!a) continue;
+        for (let k = 0; k < 3; k++) {
+          const sum = buf[i0 + k] * buf[i0 + 3] + buf[i0 + 4 + k] * buf[i0 + 7] + buf[i1 + k] * buf[i1 + 3] + buf[i1 + 4 + k] * buf[i1 + 7];
+          d[j + k] = sum / a;
+        }
+        d[j + 3] = a / 4;
+      }
+    }
+    if (!this.accCanvas || this.accCanvas.width < w || this.accCanvas.height < h) {
+      // a CPU-backed canvas like the HUD's: drawing a (GPU) OffscreenCanvas onto the HUD made Chromium rasterise the rest
+      // of that frame's HUD differently (antialiased edges 1 premultiplied level apart) - a first-frame non-determinism
+      this.accCanvas = document.createElement('canvas'); this.accCanvas.width = W; this.accCanvas.height = H;
+      this.accCtx = this.accCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    this.accCtx.clearRect(0, 0, w, h); this.accCtx.putImageData(img, 0, 0);
+    const c = this.ctx.hud.ctx; c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(this.accCanvas, 0, 0, w, h, x0, H - y0 - h, w, h); c.restore();
   }
 }
 
@@ -173,6 +213,11 @@ function legacyParams(g, H) {
 }
 function pregradeParams(g) {
   return { exposure: g.exposure ?? 1, bloom: 0, halation: 0, mono: 0, sat: 1, contrast: 1, lift: [0, 0, 0], gain: [1, 1, 1], grain: 0, vignette: 0, screen: 0, scanlines: 0, ca: 0, bars: 0 };
+}
+// the part of a GEN shot the plate will cover (all of it, or the tail: S15 from 50.49, S54 from 151.145), by frame
+function inGenSpan(shot, t) {
+  const use = shot.gen && shot.gen.use; if (!use) return true;
+  return Math.round(t * 24) >= Math.round((shot.t1 - (use[1] - use[0])) * 24);
 }
 function previsTag(c, r, shot) {
   const s = `PREVIS · ${shot.gen && shot.gen.plate || 'GEN'}`;

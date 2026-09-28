@@ -119,7 +119,7 @@ CLIPS = [
     dict(name="turn_in_place_cw", cmu="69_18", seg=[0.0, 8.8], cat="turn", footlock=True,
          shows="slow 360 deg turn in place to the right"),
     # ---- added for the stream-of-consciousness film
-    dict(name="stand_breathe_loop", cmu="111_28", seg=[0.0, 4.0], cat="idle", footlock=True,
+    dict(name="stand_breathe_loop", cmu="111_28", seg=[0.0, 4.0], cat="idle", footlock=True, plant=True,
          loop=dict(search=[0.3, 4.0], min=2.4, max=3.7),
          shows="near-motionless standing, arms down: base for procedural breathing (layer on top in avatar.js)"),
     dict(name="stand_head_roll", cmu="113_21", seg=[0.0, 11.4], cat="idle", footlock=True,
@@ -1405,6 +1405,59 @@ def build_pose(sk, c, titles):
     return info
 
 
+# ------------------------------------------------------------------------------------------------ planted feet
+def plant_feet(sk, Rl, root, iters=3):
+    """Standing clips: both soles flat on the floor. The floor pass only grounds the lowest point and the foot lock
+    pins each foot where it rests, so a foot that hovers in the capture (stand_breathe_loop: the right foot 4 cm up)
+    stays in the air. Each foot is turned flat (yaw kept); the body comes down until the lower sole touches y = 0 and
+    the other ankle is lowered by leg IK onto the floor; one correction per pass for the whole clip (medians), so a
+    loop stays seamless. Returns Rl, root, report."""
+    ix = sk.ix
+    P, J, W = sk.parts["shoes"]
+    root = root.copy()
+    sides = {s: P[:, 0] * sg > 0 for s, sg in (("L", 1), ("R", -1))}
+    toes = {s: [c for c in range(len(sk.names)) if sk.names[c].startswith("toe") and sk.names[c].endswith("." + s)] for s in "LR"}
+
+    def lows():
+        Rw, Hw = sk.fk(Rl, root)
+        return {s: float(np.median(sk.skin(Rw, Hw, P[m], J[m], W[m])[:, :, 1].min(1))) for s, m in sides.items()}
+
+    before = lows()
+    for s in "LR":                       # flatten (keep the yaw of the foot's world delta; toes flat with it)
+        Rw, _ = sk.fk(Rl, root)
+        kf = ix[f"foot.{s}"]
+        f = (Rw[:, kf] @ sk.R[kf].T)[:, :, 2]
+        Ry = np.stack([rot_y(a) for a in np.arctan2(f[:, 0], f[:, 2])])
+        Rw2 = Rw.copy()
+        for k in [kf] + toes[s]:
+            Rw2[:, k] = Ry @ sk.R[k]
+        Rl2 = sk.locals_(Rw2)
+        for k in [kf] + toes[s]:
+            Rl[:, k] = Rl2[:, k]
+    for _ in range(iters):
+        lo = lows()
+        root[:, 1] -= min(lo.values())
+        lo = lows()
+        for s in "LR":
+            if lo[s] < 0.0005:
+                continue
+            Rw, Hw = sk.fk(Rl, root)
+            ua, ub, la, lb, ft = (ix[f"upperleg01.{s}"], ix[f"upperleg02.{s}"], ix[f"lowerleg01.{s}"], ix[f"lowerleg02.{s}"], ix[f"foot.{s}"])
+            A, K, C = Hw[:, ua], Hw[:, la], Hw[:, ft]
+            R1, R2 = two_bone_ik(A, K, C, C - np.array([0.0, lo[s], 0.0]), K - (A + C) / 2)
+            Rw2 = Rw.copy()
+            for b_ in (ua, ub):
+                Rw2[:, b_] = R1 @ Rw[:, b_]
+            for b_ in (la, lb):
+                Rw2[:, b_] = R2 @ R1 @ Rw[:, b_]
+            Rw2[:, ft] = Rw[:, ft]
+            Rl_new = sk.locals_(Rw2)
+            for b_ in (ua, ub, la, lb, ft):
+                Rl[:, b_] = Rl_new[:, b_]
+    after = lows()
+    return Rl, root, {s: dict(hover_before_cm=round(before[s] * 100, 2), hover_after_cm=round(after[s] * 100, 2)) for s in "LR"}
+
+
 # ------------------------------------------------------------------------------------------------ symmetric gait
 def mirror_partner(sk):
     """Index of each bone's mirror (L <-> R), or itself for bones on the midline."""
@@ -1539,6 +1592,9 @@ def build_clip(sk, c, titles):
             root3 = floor_contact(sk, Rl3, root3)
         Rl = Rl3[N:2 * N].copy()
         root = root3[N:2 * N] - delta
+        if c.get("plant"):
+            Rl, root, plant_rep = plant_feet(sk, Rl, root)
+            loop["plant_feet"] = plant_rep
         Rw, Hw = sk.fk(Rl, root)
         R3 = np.concatenate([Rl, Rl, Rl], 0)
         P3 = np.concatenate([root, root + delta, root + 2 * delta], 0)

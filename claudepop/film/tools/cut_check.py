@@ -5,11 +5,10 @@ shot id against shots.json; part 2: the cut-pair sheets of sheets.mjs --cuts, lo
     claudepop/out/venv/bin/python claudepop/film/tools/cut_check.py out/film/frames/540 [--json out.json]
 
 For every cut (shots.json frames[0] of each shot after the first) it measures the frame-to-frame change (mean absolute
-difference of 240-px-wide greyscale thumbnails) for the five pairs (f0-3, f0-2) .. (f0+1, f0+2) and requires a clear
-change exactly at (f0-1, f0): at least 2x the median of the four neighbouring pairs and above 0.3 grey levels. A cut
-rendered a frame early or late leaves (f0-1, f0) inside one shot, so it fails. Neighbouring changes are allowed (a
-2-frame beat_hit tick, a flash or a word landing next to the cut are legitimate); the position of the largest change is
-reported. Exit 1 on any cut without its change on frames[0].
+difference of 240-px-wide greyscale thumbnails) for the five pairs (f0-3, f0-2) .. (f0+1, f0+2) and requires the change
+at (f0-1, f0) to exceed both adjacent pairs (f0-2, f0-1) and (f0, f0+1) and 0.3 grey levels. A cut rendered a frame
+early or late moves the change onto an adjacent pair, so it fails. Changes further out are allowed (a 2-frame beat_hit
+tick ending, a flash); the ratio to the median of the other pairs and the largest-change position are reported. Exit 1 on any cut without its change on frames[0].
 """
 import argparse
 import json
@@ -45,10 +44,17 @@ def main():
             rows.append({'shot': s['id'], 'f0': f0, 'status': 'missing'})
             bad += 1
             continue
-        d = [float(np.abs(ts[i + 1] - ts[i]).mean()) for i in range(5)]   # pairs (f0-3,f0-2) .. (f0+1,f0+2)
+        # two measures: the raw difference, and the difference of mean-removed thumbnails (a uniform exposure change such
+        # as a fade or a slate's 2-frame lift counts less there than a change of content). The change at the cut must
+        # exceed both ADJACENT pairs in at least one measure: a cut rendered one frame early moves the change onto
+        # (f0-2, f0-1), one frame late onto (f0, f0+1), in both measures.
+        raw = [float(np.abs(ts[i + 1] - ts[i]).mean()) for i in range(5)]
+        mr = [float(np.abs((ts[i + 1] - ts[i + 1].mean()) - (ts[i] - ts[i].mean())).mean()) for i in range(5)]
+        good = lambda d: d[2] > d[1] and d[2] > d[3] and d[2] > 0.3
+        d = raw if good(raw) or not good(mr) else mr
         others = float(np.median(d[:2] + d[3:]))
         ratio = d[2] / max(others, 1e-3)
-        st = 'ok' if (d[2] >= 2 * others and d[2] > 0.3) else 'NO CHANGE AT f0'
+        st = 'ok' if good(raw) or good(mr) else 'NO CHANGE AT f0'
         bad += st != 'ok'
         rows.append({'shot': s['id'], 'f0': f0, 'status': st, 'ratio': round(ratio, 1),
                      'largest_at': int(np.argmax(d)) - 2, 'diffs': [round(x, 3) for x in d]})

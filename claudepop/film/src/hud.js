@@ -2,8 +2,10 @@
 // by post.js after the grade. Every draw call is a pure function of its arguments and the film time t (tickers,
 // counters, waveforms), so frames render identically in any order.
 //
-//   await loadFonts('/out/fonts/')     Inter Tight (grotesque), IBM Plex Mono (HUD labels), Barlow Condensed (display
-//                                      numerals), Instrument Serif (subtitle / italic titles); all SIL OFL
+//   await loadFonts(base = '/fonts/')  Inter Tight (grotesque), IBM Plex Mono (HUD labels), Barlow Condensed (display
+//                                      numerals), Instrument Serif (subtitle / italic titles); all SIL OFL (look-dev
+//                                      faces; the film's own faces load in src/type/type.js). Falls back to /out/fonts/
+// The film's proof-sheet HUD is src/hud/proof.js; these primitives serve the look-dev harness and scenes' overlays.
 //   const hud = new Hud(W, H); hud.clear();
 //   hud.mono(text, x, y, o)            tiny letter-spaced monospace label   o: {size, color, alpha, align, track, weight}
 //   hud.text(runs, x, y, o)            one line of mixed-colour runs: [['I\'m upping my ', '#fff'], ['P(doom).', ORANGE]]
@@ -21,7 +23,7 @@ export const FONTS = {
   serif: '"Instrument Serif", Georgia, serif',
 };
 
-export async function loadFonts(base = '/out/fonts/') {
+export async function loadFonts(base = '/fonts/') {
   const list = [
     ['Inter Tight', 'InterTight.ttf', { weight: '100 900' }],
     ['IBM Plex Mono', 'IBMPlexMono-Regular.ttf', { weight: '400' }],
@@ -31,9 +33,14 @@ export async function loadFonts(base = '/out/fonts/') {
     ['Instrument Serif', 'InstrumentSerif-Regular.ttf', { style: 'normal' }],
     ['Instrument Serif', 'InstrumentSerif-Italic.ttf', { style: 'italic' }],
   ];
+  // each file from `base`, falling back to the other font folder (claudepop/fonts/ from film/fetch_fonts.sh, or the
+  // legacy claudepop/out/fonts/)
+  const bases = [...new Set([base, '/fonts/', '/out/fonts/'])];
   await Promise.all(list.map(async ([fam, file, desc]) => {
-    const f = new FontFace(fam, `url(${base}${file})`, desc);
-    await f.load(); document.fonts.add(f);
+    for (const b of bases) {
+      try { const f = new FontFace(fam, `url(${b}${file})`, desc); await f.load(); document.fonts.add(f); return; } catch {}
+    }
+    console.warn('hud.js: font not found', file);
   }));
   await document.fonts.ready;
 }

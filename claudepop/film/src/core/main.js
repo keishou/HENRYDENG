@@ -139,7 +139,7 @@ async function boot() {
     for (const n of (e && e.needs.sets) || []) for (const u of assets.used('set:' + n)) urls.add(u);
     return [...urls].filter(u => u.startsWith('/out/') || u.startsWith('/fonts/')).sort();
   };
-  window.ctx = ctx;   // for debugging from still.mjs --eval
+  window.ctx = ctx; window.finish = finish;   // debugging handles (profilers, still.mjs)
   window.ready = true;
 }
 
