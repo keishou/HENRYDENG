@@ -55,27 +55,32 @@ def analyse(path, unit_m=None, skip_first=None):
     head = find(names, "Head", "head")
     headend = find(names, "Head_End", "head_End")
     neck = find(names, "Neck1", "Neck", "neck", "neck01")
-    toes = [i for i, n in enumerate(names) if "toe" in n.lower() and not n.endswith("_End")]
-    # heuristically detect an injected T-pose first frame (cgspeed release)
+    # detect an injected T-pose first frame (cgspeed CMU release, three.js pirouette):
+    # frame 0 -> 1 jumps far more than any later frame -> frame step.
     if skip_first is None:
-        skip_first = bool(np.abs(clip.frames[0, 3:]).max() > 0 and
-                          np.linalg.norm(P[1, 0] - P[0, 0]) > 5 * np.linalg.norm(P[2, 0] - P[1, 0]) + 1e-6)
+        rot = [k for j in clip.joints for k, c in enumerate(j.channels, j.chan_start) if c.endswith("rotation")]
+        d = np.abs(np.diff(clip.frames[:6, rot], axis=0))
+        d = np.minimum(d, 360 - d).max(axis=1)
+        skip_first = bool(d[0] > 15 and d[0] > 5 * d[1:].max())
     s = 1 if skip_first else 0
     Pm, Rm = P[s:], R[s:]
-    # scale: estimate standing height from rest offsets
     top = headend if headend is not None else head
     if unit_m is None:
-        rest_h = _rest_height(clip)
-        unit_m = 1.75 / rest_h if rest_h > 0 else 1.0
-        if 25 < rest_h < 40:  # looks like CMU ASF units (~31 units for 175cm)
+        low = [n.lower() for n in names]
+        if "lhipjoint" in low:  # CMU skeleton (ASF units: inches*0.45)
             unit_m = CMU_UNIT_M
-        elif 140 < rest_h < 210:
-            unit_m = 0.01
-        elif 55 < rest_h < 85:
-            unit_m = 0.0254
+        else:
+            rest_h = _rest_height(clip)
+            unit_m = 1.75 / rest_h if rest_h > 0 else 1.0
+            if 140 < rest_h < 210:
+                unit_m = 0.01
+            elif 55 < rest_h < 85:
+                unit_m = 0.0254
+            elif 1.4 < rest_h < 2.1:
+                unit_m = 1.0
     fps = clip.fps
     hip = Pm[:, root] * unit_m
-    ground = (Pm[:, toes, 1].min() if toes else Pm[:, :, 1].min()) * unit_m
+    ground = float(np.percentile(Pm[:, :, 1].min(axis=1), 1)) * unit_m
     fwd = np.einsum("fij,j->fi", Rm[:, root], [0, 0, 1.0])
     hip_yaw = unwrap_deg(yaw_of(fwd))
     hfwd = np.einsum("fij,j->fi", Rm[:, head], [0, 0, 1.0]) if head is not None else fwd

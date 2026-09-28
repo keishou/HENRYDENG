@@ -1,0 +1,19 @@
+{
+ "kick_onsets": 649,
+ "fitted_bpm": 132.004,
+ "period": 0.45453,
+ "offset": 0.2186,
+ "kicks_on_grid_frac": 0.462,
+ "resid_ms_median": 7.7,
+ "grid132_beats_with_kick": 0.87,
+ "old88_beats_with_kick": 0.865,
+ "old88_even_beats_with_kick": 0.887,
+ "old88_odd_beats_with_kick": 0.843,
+ "strength_low_band": {
+  "s132": 1.0,
+  "s132_offbeat": 0.914,
+  "old88_all": 0.96,
+  "old88_even": 0.992,
+  "old88_odd": 0.929
+ }
+}

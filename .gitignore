@@ -119,3 +119,19 @@ odyssey/work/
 # python bytecode
 __pycache__/
 *.pyc
+
+# claudepop: renders of third-party work, fonts, media and logs stay local
+claudepop/**/frames/
+claudepop/**/frames_*/
+claudepop/**/fonts/
+claudepop/**/*.png
+claudepop/**/*.jpg
+claudepop/**/*.mp3
+claudepop/**/*.wav
+claudepop/**/*.mp4
+claudepop/**/*.webm
+claudepop/**/*.npy
+claudepop/**/*.npz
+claudepop/**/*.log
+claudepop/**/node_modules/
+claudepop/**/stems/
