@@ -268,7 +268,8 @@ export class Shots {
     });
   }
 
-  placeShip(x, z, T, heading = 0) {
+  placeShip(x, z, T, heading = 0, scale = 1) {
+    this.ship.scale.setScalar(scale);
     const y = waveHeight(x, z, T, this.waveU);
     this.ship.position.set(x, y - .02, z);
     this.ship.rotation.set(Math.sin(T * 1.1) * .05, heading, Math.sin(T * .8 + 1) * .06);
@@ -373,7 +374,7 @@ export class Shots {
       fillCol: [.1, .1, .14], fillDir: [.6, .2, 1], rimCol: [1.2, .8, .5], rimDir: [-.3, .3, -1], amb: [.025, .025, .035],
       fog: .0015, fogCol: [.75, .5, .38], env: [.9, .6, .45] });
     this.bust.scale.setScalar(3.3); this.bust.position.set(0, 4.1, 0); this.bust.rotation.y = .05;
-    this.snow.visible = true; this.ship.visible = true; this.lanterns.visible = false; this.rain.visible = false;
+    this.snow.visible = true; this.ship.visible = false; this.lanterns.visible = false; this.rain.visible = false;
     let pos, tgt, fov;
     if (lt < 8) {                   // behind the little ship, rising
       const k = ease(lt / 8);
