@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>sheet compose</title>
+<style>html,body{margin:0;background:#111}</style>
+</head>
+<body>
+<script type="module">
+// Contact-sheet compositor for sheets.mjs (lane A tool page). window.compose(spec) -> base64 JPEG.
+//   spec = { title, sub, cols, cellW, cellH, panels: [{ src (data URL), label, sub, hot }], gap = 14, q = 0.9 }
+const MONO = '"IBM Plex Mono", "DejaVu Sans Mono", monospace';
+for (const [w, f] of [['400', 'IBMPlexMono-Regular.ttf'], ['500', 'IBMPlexMono-Medium.ttf']]) {
+  for (const b of ['/fonts/', '/out/fonts/']) { try { const ff = new FontFace('IBM Plex Mono', `url(${b}${f})`, { weight: w }); await ff.load(); document.fonts.add(ff); break; } catch {} }
+}
+const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+window.compose = async ({ title = '', sub = '', cols = 4, cellW = 480, cellH = 270, panels = [], gap = 14, q = 0.9, labelH = 44 }) => {
+  const imgs = await Promise.all(panels.map(p => load(p.src)));
+  const rows = Math.ceil(panels.length / cols), head = title ? 86 : 16;
+  const W = cols * cellW + (cols + 1) * gap, H = head + rows * (cellH + labelH + gap) + gap;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#121212'; c.fillRect(0, 0, W, H);
+  c.textBaseline = 'alphabetic';
+  if (title) {
+    c.fillStyle = '#F4F2EC'; c.font = `500 30px ${MONO}`; c.fillText(title, gap, 44);
+    c.fillStyle = '#9A9690'; c.font = `400 15px ${MONO}`; c.fillText(sub, gap, 70);
+  }
+  panels.forEach((p, i) => {
+    const x = gap + (i % cols) * (cellW + gap), y = head + Math.floor(i / cols) * (cellH + labelH + gap);
+    c.drawImage(imgs[i], x, y, cellW, cellH);
+    if (p.hot) { c.strokeStyle = '#F4F2EC'; c.lineWidth = 2; c.strokeRect(x - 1, y - 1, cellW + 2, cellH + 2); }
+    c.fillStyle = p.hot ? '#FFFFFF' : '#C9C6BF'; c.font = `500 14px ${MONO}`; c.fillText(p.label || '', x, y + cellH + 19);
+    c.fillStyle = '#8C8983'; c.font = `400 13px ${MONO}`; c.fillText(p.sub || '', x, y + cellH + 37);
+  });
+  return cv.toDataURL('image/jpeg', q).slice(23);
+};
+window.composeReady = true;
+</script>
+</body>
+</html>

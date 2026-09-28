@@ -88,6 +88,10 @@ CLIPS = [
     dict(name="walk_runway_loop", cmu="142_04", seg=[2.0, 7.5], cat="walk", align="travel", footlock=True,
          loop=dict(search=[2.8, 7.2], min=0.9, max=3.2),
          shows="seamless cycle of a confident 'cool' walk (~1 m/s), arms swinging: the runway walk toward camera"),
+    dict(name="walk_runway_sym_loop", cmu="142_04", seg=[2.0, 7.5], cat="walk", align="travel", footlock=True,
+         loop=dict(search=[2.8, 7.2], min=0.9, max=3.2), symmetric="L",
+         shows="walk_runway_loop made symmetric: the left-stance half-cycle (heel planted) and its mirror, so both steps "
+               "last exactly half a cycle; the film's half-time gait (heel strikes land on beats 1 and 3 at one speed)"),
     dict(name="walk_attitude", cmu="104_44", seg=[0.0, 9.0], cat="walk", align="travel", footlock=True,
          shows="'attitude' walk, one straight 4.3 m pass at ~0.5 m/s, chin up"),
     dict(name="walk_stop_lookright", cmu="104_35", seg=[0.0, 8.9], cat="walk", align="travel", footlock=True,
@@ -155,6 +159,16 @@ CLIPS = [
     dict(name="sit_down_get_up", cmu="143_18", seg=[0.0, 6.3], cat="prop",
          footlock=True,
          shows="sits down onto a low seat and gets up (needs a ~0.45 m seat prop)"),
+    # ---- authored static keys for the film (BIBLE 5.7 M1, M6); built from sit_stool_head_bowed, so after it
+    dict(name="pose_sit_stool_upright", cat="pose",
+         pose=dict(kind="sit_stool_upright", src="sit_stool_head_bowed", t=5.8, pelvis_tilt=0.45, lean_deg=4.0,
+                   seat_y=0.60, ankle_x=0.165, knee_x=0.15, shin_deg=4.0, toe_out_deg=7.0, hand_u=0.62,
+                   hand_yaw_in_deg=14.0, hand_roll_deg=8.0, curl=[0.42, 0.46, 0.52, 0.58], thumb=0.25),
+         shows="the sitter (S05): upright on the 0.60 m stool facing +Z, hands on the knees, feet flat on the floor"),
+    dict(name="pose_sit_stool_face_in_hands", cat="pose",
+         pose=dict(kind="sit_stool_face_in_hands", src="sit_stool_head_bowed", t=3.0, pelvis_tilt=0.8,
+                   seat_y=0.60, ankle_x=0.17, knee_x=0.16, shin_deg=2.0, toe_out_deg=9.0, neck_deg=34.0),
+         shows="S35: on the 0.60 m stool, elbows on the thighs, face buried in both hands (face hidden)"),
 ]
 
 
@@ -166,7 +180,7 @@ def raw_url(cid):
 
 def fetch(ids=None):
     CMU.mkdir(parents=True, exist_ok=True)
-    ids = sorted({c["cmu"] for c in CLIPS}) if ids is None else ids
+    ids = sorted({c["cmu"] for c in CLIPS if c.get("cmu")}) if ids is None else ids
     for cid in ids:
         p = CMU / f"{cid}.bvh"
         if p.exists() and p.stat().st_size > 1000:
@@ -319,6 +333,7 @@ class Skeleton:
         self.ibm = accessor(g, bin_, sk["inverseBindMatrices"]).reshape(-1, 4, 4).transpose(0, 2, 1)
         # skinned vertices of every part (for floor / sliding checks); subsample the big parts
         parts = {}
+        faces = {}
         for node in nodes:
             if "mesh" not in node:
                 continue
@@ -329,7 +344,14 @@ class Skeleton:
             J = accessor(g, bin_, at["JOINTS_0"]).astype(int)
             W = accessor(g, bin_, at["WEIGHTS_0"]).astype(float)
             parts[m["name"]] = (P, J, W)
+            if "indices" in pr:
+                faces[m["name"]] = accessor(g, bin_, pr["indices"]).reshape(-1, 3).astype(int)
         self.parts = parts
+        self.faces = faces
+        self.children = [[] for _ in joints]
+        for k, p in enumerate(par):
+            if p >= 0:
+                self.children[p].append(k)
 
     def fk(self, Rl, root_pos):
         """Rl (F,B,3,3) local rotations, root_pos (F,3) -> world rotations (F,B,3,3), heads (F,B,3)."""
@@ -703,6 +725,27 @@ def foot_lock(sk: Skeleton, Rl, root, fps, blend=4, cth=None):
     return Rl, rep
 
 
+def heel_strikes(sk, Rw, Hw, fps, rise=0.03, contact=0.012):
+    """Heel-strike times (clip seconds, sub-frame) from the skinned heel vertex of each shoe: the heel falls through
+    (planted height + `contact`) after having risen above (planted height + `rise`) in the swing. The same definition
+    is used by the film-side check (claudepop/film/lookdev/motion_prep.js), which samples the posed skeleton."""
+    fp = foot_points(sk)
+    T = track_points(sk, Rw, Hw, [fp["L"][0], fp["R"][0]])
+    out = []
+    for j, s in enumerate("LR"):
+        y = T[:, j, 1]
+        g = float(np.percentile(y, 5))
+        armed = False
+        for f in range(1, len(y)):
+            if y[f] > g + rise:
+                armed = True
+            if armed and y[f - 1] >= g + contact > y[f]:
+                a = (y[f - 1] - (g + contact)) / (y[f - 1] - y[f])
+                out.append(dict(foot=s, t=round((f - 1 + a) / fps, 4)))
+                armed = False
+    return sorted(out, key=lambda e: e["t"])
+
+
 def lowest_points(sk, Rw, Hw):
     """Per-frame lowest point of the skinned subject (shoes, trousers, skin, top, hair; subsampled)."""
     sub = []
@@ -793,8 +836,647 @@ def close_loop(sk, Rl, root, a, b):
     return Rl_c[:N], rt[:N], rt[N] - rt[0]
 
 
+# ------------------------------------------------------------------------------------------------ authored poses
+# Static keys authored from retargeted frames with FK + IK on the subject's own skeleton (film BIBLE 5.7 M1, M6):
+#   pose_sit_stool_upright        the sitter (S05): on the 0.60 m stool, pelvis near neutral, spine / neck / head from
+#                                 a real standing posture, hands resting on the knees (arm IK + palm orientation +
+#                                 forearm twist split + a baked finger curl), feet flat on the floor (leg IK)
+#   pose_sit_stool_face_in_hands  S35: the same seat, trunk flexed, head bowed into both hands (palms on the face),
+#                                 elbows resting on the thighs; the trunk flexion is solved so the elbows land there
+# Each is written as a 1-frame clip (all bones that differ from rest, fingers included: apply it WITHOUT the avatar.js
+# hands layer) with its stool placement (props.stool, clip space) and its checks (hand / seat penetration, feet).
+M_X = np.diag([-1.0, 1.0, 1.0])     # mirror across the sagittal plane (x -> -x)
+
+
+def load_built(sk, name):
+    """Local rotations (F,B,3,3) and root (F,3) of an already built clip (MOTION/<name>.bin)."""
+    man = json.loads((MOTION / "MANIFEST.json").read_text())
+    c = next(c for c in man["clips"] if c["name"] == name)
+    d = np.fromfile(MOTION / c["file"], dtype=np.float32).reshape(c["frames"], -1).astype(float)
+    idx = {n.replace(".", ""): k for k, n in enumerate(sk.names)}
+    Rl = np.tile(sk.rest_L[None], (len(d), 1, 1, 1))
+    for j, bn in enumerate(c["bones"]):
+        Rl[:, idx[bn]] = q2m(d[:, 3 + 4 * j:7 + 4 * j])
+    return Rl, d[:, :3].copy()
+
+
+def rot_avg(A, B, w=0.5):
+    return A @ rot_exp(w * rot_log(A.T @ B))
+
+
+def rot_pow(D, w):
+    return rot_exp(w * rot_log(D))
+
+
+class PoseEdit:
+    """One frame of the skeleton held as world rotations Rw (B,3,3) plus the root position; positions follow by FK."""
+
+    def __init__(self, sk, Rl, root):
+        self.sk = sk
+        self.root = np.asarray(root, float).copy()
+        self.set_locals(Rl)
+
+    def k(self, n):
+        return self.sk.ix[n]
+
+    def subtree(self, k):
+        out, st = [], [k]
+        while st:
+            i = st.pop()
+            out.append(i)
+            st.extend(self.sk.children[i])
+        return out
+
+    def Rl(self):
+        """Local rotations, re-orthonormalised (through unit quaternions) so repeated edits never drift."""
+        return q2m(m2q(self.sk.locals_(self.Rw[None])[0]))
+
+    def set_locals(self, Rl):
+        self.Rw = self.sk.fk(q2m(m2q(Rl))[None], self.root[None])[0][0]
+
+    def H(self):
+        _, H = self.sk.fk(self.Rl()[None], self.root[None])
+        return H[0]
+
+    def head(self, n):
+        return self.H()[self.k(n)]
+
+    def rotate(self, n, D, pivot=None, subtree=True):
+        """World rotation D applied to bone n (and its subtree): children follow; the root pivots about `pivot`."""
+        k = self.k(n) if isinstance(n, str) else n
+        D = q2m(m2q(D))
+        for i in (self.subtree(k) if subtree else [k]):
+            self.Rw[i] = D @ self.Rw[i]
+        if k == 0:
+            p = self.root if pivot is None else np.asarray(pivot, float)
+            self.root = p + D @ (self.root - p)
+
+    def delta(self, n):
+        k = self.k(n)
+        return self.Rw[k] @ self.sk.R[k].T
+
+    def set_delta(self, n, D, follow=True):
+        """Bone n gets the world rotation D @ rest; its subtree follows rigidly (face bones stay on the head, fingers
+        on the hand) unless follow=False (then the children keep their world rotations)."""
+        k = self.k(n)
+        new = q2m(m2q(D @ self.sk.R[k]))
+        if follow:
+            self.rotate(k, new @ self.Rw[k].T)
+        else:
+            self.Rw[k] = new
+
+    def skin(self, part):
+        P, J, W = self.sk.parts[part]
+        Rl = self.Rl()
+        Rw, Hw = self.sk.fk(Rl[None], self.root[None])
+        return self.sk.skin(Rw, Hw, P, J, W)[0]
+
+
+def mirror_bone(n):
+    return n[:-2] + (".R" if n.endswith(".L") else ".L")
+
+
+def symmetrize(pe, names_L, keep=0.0):
+    """Make left / right world deltas mirror images (their average); `keep` re-adds that fraction of the asymmetry."""
+    for n in names_L:
+        if n not in pe.sk.ix:
+            continue
+        DL, DR = pe.delta(n), pe.delta(mirror_bone(n))
+        Dm = rot_avg(DL, M_X @ DR @ M_X)
+        if keep:
+            Dm = rot_avg(Dm, DL, keep)
+        pe.set_delta(n, Dm)
+        pe.set_delta(mirror_bone(n), M_X @ Dm @ M_X)
+
+
+def pitch_only(D, keep=0.0):
+    """The sagittal (x-axis) part of a world rotation; `keep` of the rest of it."""
+    rv = rot_log(D[None])[0]
+    return rot_exp(np.array([rv[0], keep * rv[1], keep * rv[2]]))
+
+
+LEG = ["upperleg01", "upperleg02", "lowerleg01", "lowerleg02", "foot"] + [f"toe{t}-{k}" for t in range(1, 6) for k in range(1, 4)]
+ARM = ["clavicle", "shoulder01", "upperarm01", "upperarm02", "lowerarm01", "lowerarm02", "wrist"]
+SPINE = ["spine05", "spine04", "spine03", "spine02", "spine01", "neck01", "neck02", "neck03", "head"]
+
+
+def hand_rest_frame(sk, s):
+    """Rest hand frame of side s: wrist head, direction wrist -> knuckles, palm normal (same handedness rule as
+    avatar.js: left along x across, right across x along), and the palm surface point under the metacarpals."""
+    ix = sk.ix
+    wp = sk.H[ix[f"wrist.{s}"]]
+    idx, pky = sk.H[ix[f"finger2-1.{s}"]], sk.H[ix[f"finger5-1.{s}"]]
+    across = (idx - pky) / np.linalg.norm(idx - pky)
+    along = (idx + pky) / 2 - wp
+    along /= np.linalg.norm(along)
+    palm = np.cross(along, across) if s == "L" else np.cross(across, along)
+    palm /= np.linalg.norm(palm)
+    along = along - palm * float(along @ palm)
+    along /= np.linalg.norm(along)
+    knuckles = (sk.H[ix[f"finger3-1.{s}"]] + sk.H[ix[f"finger4-1.{s}"]]) / 2
+    centre = wp + 0.62 * (knuckles - wp) + palm * 0.012
+    return wp, along, palm, centre
+
+
+def frame_rot(a0, b0, a1, b1):
+    """Rotation taking the orthonormal pair (a0, b0) onto (a1, b1)."""
+    def basis(a, b):
+        a = a / np.linalg.norm(a)
+        b = b - a * float(a @ b)
+        b /= np.linalg.norm(b)
+        return np.stack([a, b, np.cross(a, b)], 1)
+    return basis(a1, b1) @ basis(a0, b0).T
+
+
+def finger_curl(sk, Rl, s, curl, thumb=None):
+    """Bake the avatar.js relaxed finger curl into local rotations (same axes and per-phalanx angles)."""
+    ix = sk.ix
+    wp = sk.H[ix[f"wrist.{s}"]]
+    idx, pky = sk.H[ix[f"finger2-1.{s}"]], sk.H[ix[f"finger5-1.{s}"]]
+    across = (idx - pky) / np.linalg.norm(idx - pky)
+    along = (idx + pky) / 2 - wp
+    along /= np.linalg.norm(along)
+    palm = np.cross(along, across) if s == "L" else np.cross(across, along)
+    palm /= np.linalg.norm(palm)
+    for f in range(1, 6):
+        for kk in range(1, 4):
+            n = f"finger{f}-{kk}.{s}"
+            if n not in ix:
+                continue
+            i = ix[n]
+            ch = [c for c in sk.children[i]]
+            tail = sk.H[ch[0]] if ch else sk.H[i] + sk.R[i][:, 1] * 0.02
+            d = (tail - sk.H[i]) / np.linalg.norm(tail - sk.H[i])
+            axw = np.cross(d, palm)
+            axw /= np.linalg.norm(axw)
+            axl = sk.R[i].T @ axw
+            deg = [10, 12, 10][kk - 1] if f == 1 else [18, 26, 14][kk - 1] * (1 + 0.12 * (f - 2))
+            c = (thumb if thumb is not None else curl) if f == 1 else (curl[f - 2] if isinstance(curl, (list, tuple)) else curl)
+            Rl[i] = sk.rest_L[i] @ axis_angle(axl, np.radians(deg * c))
+    return Rl
+
+
+def signed_depth(points, verts, faces):
+    """Signed distance of points to a skinned surface (negative = inside, by the closest face's normal)."""
+    import trimesh
+    m = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+    cp, dist, tri = trimesh.proximity.closest_point(m, points)
+    sgn = np.sign(np.einsum("ij,ij->i", points - cp, m.face_normals[tri]))
+    return dist * np.where(sgn == 0, 1, sgn)
+
+
+def part_verts_of_bones(sk, part, bone_names, wmin=0.5):
+    P, J, W = sk.parts[part]
+    ks = [sk.ix[n] for n in bone_names if n in sk.ix]
+    w = sum((W * (J == k)).sum(1) for k in ks)
+    return np.nonzero(w >= wmin)[0]
+
+
+def hand_bones(sk, s):
+    return [n for n in sk.names if n.endswith("." + s) and (n.startswith("finger") or n.startswith("metacarpal") or n.startswith("wrist"))]
+
+
+def arm_ik(pe, s, target, pole):
+    """Two-bone IK of the arm of side s (shoulder joint -> elbow -> wrist head onto `target`)."""
+    A, B, C = pe.head(f"upperarm01.{s}"), pe.head(f"lowerarm01.{s}"), pe.head(f"wrist.{s}")
+    R1, R2 = two_bone_ik(A[None], B[None], C[None], np.asarray(target, float)[None], np.asarray(pole, float)[None])
+    pe.rotate(f"upperarm01.{s}", R1[0])
+    pe.rotate(f"lowerarm01.{s}", R2[0])
+
+
+def leg_ik(pe, s, target, pole):
+    A, B, C = pe.head(f"upperleg01.{s}"), pe.head(f"lowerleg01.{s}"), pe.head(f"foot.{s}")
+    R1, R2 = two_bone_ik(A[None], B[None], C[None], np.asarray(target, float)[None], np.asarray(pole, float)[None])
+    pe.rotate(f"upperleg01.{s}", R1[0])
+    pe.rotate(f"lowerleg01.{s}", R2[0])
+
+
+def orient_hand(pe, s, along_t, palm_t):
+    """Turn the hand (and fingers) so its rest direction / palm normal map onto along_t / palm_t, then split the
+    forearm twist 1/3 : 2/3 over lowerarm01 / 02 like the retarget (no candy-wrapper at the wrist)."""
+    sk = pe.sk
+    wp, along, palm, _ = hand_rest_frame(sk, s)
+    Rt = frame_rot(along, palm, along_t, palm_t)
+    kw = pe.k(f"wrist.{s}")
+    D = (Rt @ sk.R[kw]) @ pe.Rw[kw].T
+    pe.rotate(f"wrist.{s}", D)
+    a, b = pe.k(f"lowerarm01.{s}"), pe.k(f"lowerarm02.{s}")
+    rig = pe.Rw[b] @ sk.rest_L[kw]
+    Dw = pe.Rw[kw] @ rig.T
+    tau = swing_twist_angle(Dw[None], pe.Rw[b][:, 1][None])[0]
+    pe.Rw[a] = axis_angle(pe.Rw[a][:, 1], tau / 3) @ pe.Rw[a]
+    pe.Rw[b] = axis_angle(pe.Rw[b][:, 1], 2 * tau / 3) @ pe.Rw[b]
+    return float(np.degrees(tau))
+
+
+def seat_profile(pe, seat_y, centre_xz, radius):
+    """Trouser (and top hem) vertices over the seat disk: lowest point and penetration below the seat plane."""
+    X = pe.skin("trousers")
+    d = np.hypot(X[:, 0] - centre_xz[0], X[:, 2] - centre_xz[1])
+    m = d < radius
+    return X, m
+
+
+def feet_report(pe):
+    fp = foot_points(pe.sk)
+    Rl = pe.Rl()
+    Rw, Hw = pe.sk.fk(Rl[None], pe.root[None])
+    T = track_points(pe.sk, Rw, Hw, [fp["L"][0], fp["L"][1], fp["R"][0], fp["R"][1]])[0]
+    S = pe.skin("shoes")
+    return dict(heel_L_cm=round(T[0, 1] * 100, 2), ball_L_cm=round(T[1, 1] * 100, 2), heel_R_cm=round(T[2, 1] * 100, 2),
+                ball_R_cm=round(T[3, 1] * 100, 2), shoe_lowest_cm=round(float(S[:, 1].min()) * 100, 2))
+
+
+def stand_upper(sk):
+    """Upper-body world deltas of a real standing posture (stand_breathe_loop frame 0, facing +Z), symmetrised."""
+    Rl, root = load_built(sk, "stand_breathe_loop")
+    ps = PoseEdit(sk, Rl[0], root[0])
+    fwd = forward_of(sk, ps.H()[None])[0]
+    ps.rotate(0, rot_y(-np.arctan2(fwd[0], fwd[2])), pivot=ps.root)
+    ps.set_delta("root", pitch_only(ps.delta("root")))
+    for n in SPINE:
+        ps.set_delta(n, pitch_only(ps.delta(n)))
+    symmetrize(ps, [f"{b}.L" for b in ARM])
+    return ps
+
+
+def seated_base(sk, spec):
+    """Seated frame of sit_stool_head_bowed, facing +Z, hips centred at x = z = 0, root and legs symmetric, the
+    pelvis tilt set to `pelvis_tilt` of the capture's posterior tilt relative to standing."""
+    Rl, root = load_built(sk, spec.get("src", "sit_stool_head_bowed"))
+    f = int(round(spec["t"] * FPS))
+    pe = PoseEdit(sk, Rl[f], root[f])
+    fwd = forward_of(sk, pe.H()[None])[0]
+    pe.rotate(0, rot_y(-np.arctan2(fwd[0], fwd[2])), pivot=pe.root)
+    hc = (pe.head("upperleg01.L") + pe.head("upperleg01.R")) / 2
+    pe.root -= np.array([hc[0], 0, hc[2]])
+    ps = stand_upper(sk)
+    # root: sagittal part only; pelvis tilt as a fraction of the capture's posterior tilt (pivot: the hip axis)
+    hc = (pe.head("upperleg01.L") + pe.head("upperleg01.R")) / 2
+    D_seat = pitch_only(pe.delta("root"))
+    D_stand = ps.delta("root")
+    D_target = rot_pow(D_seat @ D_stand.T, spec.get("pelvis_tilt", 0.5)) @ D_stand
+    Dfix = D_target @ pe.delta("root").T
+    for n in ("root", "pelvis.L", "pelvis.R"):
+        pe.rotate(n, Dfix, pivot=hc, subtree=False)
+    symmetrize(pe, [f"{b}.L" for b in LEG], keep=spec.get("leg_asym", 0.0))
+    return pe, ps, D_target @ D_stand.T
+
+
+def upright_upper(pe, ps, D_pel, lean_deg=0.0, lumbar=(0.55, 0.3, 0.1)):
+    """Spine / neck / head from the standing posture; the remaining pelvis tilt is taken out over the lumbar bones so
+    the chest is as upright as standing; then an optional forward lean of the whole upper body."""
+    for n in SPINE:
+        pe.set_delta(n, ps.delta(n))
+    for n, w in zip(("spine05", "spine04", "spine03"), lumbar):
+        pe.set_delta(n, rot_pow(D_pel, w) @ ps.delta(n))
+    for s in "LR":
+        for b in ARM:
+            pe.set_delta(f"{b}.{s}", ps.delta(f"{b}.{s}"))
+    # hands and fingers follow the wrist (rest locals)
+    Rl = pe.Rl()
+    for s in "LR":
+        for n in hand_bones(pe.sk, s):
+            if not n.startswith("wrist"):
+                Rl[pe.k(n)] = pe.sk.rest_L[pe.k(n)]
+    pe.set_locals(Rl)
+    if lean_deg:
+        pe.rotate("spine05", axis_angle(np.array([1.0, 0, 0]), np.radians(lean_deg)))
+
+
+def settle_seat_and_feet(pe, spec, iters=3):
+    """Root height so the buttocks rest on the seat; leg IK so the feet stand flat on the floor under the knees."""
+    sk = pe.sk
+    seat_y, R = spec.get("seat_y", 0.60), 0.165
+    for _ in range(iters):
+        hc = (pe.head("upperleg01.L") + pe.head("upperleg01.R")) / 2
+        X = pe.skin("trousers")
+        m = (np.abs(X[:, 0]) < 0.17) & (X[:, 2] > hc[2] - 0.16) & (X[:, 2] < hc[2] + 0.05)
+        low = float(X[m, 1].min())
+        pe.root[1] += seat_y - spec.get("sink", 0.004) - low
+        for s, sg in (("L", 1), ("R", -1)):
+            hip = pe.head(f"upperleg01.{s}")
+            L1 = np.linalg.norm(pe.head(f"lowerleg01.{s}") - hip)
+            L2 = np.linalg.norm(pe.head(f"foot.{s}") - pe.head(f"lowerleg01.{s}"))
+            ya = sk.H[sk.ix[f"foot.{s}"]][1] + spec.get("ankle_lift", 0.0) + pe.__dict__.setdefault("_sole", {"L": 0.0, "R": 0.0})[s]
+            xa = sg * spec.get("ankle_x", 0.16)
+            # shin leaning forward by shin_deg: knee above/behind the ankle
+            sh = np.radians(spec.get("shin_deg", 4.0))
+            ky = ya + L2 * np.cos(sh)
+            kx = sg * spec.get("knee_x", 0.15)
+            dz = np.sqrt(max(L1 ** 2 - (ky - hip[1]) ** 2 - (kx - hip[0]) ** 2, 1e-6))
+            kz = hip[2] + dz
+            za = kz + L2 * np.sin(sh)
+            leg_ik(pe, s, [xa, ya, za], [kx - (hip[0] + xa) / 2, 0.0, 1.0])
+            toe_out = np.radians(spec.get("toe_out_deg", 7.0)) * sg
+            for n in ["foot"] + [f"toe{t}-{k}" for t in range(1, 6) for k in range(1, 4)]:
+                if f"{n}.{s}" in sk.ix:
+                    pe.set_delta(f"{n}.{s}", rot_y(toe_out))
+        S = pe.skin("shoes")
+        P0 = sk.parts["shoes"][0]
+        for s, sg in (("L", 1), ("R", -1)):     # the lowest sole vertex of each shoe onto the floor
+            pe._sole[s] -= float(S[P0[:, 0] * sg > 0, 1].min())
+    return low
+
+
+def author_sit_stool_upright(sk, spec):
+    pe, ps, D_pel = seated_base(sk, spec)
+    upright_upper(pe, ps, D_pel, lean_deg=spec.get("lean_deg", 2.0))
+    settle_seat_and_feet(pe, spec)
+    # hands on the thighs: the palm on the top of the thigh at hand_u of hip -> knee, fingers along the thigh (turned a
+    # little inward), the pinky side a little lower; solved on the left and mirrored (the coarse trouser mesh is not
+    # symmetric); the height is iterated until the palms rest on the cloth (max penetration 0.5-5 mm, both hands)
+    Ft = sk.faces["trousers"]
+    Xt = pe.skin("trousers")
+    hip, knee = pe.head("upperleg01.L"), pe.head("lowerleg01.L")
+    p = hip + spec.get("hand_u", 0.6) * (knee - hip)
+    top = surface_below(Xt, Ft, p)
+    dth = (knee - hip) / np.linalg.norm(knee - hip)
+    up = np.array([0.0, 1, 0])
+    n_surf = up - dth * float(up @ dth)
+    n_surf /= np.linalg.norm(n_surf)
+    frames = {}
+    for s, sg in (("L", 1), ("R", -1)):
+        M = np.diag([sg, 1.0, 1.0])
+        along_t = rot_y(np.radians(spec.get("hand_yaw_in_deg", 14.0)) * (-sg)) @ (M @ dth)
+        palm_t = axis_angle(along_t, np.radians(spec.get("hand_roll_deg", 8.0)) * sg) @ (-(M @ n_surf))
+        frames[s] = (M @ top, M @ n_surf, along_t, palm_t)
+    off, rep = {"L": 0.0, "R": 0.0}, {}
+    hb = {s: part_verts_of_bones(sk, "skin", hand_bones(sk, s), 0.5) for s in "LR"}
+    for it in range(8):
+        taus, targets = {}, {}
+        for s, sg in (("L", 1), ("R", -1)):
+            tp, ns, along_t, palm_t = frames[s]
+            wp, along, palm, centre = hand_rest_frame(sk, s)
+            Rt = frame_rot(along, palm, along_t, palm_t)
+            targets[s] = tp + ns * off[s] - Rt @ (centre - wp)
+            arm_ik(pe, s, targets[s], [sg * spec.get("elbow_out", 0.55), -0.3, -1.0])
+            taus[s] = orient_hand(pe, s, along_t, palm_t)
+            Rl = pe.Rl()
+            finger_curl(sk, Rl, s, spec.get("curl", [0.42, 0.46, 0.52, 0.58]), thumb=spec.get("thumb", 0.25))
+            pe.set_locals(Rl)
+        Xs, Xt = pe.skin("skin"), pe.skin("trousers")
+        dd = {s: signed_depth(Xs[hb[s]], Xt, Ft) for s in "LR"}
+        done = True
+        for s in "LR":          # per-hand height (the cloth differs by a few mm left / right)
+            dmin = float(dd[s].min())
+            pen = max(0.0, -dmin)
+            if not 0.0005 <= pen <= 0.005:
+                done = False
+                off[s] += (pen - 0.0025) if dmin < 0 else -(dmin + 0.0025)
+        if done:
+            break
+    for s in "LR":
+        el = pe.head(f"lowerarm01.{s}")
+        u_, v_ = pe.head(f"upperarm01.{s}") - el, pe.head(f"wrist.{s}") - el
+        rep[s] = dict(max_penetration_mm=round(max(0.0, -float(dd[s].min())) * 1000, 1), verts_inside=int((dd[s] < 0).sum()),
+                      min_gap_mm=round(max(0.0, float(dd[s].min())) * 1000, 1), height_offset_mm=round(off[s] * 1000, 1),
+                      forearm_twist_deg=round(taus[s], 1), iters=it + 1,
+                      wrist_reach_error_mm=round(float(np.linalg.norm(pe.head(f"wrist.{s}") - targets[s])) * 1000, 1),
+                      elbow_deg=round(float(np.degrees(np.arccos(np.clip(u_ @ v_ / np.linalg.norm(u_) / np.linalg.norm(v_), -1, 1)))), 1))
+    return pe, dict(hands=rep)
+
+
+def surface_below(X, F, p, h=0.3):
+    """The highest point of a skinned surface straight below p + (0, h, 0) (ray cast)."""
+    import trimesh
+    m = trimesh.Trimesh(vertices=X, faces=F, process=False)
+    loc, _, _ = m.ray.intersects_location([p + np.array([0.0, h, 0.0])], [[0.0, -1.0, 0.0]])
+    if not len(loc):
+        raise RuntimeError("no surface below %s" % p)
+    return loc[np.argmax(loc[:, 1])]
+
+
+def author_sit_stool_face_in_hands(sk, spec):
+    pe0, ps, D_pel = seated_base(sk, spec)
+
+    def flexed(trunk, neck):
+        pe = PoseEdit(sk, pe0.Rl(), pe0.root)
+        upright_upper(pe, ps, D_pel, lean_deg=0.0)
+        for n, w in zip(("spine05", "spine04", "spine03", "spine02", "spine01"), spec.get("trunk_w", (0.26, 0.24, 0.2, 0.15, 0.15))):
+            pe.rotate(n, axis_angle(np.array([1.0, 0, 0]), np.radians(trunk * w)))
+        for n, w in zip(("neck01", "neck02", "neck03", "head"), (0.3, 0.25, 0.2, 0.25)):
+            pe.rotate(n, axis_angle(np.array([1.0, 0, 0]), np.radians(neck * w)))
+        return pe
+
+    # 2D search: trunk flexion x neck flexion so the elbows rest on the thighs with the least neck bend
+    best = None
+    for trunk in spec.get("trunk_search", np.arange(40.0, 92.0, 4.0)):
+        for neck in spec.get("neck_search", np.arange(6.0, 34.0, 6.0)):
+            pe = flexed(trunk, neck)
+            settle_seat_and_feet(pe, spec, iters=1)
+            res = place_face_hands(pe, spec, check=False)
+            c = res["cost"] + spec.get("neck_cost", 0.003) * neck
+            if best is None or c < best[0]:
+                best = (c, trunk, neck)
+    _, trunk, neck = best
+    pe = flexed(trunk, neck)
+    settle_seat_and_feet(pe, spec)
+    res = place_face_hands(pe, spec, check=True)
+    res.update(trunk_flexion_deg=float(trunk), neck_flexion_deg=float(neck))
+    return pe, res
+
+
+def place_face_hands(pe, spec, check=True):
+    """Hands over the face: palms on the cheeks (fingers up over the brows toward the forehead), elbows toward the
+    thighs. Returns the elbow-to-thigh residual as `cost` (the trunk search minimises it)."""
+    sk = pe.sk
+    ixh = pe.k("head")
+    Rh = pe.Rw[ixh] @ sk.R[ixh].T          # head world delta
+    fwd, upv = Rh @ np.array([0.0, 0, 1]), Rh @ np.array([0.0, 1, 0])
+    eyes = {s: pe.head(f"eye.{s}") for s in "LR"}
+    Xs_all = pe.skin("skin")
+    face = part_verts_of_bones(sk, "skin", ["head", "jaw"] + [n for n in sk.names if n.startswith(("orbicularis", "oris", "levator", "risorius", "oculi", "special0", "temporalis"))], 0.5)
+    Xf = Xs_all[face]
+    Xt = pe.skin("trousers")
+    cost, rep = 0.0, {}
+    for s, sg in (("L", 1), ("R", -1)):
+        e = eyes[s]
+        lat = Rh @ np.array([sg * 1.0, 0, 0])
+        # cheek point: below and outside the eye; the face surface there (the most forward face vertex near the ray)
+        c0 = e + lat * spec.get("cheek_out", 0.012) - upv * spec.get("cheek_down", 0.035)
+        rel = Xf - c0
+        perp = rel - np.outer(rel @ fwd, fwd)
+        near = np.linalg.norm(perp, axis=1) < 0.012
+        surf = Xf[near][np.argmax((Xf[near] - c0) @ fwd)] if near.any() else c0
+        along_t = rot_y(0) @ (upv * np.cos(np.radians(spec.get("finger_in_deg", 12.0))) - lat * np.sin(np.radians(spec.get("finger_in_deg", 12.0))))
+        palm_t = -(fwd * np.cos(np.radians(spec.get("palm_out_deg", 25.0))) - lat * np.sin(np.radians(spec.get("palm_out_deg", 25.0))))
+        palm_t = palm_t - along_t * float(palm_t @ along_t)
+        palm_t /= np.linalg.norm(palm_t)
+        # elbow pole: down toward the knee of the same side
+        knee = pe.head(f"lowerleg01.{s}")
+        off = 0.004
+        hb = part_verts_of_bones(sk, "skin", hand_bones(sk, s), 0.5)
+        for it in range(6 if check else 1):
+            wp, along, palm, centre = hand_rest_frame(sk, s)
+            Rt = frame_rot(along, palm, along_t, palm_t)
+            target = surf - palm_t * off - Rt @ (centre - wp)
+            sh = pe.head(f"upperarm01.{s}")
+            pole = knee + np.array([sg * spec.get("elbow_x", 0.0), 0, -0.06]) - (sh + target) / 2
+            arm_ik(pe, s, target, pole)
+            tau = orient_hand(pe, s, along_t, palm_t)
+            Rl = pe.Rl()
+            finger_curl(sk, Rl, s, spec.get("curl", [0.18, 0.2, 0.24, 0.28]), thumb=spec.get("thumb", 0.1))
+            pe.set_locals(Rl)
+            if not check:
+                break
+            Xs = pe.skin("skin")
+            # hand vs face: nearest face vertex, signed along the face's forward direction (negative = inside)
+            H_ = Xs[hb]
+            from scipy.spatial import cKDTree
+            Xf = Xs[face]
+            tr = cKDTree(Xf)
+            dist, j = tr.query(H_)
+            sgn = np.einsum("ij,j->i", H_ - Xf[j], fwd)
+            pen = float(max(0.0, -(sgn[dist < 0.02]).min())) if (dist < 0.02).any() else 0.0
+            gap = float(dist.min())
+            if pen <= 0.006 and gap <= 0.004:
+                break
+            off += (pen - 0.003) if pen > 0.006 else -(gap - 0.002)
+        el = pe.head(f"lowerarm01.{s}")
+        # the thigh as a tapered cylinder along hip -> knee: its top under the elbow, and the elbow's lateral offset
+        hip = pe.head(f"upperleg01.{s}")
+        ax = knee - hip
+        u = float(np.clip((el - hip) @ ax / (ax @ ax), 0.0, 1.0))
+        a = hip + u * ax
+        top = a[1] + (0.082 - 0.022 * u)
+        r_el = spec.get("elbow_radius", 0.042)
+        reach = float(np.linalg.norm(pe.head(f"wrist.{s}") - target))
+        cost += abs(el[1] - (top + r_el)) + max(0.0, abs(el[0] - a[0]) - 0.035) \
+            + 0.5 * max(0.0, el[2] - (knee[2] + 0.02)) + 0.5 * max(0.0, (knee[2] - 0.16) - el[2]) + 5 * reach
+        rep[s] = dict(elbow=el.round(3).tolist(), thigh_top=round(float(top), 3), elbow_above_thigh_cm=round((el[1] - top) * 100, 1),
+                      wrist_reach_error_mm=round(reach * 1000, 1), forearm_twist_deg=round(tau, 1))
+        if check:
+            rep[s].update(hand_face_penetration_mm=round(pen * 1000, 1), hand_face_gap_mm=round(gap * 1000, 1))
+    return dict(cost=float(cost), hands=rep)
+
+
+POSES = {
+    "sit_stool_upright": author_sit_stool_upright,
+    "sit_stool_face_in_hands": author_sit_stool_face_in_hands,
+}
+
+
+def build_pose(sk, c, titles):
+    t_start = time.time()
+    spec = c["pose"]
+    pe, rep = POSES[spec["kind"]](sk, spec)
+    Rl = pe.Rl()
+    root = pe.root
+    hc = (pe.head("upperleg01.L") + pe.head("upperleg01.R")) / 2
+    # stool: under the buttocks, pushed back until the seat's front edge cuts the thighs by <= seat_cut (soft tissue)
+    seat_y, R = spec.get("seat_y", 0.60), 0.165
+    X = pe.skin("trousers")
+    best = None
+    for zc in np.arange(hc[2] + 0.04, hc[2] - 0.12, -0.005):
+        m = np.hypot(X[:, 0], X[:, 2] - zc) < R
+        cut = float(max(0.0, seat_y - X[m, 1].min())) if m.any() else 0.0
+        low_inside = float(np.hypot(0, X[m, 2][np.argmin(X[m, 1])] - zc)) if m.any() else 1.0
+        if best is None or (cut <= spec.get("seat_cut", 0.012) and best[1] > spec.get("seat_cut", 0.012)):
+            best = (zc, cut, low_inside)
+        if cut <= spec.get("seat_cut", 0.012):
+            best = (zc, cut, low_inside)
+            break
+    zc, cut, _ = best
+    m = np.hypot(X[:, 0], X[:, 2] - zc) < R
+    buttock_gap = float(X[m, 1].min() - seat_y)
+    feet = feet_report(pe)
+    Rw, Hw = sk.fk(Rl[None], root[None])
+    low = float(lowest_points(sk, Rw, Hw)[0])
+    anim = [k for k in range(len(sk.names)) if k == 0 or
+            np.degrees(np.arccos(np.clip((np.trace(sk.rest_L[k].T @ Rl[k]) - 1) / 2, -1, 1))) > 0.01]
+    Q = m2q(Rl[anim])
+    data = np.concatenate([root, Q.reshape(-1)])[None].astype(np.float32)
+    MOTION.mkdir(parents=True, exist_ok=True)
+    (MOTION / f"{c['name']}.bin").write_bytes(data.tobytes())
+    src = c["pose"].get("src", "sit_stool_head_bowed")
+    info = dict(
+        name=c["name"], file=f"{c['name']}.bin", category=c["cat"], shows=c["shows"], frames=1, fps=FPS,
+        seconds=round(1 / FPS, 4), loop=False, loop_info=None, bones=[sk.names[k].replace(".", "") for k in anim],
+        root_motion=dict(path_m=0.0, net_m=0.0, turn_deg=0.0, mean_speed_mps=0.0),
+        source=dict(authored_from=src, frame_s=spec["t"], method="motion_lib.py POSES['%s']" % spec["kind"]),
+        props=dict(stool=dict(x=0.0, z=round(float(zc), 4), seat_y=seat_y, seat_d=0.33,
+                              note="clip space (before any place / yaw): seat centre under the buttocks")),
+        apply_note="fingers are baked into the pose: apply without the avatar.js hands layer",
+        checks=dict(lowest_point_m=round(low, 4), feet=feet, seat=dict(front_edge_cut_cm=round(cut * 100, 2),
+                    buttock_gap_cm=round(buttock_gap * 100, 2)), **rep),
+        build_s=round(time.time() - t_start, 1),
+    )
+    return info
+
+
+# ------------------------------------------------------------------------------------------------ symmetric gait
+def mirror_partner(sk):
+    """Index of each bone's mirror (L <-> R), or itself for bones on the midline."""
+    out = []
+    for n in sk.names:
+        m = n[:-2] + (".R" if n.endswith(".L") else ".L") if n.endswith((".L", ".R")) else n
+        out.append(sk.ix.get(m, sk.ix[n]))
+    return np.array(out)
+
+
+def sample_frames(Rl, root, fr):
+    """Local rotations / root at fractional frame positions fr (slerp / lerp between neighbours)."""
+    f0 = np.floor(fr).astype(int)
+    a = fr - f0
+    f1 = np.minimum(f0 + 1, len(Rl) - 1)
+    D = np.swapaxes(Rl[f0], -1, -2) @ Rl[f1]
+    Rs = Rl[f0] @ rot_exp(a[:, None, None] * rot_log(D))
+    Ps = root[f0] + (root[f1] - root[f0]) * a[:, None]
+    return Rs, Ps
+
+
+def symmetric_cycle(sk, Rl, root, delta, keep="L"):
+    """A perfectly symmetric gait cycle: the half-cycle from a `keep` heel strike to the next opposite strike, then its
+    mirror image (left <-> right) for the second half. Both steps then last exactly half a cycle, so a uniform time
+    scale lands every heel strike on a beat grid, and both feet get the kept side's stance (heel planted). The seam
+    at the half junction is closed by a linear correction over the first half. Returns Rl, root, delta, info."""
+    N = len(Rl)
+    R3 = np.concatenate([Rl, Rl, Rl], 0)
+    P3 = np.concatenate([root, root + delta, root + 2 * delta], 0)
+    Rw3, Hw3 = sk.fk(R3, P3)
+    st = heel_strikes(sk, Rw3, Hw3, FPS)
+    other = "R" if keep == "L" else "L"
+    a = next(e["t"] for e in st if e["foot"] == keep and e["t"] >= N / FPS)
+    b = next(e["t"] for e in st if e["foot"] == other and e["t"] > a)
+    H = int(round((b - a) * FPS))
+    fr = a * FPS + (b - a) * FPS * np.arange(H + 1) / H          # H + 1 samples: a .. b inclusive
+    Rh, Ph = sample_frames(R3, P3, fr)
+    mp = mirror_partner(sk)
+
+    def mirror(Rloc, P):
+        Rw, _ = sk.fk(Rloc, P)
+        Dw = Rw @ np.swapaxes(sk.R, -1, -2)[None]
+        Dm = M_X[None, None] @ Dw[:, mp] @ M_X[None, None]
+        return sk.locals_(Dm @ sk.R[None])
+
+    xc = (Ph[0, 0] + Ph[H, 0]) / 2
+    # seam: the pose at b must equal the mirror of the pose at a -> correct the first half linearly
+    tgt = mirror(Rh[:1], Ph[:1])[0]
+    res = tgt @ np.swapaxes(Rh[H], -1, -2)
+    rv = rot_log(res)
+    w = np.arange(H + 1) / H
+    Rh = rot_exp(w[:, None, None] * rv[None]) @ Rh
+    Ph = Ph.copy()
+    Ph[:, 1] += w * (Ph[0, 1] - Ph[H, 1])
+    first_R, first_P = Rh[:H], Ph[:H]
+    sec_R = mirror(first_R, first_P)
+    sec_P = first_P.copy()
+    sec_P[:, 0] = 2 * xc - first_P[:, 0]
+    sec_P[:, 2] = first_P[:, 2] + (Ph[H, 2] - Ph[0, 2])
+    Rl2 = np.concatenate([first_R, sec_R], 0)
+    P2 = np.concatenate([first_P, sec_P], 0)
+    d_half = Ph[H] - Ph[0]
+    delta2 = np.array([0.0, 0.0, 2 * d_half[2]])
+    P2[:, [0, 2]] -= P2[0, [0, 2]]
+    return Rl2, P2, delta2, dict(kept=keep, half_frames=H, source_half_s=round(b - a, 4),
+                                 seam_residual_deg=round(float(np.degrees(np.linalg.norm(rv, axis=-1).max())), 2))
+
+
 # ------------------------------------------------------------------------------------------------ build
 def build_clip(sk, c, titles):
+    if c.get("pose"):
+        return build_pose(sk, c, titles)
     t_start = time.time()
     bvh = CMU / f"{c['cmu']}.bvh"
     r = retarget(sk, bvh, c["seg"][0], c["seg"][1])
@@ -844,6 +1526,10 @@ def build_clip(sk, c, titles):
         delta = Ry @ delta
         loop = dict(seam_distance=round(float(d), 4), src_frames=[int(a), int(b)], cycle_s=round((b - a) / FPS, 4),
                     cycle_root_delta=[round(float(delta[0]), 4), 0.0, round(float(delta[2]), 4)], cycle_yaw_delta=0.0)
+        if c.get("symmetric"):
+            Rl, root, delta, sym = symmetric_cycle(sk, Rl, root, delta, keep=c["symmetric"])
+            loop.update(cycle_s=round(len(Rl) / FPS, 4), symmetric=sym,
+                        cycle_root_delta=[round(float(delta[0]), 4), 0.0, round(float(delta[2]), 4)])
         N = len(Rl)
         Rl3 = np.concatenate([Rl, Rl, Rl], 0)
         root3 = np.concatenate([root, root + delta, root + 2 * delta], 0)
@@ -858,6 +1544,9 @@ def build_clip(sk, c, titles):
         P3 = np.concatenate([root, root + delta, root + 2 * delta], 0)
         Rw3, Hw3 = sk.fk(R3, P3)
         slide = sliding_stats(sk, Rw3, Hw3, FPS, cth)
+        # heel strikes of the middle copy, folded into one cycle
+        strikes = [dict(foot=e["foot"], t=round(e["t"] - N / FPS, 4)) for e in heel_strikes(sk, Rw3, Hw3, FPS)
+                   if N / FPS <= e["t"] < 2 * N / FPS] if c["cat"] in ("walk", "run") else None
     else:
         if c.get("footlock"):
             Rl, fl_rep = foot_lock_iter(sk, Rl, root, FPS, cth=cth)
@@ -865,6 +1554,7 @@ def build_clip(sk, c, titles):
             root = floor_contact(sk, Rl, root)
         Rw, Hw = sk.fk(Rl, root)
         slide = sliding_stats(sk, Rw, Hw, FPS, cth)
+        strikes = heel_strikes(sk, Rw, Hw, FPS) if c["cat"] in ("walk", "run") else None
     F = len(Rl)
     low = lowest_points(sk, Rw, Hw)
     # ---- animated bones (local differs from rest anywhere)
@@ -914,6 +1604,10 @@ def build_clip(sk, c, titles):
                     foot_slide=slide, foot_lock=fl_rep, source_twist_deg=tw, residual_local_twist_deg=seg_tw),
         build_s=round(time.time() - t_start, 1),
     )
+    if strikes is not None:
+        info["gait"] = dict(heel_strikes=strikes,
+                            note="clip seconds at speed 1 (loops: within one cycle); heel below planted height + 1.2 cm "
+                                 "after a swing above + 3 cm, from the skinned shoe heel vertex")
     if loop:
         info["loop_info"]["note"] = "chain cycles: cycle k starts at k * cycle_root_delta (heading unchanged)"
         # gait period: count ball contacts of one foot per cycle
@@ -921,7 +1615,11 @@ def build_clip(sk, c, titles):
         T = track_points(sk, Rw, Hw, [fp["L"][1]])[:, 0]
         n_steps = len([s for s in spans(contacts(T, FPS)) if s[1] - s[0] >= 2])
         info["loop_info"]["left_foot_contacts_per_cycle"] = n_steps
-        if n_steps:
+        if strikes:     # step period = cycle / heel strikes per cycle (both feet)
+            info["loop_info"]["step_period_s"] = round(F / FPS / len(strikes), 4)
+            info["loop_info"]["step_intervals_s"] = [round(b["t"] - a["t"], 4) for a, b in zip(strikes, strikes[1:] + [
+                dict(t=strikes[0]["t"] + F / FPS)])]
+        elif n_steps:
             info["loop_info"]["step_period_s"] = round(F / FPS / (2 * n_steps), 4)
     return info
 
@@ -933,7 +1631,7 @@ def main():
     a = ap.parse_args()
     if a.cmd == "list":
         for c in CLIPS:
-            print(f"{c['name']:28s} {c['cmu']:7s} {c['seg']}  {c['shows']}")
+            print(f"{c['name']:28s} {c.get('cmu', 'pose'):7s} {c.get('seg', c.get('pose', {}).get('src', ''))}  {c['shows']}")
         return
     fetch()
     if a.cmd == "fetch":
@@ -953,10 +1651,15 @@ def main():
             continue
         info = build_clip(sk, c, titles)
         ch = info["checks"]
-        print(f"{c['name']:28s} {info['seconds']:6.2f}s bones={len(info['bones']):3d} path={info['root_motion']['path_m']:5.2f}m "
-              f"low[{ch['lowest_point_m']['min']:+.3f},{ch['lowest_point_m']['max']:+.3f}] slide p90={ch['foot_slide']['p90_cm']}cm "
-              f"max={ch['foot_slide']['max_cm']}cm loop={info['loop_info']['cycle_s'] if info['loop'] else '-'}  ({info['build_s']}s)",
-              flush=True)
+        if c.get("pose"):
+            print(f"{c['name']:28s} pose bones={len(info['bones']):3d} {json.dumps({k: v for k, v in ch.items()})}  ({info['build_s']}s)",
+                  flush=True)
+        else:
+            print(f"{c['name']:28s} {info['seconds']:6.2f}s bones={len(info['bones']):3d} path={info['root_motion']['path_m']:5.2f}m "
+                  f"low[{ch['lowest_point_m']['min']:+.3f},{ch['lowest_point_m']['max']:+.3f}] slide p90={ch['foot_slide']['p90_cm']}cm "
+                  f"max={ch['foot_slide']['max_cm']}cm loop={info['loop_info']['cycle_s'] if info['loop'] else '-'}"
+                  f"{'  strikes=' + str([(e['foot'], e['t']) for e in info['gait']['heel_strikes']]) if info.get('gait') and info['loop'] else ''}"
+                  f"  ({info['build_s']}s)", flush=True)
         clips.append(info)
     man = dict(
         version=1, fps=FPS, generated="claudepop/avatar/tools/motion_lib.py",

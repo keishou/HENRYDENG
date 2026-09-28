@@ -28,10 +28,19 @@
 //   av.mix(pA, pB, w)               per-bone slerp / root lerp, w in [0, 1] (weight of pB)
 //   av.crossfade(pA, pB, t, t0, dur) mix with a smoothstep weight rising over [t0, t0 + dur]
 //   av.sequence(segments, place)    an edit of clips on the film timeline; returns { pose(T), segments, heading(T) }.
-//        segments: [{ clip, at, from = 0, speed = 1, fade = 0.6, loop, rootMotion }] sorted by `at` (film seconds).
+//        segments: [{ clip, at, from = 0, speed = 1, fade = 0.6, loop, rootMotion, yaw, turn }] sorted by `at` (film s).
 //        Segment i starts at film time `at` at clip time `from` and fades in over `fade` seconds from segment i-1
 //        (at most two segments overlap). Root motion chains: each segment is placed so its root position and heading
 //        at its `at` coincide with the previous segment's, so a walk -> stop -> look-up edit is one continuous body.
+//        yaw   (optional) absolute placement yaw of the segment's clip (radians; 0 = the clip's own +Z travel) instead
+//              of chaining the instantaneous pelvis heading (which swings in a walk); the root position still chains
+//        warp  (optional) { amp, period, anchor }: clip speed x (1 - amp cos(2 pi (T - anchor) / period)) - a walk
+//              settles into each footfall and swings through faster; anchor = a heel-strike film time, period = the
+//              step period on film; strike times are unchanged (amp < 1 keeps time monotonic)
+//        turn  (optional) { at, dur, deg, pivot: 'L' | 'R' | [x, z] }: a pivot turn inside the segment: from film time
+//              turn.at the segment rotates by deg (left = +) about the planted foot's ball (or a world point) with a C2
+//              ease over dur; the planted foot stays put while the body and the next steps swing to the new heading
+//   av.fkHead(pose, name)           world position [x, y, z] of a bone head for a pose (pure math, no skeleton write)
 //   av.placePose(pose, { x, z, yaw })   rigid ground-plane move of a pose, in place (returns it)
 //   av.heading(pose)                facing yaw (radians, 0 = +Z) of a pose (the pelvis: swings a few degrees in a walk)
 //   av.beatSpeed(name, bpm, beatsPerStep = 1)   speed factor that lands a loop clip's steps on a tempo grid
@@ -40,9 +49,13 @@
 //   Writing the skeleton:
 //   av.apply(pose, layers, t)       set every bone from the pose, then add procedural layers evaluated at time t:
 //        breath { amp = 1, period = 4.4, phase = 0 }          chest rise / shoulder lift, ~1.5 deg at amp 1
-//        look   { target: THREE.Vector3 (world), weight = 1, eyes = true, maxDeg = 70 }  head + neck + eyes aim
+//        look   { target: THREE.Vector3 | [x,y,z] (world), weight = 1, eyes = true, maxDeg = 70, eyesMax = 22 }
+//                                                             head + neck aim (<= maxDeg) and eyes (<= eyesMax <= 22)
 //        noise  { amp = 1, seed = 0 }                         seeded smooth micro-motion (spine, neck, head, arms)
-//        hands  { curl = 0.55 }                               relaxed finger curl (mocap has no fingers)
+//        hands  { curl = 0.55 }                               relaxed finger curl (mocap has no fingers); leave it off
+//                                                             for the authored pose_* clips (their fingers are baked)
+//        lids   { close = 1, left = 1, right = 1 }            eyelids via the rig's lid bones (orbicularis03 upper,
+//                                                             orbicularis04 lower); close 0 = open (photo), 1 = shut
 //        Returns this. The root group's own transform (av.root.position / rotation) places the avatar in the scene.
 //
 //   Looks (material swaps, reversible):
@@ -62,6 +75,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const strip = n => n.replace(/[.:\/\[\]]/g, '');
+// eyelid travel at close = 1 (degrees about the head's horizontal axis through the eye centre); see the lids layer
+const LID_UPPER_DEG = 30, LID_LOWER_DEG = 6;
 const smoothstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 // ------------------------------------------------------------------------------------------------ quaternion math
@@ -137,6 +152,9 @@ export class Avatar {
     this.restQ = new Float32Array(4 * this.B);
     this.bones.forEach((b, i) => b.quaternion.toArray(this.restQ, 4 * i));
     this.restRoot = this.rootBone.position.toArray();
+    // pure FK tables: parent index and rest local translation per bone (skeleton order is parent-first)
+    this.parentIdx = this.bones.map(b => (b.parent && b.parent.isBone ? this.index[b.parent.name] : -1));
+    this.restPos = this.bones.map(b => b.position.toArray());
     // rest world frames (for bone-local axes of the procedural layers and the facing direction)
     gltf.scene.updateMatrixWorld(true);
     this.restWorldQ = this.bones.map(b => b.getWorldQuaternion(new THREE.Quaternion()).toArray());
@@ -186,6 +204,57 @@ export class Avatar {
     this._head = need('head');
     this._eyes = [need('eye.L'), need('eye.R')];
     this._fwdLocal = i => qrot(qconj(this.restWorldQ[i]), [0, 0, 1]);
+    // eyelids: the upper lid (orbicularis03) and lower lid (orbicularis04) bones pivot at the eye centre; closing
+    // turns the upper lid down and the lower lid up about the head's horizontal axis (angles set by the M3 test,
+    // film/lookdev/motion_prep.mjs lids: the lids meet a little below the iris centre, as in a relaxed closed eye)
+    this._lids = ['L', 'R'].map(s => ({
+      upper: [need('orbicularis03.' + s), this._restAxis(need('orbicularis03.' + s), [1, 0, 0])],
+      lower: [need('orbicularis04.' + s), this._restAxis(need('orbicularis04.' + s), [1, 0, 0])],
+    }));
+    this._fixLidWeights();
+  }
+
+  // The lid bones also carry weight on the fringe strands, brows and eyeballs (nearest-vertex weight transfer when
+  // those parts were built), so a closing lid would drag fringe tips down. Those parts never deform with the lids:
+  // their lid-bone weight is moved to the vertex's strongest other bone. Nothing changes while the lids are at rest.
+  _fixLidWeights() {
+    const lid = new Set(['orbicularis03L', 'orbicularis03R', 'orbicularis04L', 'orbicularis04R'].map(n => this.index[n]));
+    for (const [name, mesh] of Object.entries(this.meshes)) {
+      if (name === 'skin') continue;
+      const SI = mesh.geometry.attributes.skinIndex, SW = mesh.geometry.attributes.skinWeight;
+      let changed = false;
+      for (let v = 0; v < SI.count; v++) {
+        let moved = 0, best = -1, bw = -1;
+        for (let k = 0; k < 4; k++) {
+          const b = SI.getComponent(v, k), w = SW.getComponent(v, k);
+          if (lid.has(b) && w > 0) { moved += w; SW.setComponent(v, k, 0); }
+          else if (w > bw) { bw = w; best = k; }
+        }
+        if (moved > 0) {
+          if (best < 0 || bw <= 0) {   // only lid weights: bind to the head
+            SI.setComponent(v, 0, this._head); SW.setComponent(v, 0, 1);
+          } else SW.setComponent(v, best, SW.getComponent(v, best) + moved);
+          changed = true;
+        }
+      }
+      if (changed) { SI.needsUpdate = true; SW.needsUpdate = true; }
+    }
+  }
+
+  // pure forward kinematics of one bone head for a pose (no skeleton write): world = root group space
+  fkHead(pose, name) {
+    const target = this._i(name);
+    const chain = [];
+    for (let i = target; i >= 0; i = this.parentIdx[i]) chain.push(i);
+    chain.reverse();
+    let q = [0, 0, 0, 1], p = [0, 0, 0];
+    for (const i of chain) {
+      const lp = i === this.index.root ? [pose.root[0], pose.root[1], pose.root[2]] : this.restPos[i];
+      const r = qrot(q, lp);
+      p = [p[0] + r[0], p[1] + r[1], p[2] + r[2]];
+      q = qmul(q, get4(pose.q, i));
+    }
+    return p;
   }
 
   _restHead(i) { const v = new THREE.Vector3(); this.bones[i].getWorldPosition(v); return v.toArray(); }
@@ -309,28 +378,66 @@ export class Avatar {
   sequence(segments, place = {}) {
     const segs = segments.map(s => ({ from: 0, speed: 1, fade: 0.6, rootMotion: true, ...s }));
     segs.sort((a, b) => a.at - b.at);
-    const local = (s, T) => this.pose(s.clip, s.from + (T - s.at) * s.speed, { loop: s.loop, rootMotion: s.rootMotion });
-    // placements: segment 0 from `place`, each next one continues the previous at its start time
+    // clip time of a segment at film time T; `warp` modulates the speed with the step period, slowest at its anchor
+    // times (heel strikes) and fastest mid-swing, so strikes keep their exact film times (sin = 0 there)
+    const clipT = (s, T) => {
+      let c = s.from + (T - s.at) * s.speed;
+      if (s.warp && s.warp.amp) {
+        const w = s.warp, P = w.period;
+        c -= w.amp * s.speed * P / (2 * Math.PI) * Math.sin(2 * Math.PI * (T - w.anchor) / P);
+      }
+      return c;
+    };
+    const local = (s, T) => this.pose(s.clip, clipT(s, T), { loop: s.loop, rootMotion: s.rootMotion });
+    // a segment's pose on the film timeline: clip sample -> rigid placement -> optional pivot turn
+    const placed = (s, T) => {
+      const p = this.placePose(local(s, T), s.place);
+      if (s.turn && T > s.turn.at) {
+        const u = Math.min(1, (T - s.turn.at) / s.turn.dur), e = u * u * u * (u * (u * 6 - 15) + 10);
+        this._rotateAbout(p, e * s.turn.deg * Math.PI / 180, s.turn.P);
+      }
+      return p;
+    };
+    // placements: segment 0 from `place` (or its own yaw), each next one continues the previous at its start time
     segs.forEach((s, i) => {
-      if (i === 0) { s.place = { x: 0, z: 0, yaw: 0, ...place }; return; }
-      const prev = this.placePose(local(segs[i - 1], s.at), segs[i - 1].place);
-      const cur = local(s, s.at);
-      const yaw = this.heading(prev) - this.heading(cur);
-      const [rx, , rz] = qrot(qyaw(yaw), [cur.root[0], 0, cur.root[2]]);
-      s.place = { x: prev.root[0] - rx, z: prev.root[2] - rz, yaw };
+      if (i === 0) s.place = { x: 0, z: 0, yaw: 0, ...place, ...(s.yaw !== undefined ? { yaw: s.yaw } : {}) };
+      else {
+        const prev = placed(segs[i - 1], s.at);
+        const cur = local(s, s.at);
+        const yaw = s.yaw !== undefined ? s.yaw : this.heading(prev) - this.heading(cur);
+        const [rx, , rz] = qrot(qyaw(yaw), [cur.root[0], 0, cur.root[2]]);
+        s.place = { x: prev.root[0] - rx, z: prev.root[2] - rz, yaw };
+      }
+      if (s.turn) {   // pivot: the ball of the planted foot at the turn's start, or a given world point
+        const t = s.turn;
+        if (Array.isArray(t.pivot)) t.P = [t.pivot[0], t.pivot[1]];
+        else {
+          const p0 = this.placePose(local(s, t.at), s.place);
+          const a = this.fkHead(p0, 'foot.' + t.pivot), b = this.fkHead(p0, 'toe3-1.' + t.pivot);
+          t.P = [a[0] + 0.7 * (b[0] - a[0]), a[2] + 0.7 * (b[2] - a[2])];
+        }
+      }
     });
     const at = T => {
       let i = 0;
       while (i + 1 < segs.length && segs[i + 1].at <= T) i++;
       const s = segs[i];
-      const p = this.placePose(local(s, T), s.place);
+      const p = placed(s, T);
       if (i > 0 && T < s.at + s.fade) {
         const q = segs[i - 1];
-        return this.mix(this.placePose(local(q, T), q.place), p, smoothstep(s.at, s.at + s.fade, T));
+        return this.mix(placed(q, T), p, smoothstep(s.at, s.at + s.fade, T));
       }
       return p;
     };
     return { segments: segs, pose: at, heading: T => this.heading(at(T)) };
+  }
+
+  _rotateAbout(p, yaw, P) {   // rigid ground-plane rotation of a pose about the world point P = [x, z]
+    const r = this.index.root, q = qmul(qyaw(yaw), get4(p.q, r));
+    p.q.set(q, 4 * r);
+    const [x, , z] = qrot(qyaw(yaw), [p.root[0] - P[0], 0, p.root[2] - P[1]]);
+    p.root[0] = P[0] + x; p.root[2] = P[1] + z;
+    return p;
   }
 
   // ---------------------------------------------------------------------------------------------- skeleton write
@@ -358,12 +465,20 @@ export class Avatar {
       const { amp = 1, seed = 0 } = layers.noise;
       for (const [i, ax, deg, ch] of this._noise) rotLocal(i, ax, deg * amp * fbm(t * 0.23 + ch * 7.3, seed * 97 + ch));
     }
+    if (layers.lids) {
+      const { close = 1, left = 1, right = 1, upperDeg = LID_UPPER_DEG, lowerDeg = LID_LOWER_DEG } = layers.lids;
+      [left, right].forEach((w, s) => {
+        const c = Math.min(1, Math.max(0, close * w)), L = this._lids[s];
+        rotLocal(L.upper[0], L.upper[1], upperDeg * c);
+        rotLocal(L.lower[0], L.lower[1], -lowerDeg * c);
+      });
+    }
     this.root.updateMatrixWorld(true);
     if (layers.look && layers.look.target) this._lookAt(layers.look);
     return this;
   }
 
-  _lookAt({ target, weight = 1, eyes = true, maxDeg = 70 }) {
+  _lookAt({ target, weight = 1, eyes = true, maxDeg = 70, eyesMax = 22 }) {
     const tgt = target.isVector3 ? target : _v2.fromArray(target);
     const head = this.bones[this._head];
     const hq = head.getWorldQuaternion(new THREE.Quaternion());
@@ -391,7 +506,7 @@ export class Avatar {
         const f = new THREE.Vector3(...this._fwdLocal(i)).applyQuaternion(bq).normalize();
         const d = tgt.clone().sub(p).normalize();
         const r = new THREE.Quaternion().setFromUnitVectors(f, d);
-        const a = 2 * Math.acos(Math.min(1, Math.abs(r.w))), lim2 = 22 * Math.PI / 180;
+        const a = 2 * Math.acos(Math.min(1, Math.abs(r.w))), lim2 = Math.min(22, eyesMax) * Math.PI / 180;
         const part = I.clone().slerp(r, weight * (a > lim2 ? lim2 / a : 1));
         const pq = b.parent.getWorldQuaternion(new THREE.Quaternion());
         b.quaternion.premultiply(pq.clone().invert().multiply(part).multiply(pq));
