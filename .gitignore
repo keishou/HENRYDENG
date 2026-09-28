@@ -135,3 +135,4 @@ claudepop/**/*.npz
 claudepop/**/*.log
 claudepop/**/node_modules/
 claudepop/**/stems/
+claudepop/out/
