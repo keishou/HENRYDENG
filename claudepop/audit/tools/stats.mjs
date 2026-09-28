@@ -1,4 +1,4 @@
-// stats.mjs: instrumented single-worker pass over the audit times.
+// stats.mjs: instrumented single-worker pass (fast mode) over audit times: ms/frame, draw-call census, on-screen character sizes, shot list → tools/stats.json
 // For each time: wall-clock paint cost and a census of drawing calls (watercolour fills, flat washes, ink outlines,
 // inkLine strokes, letters), plus the whole shot list (CH) for pacing analysis. Writes tools/stats.json.
 //   node stats.mjs [--faithful] [--times=3,12,...]
@@ -44,21 +44,23 @@ await page.evaluate(() => {
   };
   const L = window.inkLine; window.inkLine = function () { bump('inkLine'); return L.apply(this, arguments); };
   const Le = window.letter; window.letter = function () { bump('letter'); return Le.apply(this, arguments); };
-  const C = window.clawd; window.clawd = function () { bump('clawd'); return C.apply(this, arguments); };
-  const R = window.researcher; window.researcher = function () { bump('researcher'); return R.apply(this, arguments); };
+  const sc = () => { try { const r = (window.p5 && p5.instance && p5.instance._renderer) || window._renderer; const m = r.states.uModelMatrix.mat4; return Math.hypot(m[0], m[1]); } catch (e) { return NaN; } };
+  window.__S = [];
+  const C = window.clawd; window.clawd = function (x, y, u, o = {}) { bump('clawd'); window.__S.push(['clawd', 8 * u * sc() / 1080, 10 * u * sc() / 1920]); return C.apply(this, arguments); };
+  const R = window.researcher; window.researcher = function (x, y, s) { bump('researcher'); window.__S.push(['researcher', 13.2 * s * sc() / 1080, 0]); return R.apply(this, arguments); };
 });
 // warm-up
 await page.evaluate(async () => { T = 0.5; await redraw(); composite(0.5); document.getElementById('out').toDataURL('image/png'); });
 const rows = [];
 for (const t of TIMES) {
   const r = await page.evaluate(async t => {
-    window.__C = {}; const t0 = performance.now();
+    window.__C = {}; window.__S = []; const t0 = performance.now();
     T = t; await redraw(); composite(t);
     const px = document.getElementById('out').getContext('2d').getImageData(0, 0, 1, 1).data[0]; // force flush
-    return { t, ms: Math.round(performance.now() - t0), counts: window.__C, px };
+    return { t, ms: Math.round(performance.now() - t0), counts: window.__C, px, sizes: window.__S.map(a => [a[0], Math.round(a[1] * 1000) / 1000, Math.round(a[2] * 1000) / 1000]) };
   }, t);
   delete r.px; rows.push(r); console.log(JSON.stringify(r));
 }
 const shots = await page.evaluate(() => CH.map(c => ({ name: c.name, start: c.start, end: c.end, shots: c.shots.map(s => [Math.round(s[0] * 1000) / 1000, s[1].name]) })));
-writeFileSync(join(HERE, args.faithful ? 'stats_faithful.json' : 'stats.json'), JSON.stringify({ mode: args.faithful ? 'faithful (SwiftShader-GPU 2D canvas)' : 'fast (CPU 2D canvas)', rows, shots }, null, 1));
+writeFileSync(join(HERE, args.out || (args.faithful ? 'stats_faithful.json' : 'stats.json')), JSON.stringify({ mode: args.faithful ? 'faithful (SwiftShader-GPU 2D canvas)' : 'fast (CPU 2D canvas)', rows, shots }, null, 1));
 await browser.close();

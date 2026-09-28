@@ -1,0 +1,123 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>paper test card</title>
+<style>
+@font-face { font-family: RF; src: url(fonts/RobotoFlex.ttf); font-weight: 100 1000; font-stretch: 25% 151%; }
+/* custom-axis instances: canvas cannot set arbitrary axes, but an @font-face variation descriptor can (verified in bench) */
+@font-face { font-family: RF_TALL; src: url(fonts/RobotoFlex.ttf); font-variation-settings: 'wdth' 25, 'wght' 1000, 'YTUC' 760, 'opsz' 144; }
+@font-face { font-family: ISR; src: url(fonts/InstrumentSerif-Italic.ttf); font-style: italic; }
+@font-face { font-family: BRI; src: url(fonts/BricolageGrotesque.ttf); font-weight: 200 800; font-stretch: 75% 100%; }
+html,body{margin:0;background:#111}
+canvas{display:block;width:960px;height:540px}
+</style>
+<script src="paperkit.js"></script>
+</head><body>
+<canvas id="out" width="1920" height="1080"></canvas>
+<script>
+// A technique test card, not a final design: riso inks via WebGL, baked torn cut-outs, boiling ink lines,
+// variable-font hero type vs. subtitle-tier type, one shared paper texture. Deterministic renderAt(t).
+const W = 1920, H = 1080, out = document.getElementById('out'), X = out.getContext('2d');
+const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return [c, c.getContext('2d')]; };
+const CLAUDE = '#d97757', INKDARK = '#141413';
+let A = {};
+async function setup() {
+  const t0 = performance.now();
+  await Promise.all(['900 100px RF', '100px RF_TALL', 'italic 100px ISR', '700 100px BRI'].map(f => document.fonts.load(f)));
+  // full variable-axis control (wdth 25 + opsz 144 + YTUC is beyond ctx.font/fontStretch): per-glyph outlines precomputed by
+  // gen_type.mjs (fontkit) and turned into Path2D once. Per-letter transforms are then free (see hero bounce below).
+  const TC = await (await fetch('type_cache.json')).json();
+  A.hero = TC.hero_pdoom; A.hero.p2d = A.hero.glyphs.map(g => new Path2D(g.d));
+  A.pp = PK.makePaper(W, H, 11);
+  A.gl = new PK.RisoGL(W, H); A.gl.setPaper(A.pp.paper, A.pp.tooth);
+  A.inks = [mk(), mk(), mk()];
+  // idol pieces baked once per boil variant (3-drawing boil cycle => 3 bakes per piece)
+  A.idol = [0, 1, 2].map(v => bakeIdol(v));
+  // subtitle strip + brutalist sticker baked once
+  A.strip = PK.bakeCutout(PK.tearPolygon([[0, 0], [880, 0], [880, 96], [0, 96]], 5, 5), '#faf9f5', { shadow: 8, seed: 5 });
+  A.sticker = bakeSticker();
+  window.setupMs = Math.round(performance.now() - t0);
+}
+function sunburst(cx, cy, n, r0, r1, wob, seed) { // Claude-spark-like rounded rays
+  const r = PK.mulberry32(seed), pts = [];
+  for (let k = 0; k < n; k++) { const a0 = (k / n) * Math.PI * 2, a1 = ((k + 0.5) / n) * Math.PI * 2, rr = r1 * (0.86 + 0.28 * r());
+    for (let s = -2; s <= 2; s++) { const a = a1 + s * 0.045; pts.push([cx + Math.cos(a) * rr * (1 - 0.02 * s * s), cy + Math.sin(a) * rr * (1 - 0.02 * s * s)]); }
+    pts.push([cx + Math.cos(a0 + Math.PI * 2 / n) * r0, cy + Math.sin(a0 + Math.PI * 2 / n) * r0]); }
+  return PK.jitterPoly(pts, seed + 1, wob);
+}
+function bakeIdol(v) {
+  // returns list of baked sprites in stage coords (each piece is its own cut-out => real paper layering)
+  const s = v * 101 + 3;
+  const hair = PK.bakeCutout(PK.tearPolygon(sunburst(1420, 430, 13, 150, 330, 4, s), s, 4), CLAUDE, { shadow: 16, seed: s });
+  const face = PK.bakeCutout(PK.tearPolygon(ellipse(1420, 455, 150, 176, 40), s + 1, 3), '#f7e6d6', { shadow: 12, seed: s + 1 });
+  const body = PK.bakeCutout(PK.tearPolygon([[1170, 1100], [1235, 760], [1330, 690], [1510, 690], [1605, 760], [1680, 1100]], s + 2, 6), '#2f5fa8', { shadow: 18, seed: s + 2 });
+  const mic = PK.bakeCutout(PK.tearPolygon([[1262, 700], [1300, 690], [1322, 900], [1290, 906]], s + 3, 2), INKDARK, { shadow: 10, seed: s + 3, rimColor: '#555' });
+  return [body, hair, face, mic];
+}
+function ellipse(cx, cy, rx, ry, n) { const p = []; for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2; p.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); } return p; }
+function bakeSticker() {
+  const s = PK.bakeCutout(PK.tearPolygon([[0, 0], [430, 0], [430, 150], [0, 150]], 9, 2.5), '#ffffff', { shadow: 10, seed: 9 });
+  const x = s.canvas.getContext('2d'), o = 40;
+  x.fillStyle = INKDARK; x.font = '700 30px BRI'; x.fillText('p(doom) ↗ 0.92', o + 22, o + 52);
+  x.font = '400 21px BRI'; x.fillStyle = '#555'; x.fillText('updated 0.4s ago · 12.4M views', o + 22, o + 92);
+  x.fillStyle = CLAUDE; x.fillRect(o + 22, o + 112, 386 * 0.92, 10); x.strokeStyle = '#999'; x.strokeRect(o + 22, o + 112, 386, 10);
+  return s;
+}
+function inkText(x, txt, px, py, font, stretch = 'normal', ls = '0px') { x.font = font; x.fontStretch = stretch; x.letterSpacing = ls; x.fillText(txt, px, py); x.fontStretch = 'normal'; x.letterSpacing = '0px'; }
+
+window.renderAt = async (t) => {
+  const T = {}; let t0 = performance.now();
+  const b = PK.boilIndex(t, 12), bc = b % 3;                     // drawings on twos (12 fps) cycling 3 variants
+  const hero = t > 20;                                          // hero-type tier vs subtitle tier
+  // ---- 1. ink coverage layers (alpha only) ----
+  const [[p, px], [bl, bx], [yl, yx]] = A.inks; [px, bx, yx].forEach(x => { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, W, H); x.fillStyle = '#000'; x.textBaseline = 'alphabetic'; });
+  // yellow: soft radial glow behind idol -> becomes halftone
+  const g = yx.createRadialGradient(1420, 470, 60, 1420, 470, 620); g.addColorStop(0, 'rgba(0,0,0,0.85)'); g.addColorStop(1, 'rgba(0,0,0,0)'); yx.fillStyle = g; yx.fillRect(0, 0, W, H);
+  // pink: sunburst rays at 35% coverage (halftone) + hero word as solid
+  px.save(); px.translate(1420, 470); px.rotate(t * 0.15); px.fillStyle = 'rgba(0,0,0,0.38)';
+  for (let k = 0; k < 18; k++) { px.rotate(Math.PI * 2 / 18); px.beginPath(); px.moveTo(0, 0); px.lineTo(1400, -70); px.lineTo(1400, 70); px.closePath(); px.fill(); } px.restore();
+  px.fillStyle = '#000';
+  if (hero) {
+    // per-letter pop on the DOOM downbeat (23.871 s): letters land one 8th-note apart, overshoot, settle
+    const drop = 23.871, e8 = 60 / 132 / 2;
+    A.hero.glyphs.forEach((g, i) => { const u = Math.max(0, Math.min(1, (t - (drop - 5 * e8) - i * e8 * 0.5) / 0.18));
+      const sc = u < 1 ? 0.6 + 0.55 * u : 1 + 0.06 * Math.exp(-(t - drop) * 6) * Math.cos((t - drop) * 30);
+      px.save(); px.translate(64 + g.x + 40, 1030); px.scale(sc, sc * 1.9); px.translate(-40, 0); px.fill(A.hero.p2d[i]); px.restore(); }); // x1.9 vertical stretch = the 'brat' move
+    inkText(bx, "I'M UPPING MY", 84, 330, '900 132px RF', 'condensed', '-2px');
+  } else {
+    inkText(bx, 'SPARKS', 84, 520, '900 330px RF', 'ultra-condensed', '-6px');
+  }
+  T.inks = Math.round(performance.now() - t0); t0 = performance.now();
+  // ---- 2. riso composite (paper + 3 inks, misregistration drifts per drawing) ----
+  const mr = PK.mulberry32(b * 7 + 1), mis = () => [(mr() - 0.5) * 7, (mr() - 0.5) * 7];
+  const riso = A.gl.render([
+    { canvas: yl, color: PK.INK.yellow, off: mis(), ang: 0.0, cell: 9, dens: 0.95 },
+    { canvas: p, color: PK.INK.fluoPink, off: mis(), ang: 0.26, cell: 8, dens: 1 },
+    { canvas: bl, color: PK.INK.blue, off: mis(), ang: 1.31, cell: 8, dens: 0.95 },
+  ]);
+  X.globalCompositeOperation = 'source-over'; X.drawImage(riso, 0, 0);
+  T.riso = Math.round(performance.now() - t0); t0 = performance.now();
+  // ---- 3. cut-outs: idol pieces (boil variant), small per-drawing transform wobble ----
+  const bob = Math.sin(t * Math.PI * 2 * (132 / 60) / 2) * 6;   // half-time bob on the 132 BPM grid
+  const wr = PK.mulberry32(b + 99);
+  for (const s of A.idol[bc]) { X.save(); X.translate((wr() - 0.5) * 2, bob + (wr() - 0.5) * 2); X.drawImage(s.canvas, s.ox, s.oy); X.restore(); }
+  // face ink (boiling hand-drawn lines)
+  X.fillStyle = INKDARK;
+  const eye = (cx) => { const pts = []; for (let k = 0; k <= 14; k++) { const u = k / 14; pts.push([cx - 38 + u * 76, 460 + bob - Math.sin(u * Math.PI) * 14]); } PK.inkStroke(X, pts, b * 13 + cx, 7, 1.6);
+    X.beginPath(); X.ellipse(cx + 2, 474 + bob, 17, 21, 0, 0, 6.283); X.fill(); X.fillStyle = '#fff'; X.beginPath(); X.arc(cx + 8, 466 + bob, 5.5, 0, 6.283); X.fill(); X.fillStyle = INKDARK; };
+  eye(1362); eye(1478);
+  const mouth = []; for (let k = 0; k <= 10; k++) { const u = k / 10; mouth.push([1396 + u * 48, 548 + bob + Math.sin(u * Math.PI) * (hero ? 22 : 8)]); } PK.inkStroke(X, mouth, b * 17, 5, 1.4);
+  X.fillStyle = CLAUDE; X.globalAlpha = 0.35; X.beginPath(); X.ellipse(1328, 525 + bob, 26, 14, 0, 0, 6.283); X.ellipse(1512, 525 + bob, 26, 14, 0, 0, 6.283); X.fill(); X.globalAlpha = 1;
+  // ---- 4. subtitle tier + brutalist sticker ----
+  const sub = hero ? "’cause the future goes FOOM" : 'I see sparks of AGI in your eyes';
+  X.save(); X.translate(70, 64 + (hero ? 0 : 880)); X.rotate(-0.012); X.drawImage(A.strip.canvas, A.strip.ox, A.strip.oy);
+  X.fillStyle = INKDARK; X.font = 'italic 64px ISR'; X.fillText(sub, 26, 70); X.restore();
+  X.save(); X.translate(1500, hero ? 860 : 120); X.rotate(0.035 + (wr() - 0.5) * 0.01); X.drawImage(A.sticker.canvas, A.sticker.ox, A.sticker.oy);
+  // tape
+  X.fillStyle = 'rgba(235,225,190,0.55)'; PK.pathOf(X, PK.tearPolygon([[150, -12], [270, -12], [270, 22], [150, 22]], 44, 1.5)); X.fill(); X.restore();
+  // ---- 5. shared paper grain over everything (cut-outs are paper too) ----
+  X.globalCompositeOperation = 'multiply'; X.globalAlpha = 0.45; X.drawImage(A.pp.paper, 0, 0); X.globalAlpha = 1; X.globalCompositeOperation = 'source-over';
+  T.cutouts_type_grain = Math.round(performance.now() - t0);
+  X.getImageData(0, 0, 1, 1);
+  return T;
+};
+setup().then(() => { window.demoReady = true; });
+</script></body></html>

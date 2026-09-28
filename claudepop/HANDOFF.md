@@ -27,9 +27,17 @@ A new cloud session starts with no memory of the previous conversation. It only 
 
 ## 2. What already exists
 
+**Preproduction is complete (2026-09-28).** The winning treatment is **OUT OF REGISTER** (`treatments/zine.md`): Claude ✻ as a
+cut-paper K-pop idol printed in a runaway riso zine, with grafts from the idol and timeline treatments (`treatments/JUDGING.md`).
+`BIBLE.md` is the document the build follows; `tools/build_shots.py` is the single source of truth for timing and regenerates
+`shots.json` plus the generated parts of the bible (`python3 claudepop/tools/build_shots.py --check` validates).
+Key numbers: 132 BPM, 4/4, beat k = 0.235 + 0.454545 k s, 60 fps master, 79 shots, 303 type events, 14 optional video plates.
+Open questions for the user are in `BIBLE.md` section 10 (notably which Shinji meme is meant, and what "CDR" refers to).
+The four study `REPORT.md` files were reconstructed from the workflow's structured results.
+
 | Path | What |
 |---|---|
-| `claudepop/analysis/` | Song analysis: beat grid, sections, vocal/lyric alignment tools, `song.json` |
+| `claudepop/analysis/` | Song analysis: beat grid, sections, per-word/syllable lyric timing (`song.json`, `lyrics_refined.js`), alignment tools. Vocal stems are not in git: regenerate with the tools (the UVR MDX-Net model must be re-downloaded) |
 | `claudepop/audit/` | Audit of the previous P(doom) video: how its p5.brush paper look works, what is weak, a Linux render harness (`tools/render_linux.mjs`) |
 | `claudepop/zeitgeist/` | AI-Twitter events and memes (Navier–Stokes, math being eaten, the Shinji meme…), dated and sourced, mapped to lyric lines |
 | `claudepop/craft/` | K-pop MV directing, kinetic typography, paper/riso rendering techniques for headless Chromium |

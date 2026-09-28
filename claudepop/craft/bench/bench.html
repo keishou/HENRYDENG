@@ -1,0 +1,96 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>paper bench</title>
+<style>
+@font-face { font-family: RF; src: url(fonts/RobotoFlex.ttf); font-weight: 100 1000; font-stretch: 25% 151%; }
+@font-face { font-family: RFX; src: url(fonts/RobotoFlex.ttf); font-weight: 100 1000; font-stretch: 25% 151%; font-variation-settings: 'XTRA' 603, 'YTUC' 760; }
+@font-face { font-family: ANY; src: url(fonts/Anybody.ttf); font-weight: 100 900; font-stretch: 50% 150%; }
+@font-face { font-family: BRI; src: url(fonts/BricolageGrotesque.ttf); font-weight: 200 800; font-stretch: 75% 100%; }
+@font-face { font-family: ISR; src: url(fonts/InstrumentSerif-Italic.ttf); font-style: italic; }
+@font-face { font-family: FRA; src: url(fonts/Fraunces.ttf); font-weight: 100 900; }
+html,body{margin:0;background:#222}
+</style>
+<script src="paperkit.js"></script>
+</head><body>
+<script>
+const W = 1920, H = 1080;
+const mk = (w = W, h = H, o) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d', o)]; };
+const flush2d = x => x.getImageData(0, 0, 1, 1); // forces raster of the recorded display list
+const S = {}; // shared precomputed assets
+async function setup() {
+  await document.fonts.load('400 100px RF'); await document.fonts.load('400 100px ANY'); await document.fonts.load('400 100px BRI');
+  await document.fonts.load('italic 100px ISR'); await document.fonts.load('400 100px FRA'); await document.fonts.load('400 100px RFX');
+  let t0 = performance.now(); S.pp = PK.makePaper(W, H, 7); const genMs = performance.now() - t0;
+  // 40 cut-out sprites baked once
+  t0 = performance.now(); S.sprites = [];
+  for (let i = 0; i < 40; i++) { const r = PK.mulberry32(i + 1); const cx = 200, cy = 200, n = 7 + (i % 5), poly = [];
+    for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2, rr = 120 + r() * 70; poly.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); }
+    S.sprites.push(PK.bakeCutout(PK.tearPolygon(poly, i + 3, 7), `hsl(${(i * 47) % 360},70%,60%)`, { seed: i })); }
+  const bakeMs = performance.now() - t0;
+  return { paperGenMs: genMs, bake40CutoutsMs: bakeMs };
+}
+const TESTS = {
+  // 1. full-frame paper multiply over a flat colour field (the per-frame 'paper' cost when the texture is cached)
+  paper_multiply(x) { x.globalCompositeOperation = 'source-over'; x.fillStyle = '#e94f8a'; x.fillRect(0, 0, W, H);
+    x.globalCompositeOperation = 'multiply'; x.drawImage(S.pp.paper, 0, 0); x.globalCompositeOperation = 'source-over'; },
+  // 2. 2000 jittered quadratic strokes (line boil / hatching)
+  strokes_2000(x, t) { const r = PK.mulberry32(PK.boilIndex(t) + 1); x.fillStyle = '#f4eee2'; x.fillRect(0, 0, W, H); x.strokeStyle = '#1b1b2a'; x.lineCap = 'round';
+    for (let i = 0; i < 2000; i++) { const a = r() * W, b = r() * H; x.lineWidth = 1 + r() * 3; x.beginPath(); x.moveTo(a, b); x.quadraticCurveTo(a + r() * 60 - 30, b + r() * 60 - 30, a + r() * 120 - 60, b + r() * 120 - 60); x.stroke(); } },
+  // 3. 300 tapered ink ribbons (filled polygons, 40 samples each) = hand-inked outlines
+  ink_ribbons_300(x, t) { const r = PK.mulberry32(9); x.fillStyle = '#f4eee2'; x.fillRect(0, 0, W, H); x.fillStyle = '#1b1b2a';
+    for (let i = 0; i < 300; i++) { const a = r() * W, b = r() * H, pts = []; for (let k = 0; k < 40; k++) pts.push([a + k * 6, b + Math.sin(k * 0.3 + i) * 30]); PK.inkStroke(x, pts, i * 7 + PK.boilIndex(t), 5); } },
+  // 4. stamp brush: 12,000 translucent ellipse dabs (what naive p5.brush-style 'paint' costs on CPU)
+  stamps_12000(x) { const r = PK.mulberry32(3); x.fillStyle = '#f4eee2'; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 12000; i++) { x.fillStyle = `rgba(233,79,138,${0.04 + r() * 0.08})`; x.beginPath(); x.ellipse(r() * W, r() * H, 6 + r() * 10, 4 + r() * 6, r() * 3, 0, 6.283); x.fill(); } },
+  // 5. 40 pre-baked cut-out sprites drawn with rotation/scale (paper stop-motion set pieces)
+  cutout_sprites_40(x, t) { x.drawImage(S.pp.paper, 0, 0); const r = PK.mulberry32(PK.boilIndex(t, 8));
+    for (let i = 0; i < 40; i++) { const s = S.sprites[i]; x.save(); x.translate((i % 8) * 240 + 120, Math.floor(i / 8) * 210 + 100); x.rotate((r() - 0.5) * 0.06); x.drawImage(s.canvas, -s.canvas.width / 2, -s.canvas.height / 2); x.restore(); } },
+  // 6. the same 40 shapes with LIVE shadowBlur each frame (what to avoid)
+  live_shadowBlur_40(x) { x.drawImage(S.pp.paper, 0, 0); x.shadowColor = 'rgba(40,25,10,0.35)'; x.shadowBlur = 16; x.shadowOffsetX = 5; x.shadowOffsetY = 8;
+    for (let i = 0; i < 40; i++) { x.fillStyle = `hsl(${(i * 47) % 360},70%,60%)`; x.beginPath(); x.arc((i % 8) * 240 + 120, Math.floor(i / 8) * 210 + 100, 110, 0, 6.283); x.fill(); }
+    x.shadowBlur = 0; x.shadowOffsetX = x.shadowOffsetY = 0; x.shadowColor = 'transparent'; },
+  // 7. full-frame CSS filter blur (e.g. depth-of-field on a background plate)
+  filter_blur6_fullframe(x) { x.filter = 'blur(6px)'; x.drawImage(S.pp.paper, 0, 0); x.filter = 'none'; },
+  // 8. JS per-pixel pass over the full frame (getImageData -> loop -> putImageData)
+  js_pixel_pass(x) { x.drawImage(S.pp.paper, 0, 0); const im = x.getImageData(0, 0, W, H), d = im.data; for (let i = 0; i < d.length; i += 4) { const v = (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) > 128 ? 255 : 0; d[i] = v; d[i + 1] = v * 0.5; } x.putImageData(im, 0, 0); },
+  // 9. big type: 10 lines of 240px variable-font text with per-line weight/width
+  big_type_10_lines(x, t) { x.fillStyle = '#f4eee2'; x.fillRect(0, 0, W, H); x.fillStyle = '#111'; x.textBaseline = 'top';
+    for (let i = 0; i < 10; i++) { x.font = `${100 + i * 90} 240px RF`; x.fillText("I'M UPPING MY P(DOOM)", -50 + i * 10, i * 100 - 80); } },
+  // 10. WebGL riso composite: upload 3 ink canvases (1080p) + shader (halftone, misregistration, tooth) + draw back to 2D
+  riso_gl_3layers(x, t) { S.gl = S.gl || (() => { const g = new PK.RisoGL(W, H); g.setPaper(S.pp.paper, S.pp.tooth); return g; })();
+    if (!S.inks) { S.inks = [0, 1, 2].map(i => { const [c, cx] = mk(); cx.fillStyle = '#000'; cx.font = `900 ${220 + i * 40}px RF`; cx.textBaseline = 'top'; cx.fillText(['UPPING', 'MY', 'P(DOOM)'][i], 80 + i * 120, 80 + i * 300);
+      const g = cx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.9)'); cx.fillStyle = g; cx.fillRect(0, 900 - i * 60, W, 120); return c; }); }
+    const out = S.gl.render([{ canvas: S.inks[0], color: PK.INK.fluoPink, off: [0, 0], ang: 0.26, cell: 7, dens: 1 }, { canvas: S.inks[1], color: PK.INK.blue, off: [3, -2], ang: 1.31, cell: 7, dens: 1 }, { canvas: S.inks[2], color: PK.INK.yellow, off: [-2, 3], ang: 0.79, cell: 7, dens: 1 }]);
+    x.drawImage(out, 0, 0); },
+  // 11. shader only (no texture uploads): the pure SwiftShader fragment cost
+  riso_gl_shader_only(x) { if (!S.gl) TESTS.riso_gl_3layers(x, 0); const gl = S.gl.gl; gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); },
+  // 12. encode cost of a finished 1080p frame
+  encode_jpeg_q92(x) { S.last = x.canvas.toDataURL('image/jpeg', 0.92); },
+  encode_png(x) { S.last = x.canvas.toDataURL('image/png'); },
+};
+// Variable font capability probe for Canvas2D
+function probeFonts() {
+  const [c, x] = mk(400, 100); const w = f => { x.font = f; return Math.round(x.measureText('P(DOOM) GIANT').width); };
+  const res = { weight_100: w('100 100px RF'), weight_550: w('550 100px RF'), weight_1000: w('1000 100px RF') };
+  x.font = '400 100px RF'; for (const s of ['ultra-condensed', 'condensed', 'normal', 'expanded', 'ultra-expanded']) { x.fontStretch = s; res['stretch_' + s] = Math.round(x.measureText('P(DOOM) GIANT').width); }
+  x.fontStretch = 'normal';
+  res.font_shorthand_percent_stretch = (() => { const before = x.font; x.font = '400 62.5% 100px RF'; return x.font === before ? 'rejected' : x.font; })();
+  res.fontface_variation_descriptor_RFX_vs_RF = [w('400 100px RFX'), w('400 100px RF')];
+  x.letterSpacing = '-8px'; res.letterSpacing_supported = x.letterSpacing === '-8px'; res.width_with_letterSpacing_minus8 = w('400 100px RF'); x.letterSpacing = '0px';
+  res.anybody_50_vs_150 = (() => { x.font = '700 100px ANY'; x.fontStretch = 'ultra-condensed'; const a = x.measureText('DOOM').width; x.fontStretch = 'ultra-expanded'; const b = x.measureText('DOOM').width; x.fontStretch = 'normal'; return [Math.round(a), Math.round(b)]; })();
+  return res;
+}
+window.runBench = async (reps = 3) => {
+  const info = await setup();
+  info.fonts = probeFonts();
+  info.gl = (() => { const g = document.createElement('canvas').getContext('webgl2'); if (!g) return null; const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); })();
+  const [c, x] = mk(W, H); document.body.appendChild(c);
+  const out = {};
+  for (const [name, fn] of Object.entries(TESTS)) {
+    const times = [];
+    for (let r = 0; r < reps + 1; r++) { const t0 = performance.now(); fn(x, r * 0.1); flush2d(x); const dt = performance.now() - t0; if (r > 0) times.push(dt); }
+    times.sort((a, b) => a - b); out[name] = Math.round(times[Math.floor(times.length / 2)]);
+  }
+  return { info, ms: out };
+};
+window.benchReady = true;
+</script></body></html>

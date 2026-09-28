@@ -27,6 +27,12 @@ scene.add(gltf.scene);
 const box = new THREE.Box3().setFromObject(gltf.scene);
 const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
 window.bbox = { min: box.min.toArray(), max: box.max.toArray() };
+const info = { meshes: [], animations: gltf.animations.map(a => a.name + ':' + a.tracks.length) };
+gltf.scene.traverse(o => { if (o.isMesh) info.meshes.push({ name: o.name, skinned: !!o.isSkinnedMesh,
+  bones: o.skeleton ? o.skeleton.bones.length : 0, morph: o.morphTargetInfluences || null,
+  morphNames: o.morphTargetDictionary ? Object.keys(o.morphTargetDictionary) : null,
+  tangents: !!o.geometry.attributes.tangent }); });
+window.info = info;
 const cam = new THREE.PerspectiveCamera(20, 400 / 800, 0.05, 100); const HD = window.HD;
 [0, 90, 180, 270].forEach((deg, i) => {
   const a = THREE.MathUtils.degToRad(deg), d = size.y * 3.1;
@@ -64,5 +70,6 @@ page.on('pageerror', e => console.log('[err]', e.message));
 await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.waitForFunction('window.done === true', null, { timeout: 180000 });
 console.log('bbox', JSON.stringify(await page.evaluate('window.bbox')));
+console.log('info', JSON.stringify(await page.evaluate('window.info')));
 await page.locator('#c').screenshot({ path: outPng });
 await browser.close(); server.close();
