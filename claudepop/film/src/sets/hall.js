@@ -70,7 +70,8 @@ const BACKLIGHT = C('#DCE3E8'), NIGHT = C('#10151A');
 // deterministically): ?hallcfg=key:value,... overrides these numbers; ?halldbg=prof logs per-component GPU times,
 // ?halldbg=noprints,norefl,nolines,noav,noocc switch parts off.
 const CFG = { wire: 1.2, dz: 1.5, rows: 38, perLine: 5, stagger: 0, yJitter: 0.01, kappa: 0.2, over: 2.2, overW: 0.04, under: 0.15, back: 0.8, rim: 0,
-  key: 0.008, trans: 0.42, panel: 0.62, glow: 0.03, form: 0.2, dof: 1, msaa: -1 };
+  key: 0.008, trans: 0.42, panel: 0.62, glow: 0.03, form: 0.2, dof: 1, msaa: -1,
+  bloomT: 0.93, bloomA: 0.22, hal: 0.1 };
 try { for (const kv of (new URLSearchParams(location.search).get('hallcfg') || '').split(',').filter(Boolean)) { const [k, v] = kv.split(':'); if (k in CFG) CFG[k] = +v; } } catch {}
 const PANEL = { x: 0, y: 2.75, z: -58, w: 10, h: 5 };        // panel centre, size (bottom edge at y 0.25)
 const ROWS = { n: CFG.rows, z0: -CFG.dz, dz: -CFG.dz, xs: [[-5.4, -1.4], [1.4, 5.4]], y: CFG.wire, perLine: CFG.perLine };   // wire below the eye (1.55): see note
@@ -431,6 +432,13 @@ export default {
       hazeGLSL: HAZE_GLSL, hazeUniforms: U,
       levelAt,
       resetPrints() { prints.reset(); return prints; },
+      // the hall's finish overrides for frameSpec.post (BIBLE 4.3: bloom and halation only on the backlight): the
+      // threshold sits above the paper's glow so the sheets stay crisp and only the panel and its haze bloom (the
+      // HALL preset's 0.85 / 0.35 / 0.2 laid a grey veil over the audience). o.scale scales both (S54 thins them).
+      post(t, o = {}) {
+        const k = o.scale ?? 1;
+        return { bloom: { thresh: o.thresh ?? CFG.bloomT, amount: CFG.bloomA * k }, halation: CFG.hal * k };
+      },
       // the photograph developing, as print images for the audience: VARIANTS darkroom variants of the one photograph
       // (BIBLE 4.5 crop: the face, chin just above the bottom edge, no shoulders), each a strip [blank, stage 1..8] of
       // develop() at the chemistry times DEV_TAUS (halftone null: the post screen is on). Built once (call from a
@@ -477,7 +485,21 @@ export default {
           return mats.get(key);
         });
         // the blended hair draws after the sheets (their transparent pass), so its soft edge blends over them
-        for (const [n, mesh] of Object.entries(av.meshes)) if (/^hair|brow|lash/.test(n)) mesh.renderOrder = 20;
+        // DETERMINISM: every avatar mesh gets its own fixed renderOrder (by sorted name). Three orders opaque objects
+        // of equal renderOrder by material.id - a global counter, so it depended on which shots had been initialised
+        // first in the page - and the hair cap and scalp coincide at the hairline, where the draw order decides the
+        // depth-equal pixels (verified: a one-pixel line along the hairline differed between histories).
+        Object.keys(av.meshes).sort().forEach((n, i) => { av.meshes[n].renderOrder = (/^hair|brow|lash/.test(n) ? 20 : 1) + i * 0.001; });
+        // DETERMINISM: three sorts transparent objects by the view depth of SkinnedMesh.boundingSphere, which it
+        // computes once, lazily, from whatever pose the mesh has on its first render - so the order of the blended
+        // fringe strands, hair and brows depended on the page's render history (verified: F1000 / F1200 differed in
+        // the fringe between a fresh page and an in-order render). A fixed sphere at the root makes every avatar mesh
+        // tie on depth, and three then orders them by id (load order): the same in every browser launch. Culling is
+        // off for the avatar already (avatar.js). Requested of lane F: set this in avatar.js at load for every shot.
+        if (!av._hallSphere) {
+          av._hallSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 100);
+          for (const mesh of Object.values(av.meshes)) if (mesh.isSkinnedMesh) mesh.boundingSphere = av._hallSphere;
+        }
         for (const n of ['teeth', 'tongue']) if (av.meshes[n]) av.meshes[n].visible = false;
         return av;
       },

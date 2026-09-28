@@ -47,6 +47,14 @@ export default {
   },
 };
 
+// BIBLE 12.1 fallbacks of the consent-pending shots
+const SAFE_NOTE = {
+  S12: 'the projection spills onto the wall, the clay head out of focus',
+  S37: 'the front stops at the hairline',
+  S50: 'the turn stops at 60 deg',
+  S51: 'contrast and grain only',
+};
+
 function drawSlate(c, ctx, fr, t, s, reg, hit) {
   const shot = s.shot, tl = ctx.tl, r = fr.rect, fps = tl.fps;
   const fg = BRIGHT.has(reg) ? INK_TYPE : TYPE;
@@ -73,6 +81,12 @@ function drawSlate(c, ctx, fr, t, s, reg, hit) {
   const ny = narrow ? top + 262 : top + 132;
   txt('CAM  ' + note(shot.camera), L, ny, 13, { a: 0.5, max: R - L });
   if (shot.hud) txt('HUD  ' + note(Object.entries(shot.hud).map(([k, v]) => v === true ? k : `${k} ${Array.isArray(v) ? v.join('-') : v}`).join(' · ')), L, ny + 20, 13, { a: 0.5, max: R - L });
+  // consent-pending shots (BIBLE 12.1): which version this render is, so the two variants' slates differ
+  if (shot.consent || (ctx.flags && ctx.flags.faceSafeShots.includes(shot.id))) {
+    const safe = ctx.flags && ctx.flags.safe(shot.id);
+    txt((safe ? 'FACE-SAFE FALLBACK  ' + (SAFE_NOTE[shot.id] || '') : 'FULL VERSION (CONSENT PENDING; safe=1 renders the fallback)'),
+      L, ny + 40, 13, { w: 500, a: 0.8, max: R - L });
+  }
   // top-right: timecode, frame, shot-local time, bar / beat with a 4-step metronome
   const ty = narrow ? top + 150 : top + 36, TX = narrow ? L : R, al = narrow ? 'left' : 'right';
   txt(tc(s.f, fps), TX, ty, 30, { w: 500, align: al, track: 1 });

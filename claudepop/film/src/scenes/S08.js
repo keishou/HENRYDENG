@@ -26,6 +26,7 @@ export default {
     return {
       layers: [{ scene: hall.scene, camera: this.cam }],
       grade: 'HALL',
+      post: hall.post(t),
       msaa: hall.CFG.msaa >= 0 ? hall.CFG.msaa : 0,
     };
   },

@@ -61,13 +61,16 @@ def main():
         # (f0-2, f0-1), one frame late onto (f0, f0+1), in both measures.
         raw = [float(np.abs(ts[i + 1] - ts[i]).mean()) for i in range(5)]
         mr = [float(np.abs((ts[i + 1] - ts[i + 1].mean()) - (ts[i] - ts[i].mean())).mean()) for i in range(5)]
-        good = lambda d: d[2] > d[1] and d[2] > d[3] and d[2] > 0.3
+        # a beat_hit of the incoming shot on f0+1 (e.g. S42's first 8th, one frame after the cut) may legitimately
+        # change the picture more than the cut: then the cut only has to stand clear of the pair before it (x3)
+        hit1 = any(round(h * doc['fps']) == f0 + 1 for h in s.get('beat_hits', []))
+        good = lambda d: d[2] > d[1] and (d[2] > d[3] or (hit1 and d[2] > 3 * d[1])) and d[2] > 0.3
         d = raw if good(raw) or not good(mr) else mr
         others = float(np.median(d[:2] + d[3:]))
         ratio = d[2] / max(others, 1e-3)
         st = 'ok' if good(raw) or good(mr) else 'NO CHANGE AT f0'
         bad += st != 'ok'
-        rows.append({'shot': s['id'], 'f0': f0, 'status': st, 'ratio': round(ratio, 1),
+        rows.append({'shot': s['id'], 'f0': f0, 'status': st, 'ratio': round(ratio, 1), 'hit_after': hit1,
                      'largest_at': int(np.argmax(d)) - 2, 'diffs': [round(x, 3) for x in d]})
     for r in rows:
         if r['status'] != 'ok':

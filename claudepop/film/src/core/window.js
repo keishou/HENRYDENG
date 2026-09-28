@@ -37,8 +37,9 @@ export class WindowTrack {
       let p;
       if (e.dur_frames) p = easeOut((f - Math.round(e.t0 * this.fps) + 1) / e.dur_frames);
       else if (e.t1 !== undefined) p = (e.ease === 'linear' ? (x => Math.min(1, Math.max(0, x))) : smooth)((t - e.t0) / (e.t1 - e.t0));
-      else p = t >= e.t0 - 1e-9 ? 1 : 0;
-      const started = e.dur_frames ? f >= Math.round(e.t0 * this.fps) : t >= e.t0 - 1e-9;
+      else p = Math.round(f) >= Math.round(e.t0 * this.fps) ? 1 : 0;       // a hard switch: on frame round(t0 * 24)
+      // by frame (BIBLE 8.1): a move starts on frame round(t0 * 24); a smoothstep move is still at p 0 there
+      const started = Math.round(f) >= Math.round(e.t0 * this.fps);
       if (!started) break;
       w = w0 + (e.w - w0) * p; shape = e.shape; k = p; from = p < 1 ? this._rect(w0, this.track[i - 1].shape) : null;
     }
