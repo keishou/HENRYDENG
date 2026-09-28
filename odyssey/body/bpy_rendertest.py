@@ -188,6 +188,7 @@ def main():
     ap.add_argument("--no-sss", action="store_true")
     ap.add_argument("--no-denoise", action="store_true")
     ap.add_argument("--threshold", type=float, default=0.01, help="Cycles adaptive noise threshold")
+    ap.add_argument("--dn-quality", default="HIGH", choices=["HIGH", "BALANCED", "FAST"], help="OIDN quality")
     ap.add_argument("--persistent", action="store_true", help="Cycles persistent data between frames")
     a = ap.parse_args(argv)
 
@@ -206,6 +207,8 @@ def main():
         scene.cycles.use_denoising = not a.no_denoise
         scene.cycles.adaptive_threshold = a.threshold
         scene.render.use_persistent_data = a.persistent
+        scene.cycles.denoising_quality = a.dn_quality
+        settings["denoising_quality"] = scene.cycles.denoising_quality
         settings["denoise"] = scene.cycles.use_denoising
         settings["adaptive_threshold"] = round(scene.cycles.adaptive_threshold, 4)
         settings["persistent_data"] = scene.render.use_persistent_data
