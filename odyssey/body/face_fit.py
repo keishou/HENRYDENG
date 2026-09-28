@@ -1,21 +1,25 @@
 """Fit the MakeHuman head of build_body's base human to a face seen in ONE frontal photo.
 
-Pipeline (all software, CPU):
-  1. render the model head frontally (orthographic, its own skin texture, eyes, brows, lashes) with the
-     numpy rasteriser and run MediaPipe FaceLandmarker on the render -> 478 landmarks on the model;
-     each is ray-cast onto the skin mesh and stored as (triangle, barycentrics) = a mesh anchor.
-  2. the subject's landmarks (photo pixels) are similarity-aligned to the model's landmarks in the
-     frontal plane; depth differences come from MediaPipe's own z of both faces (detector-consistent),
-     damped by `depth_gain`.
-  3. a bi-Laplacian (cotangent) deformation of the head/neck skin moves the anchors onto the targets and
-     falls off smoothly to zero at the lower neck and the back of the skull; eye / teeth / tongue helper
-     geometry is moved rigidly with the surrounding skin so the eyeballs stay spherical, lashes and
-     brows (proxies) follow the skin automatically.
-  4. closed loop: the warped head is rendered again, landmarks re-detected, and the 2D residuals are
-     fed back into the targets (a few iterations).
+The face is not warped freely: it is expressed with MakeHuman's own sculpted face / head / neck / ear
+modifiers (bounded weights, ridge-regularised), so the result stays anatomically clean (no bumps from
+landmark noise) and the eye / teeth helper geometry and all proxies follow automatically.
 
-Output: vertex_delta (19158,3) decimetres for BodyConfig(vertex_delta=...), plus the frontal
-"photo camera" (photo px -> model x/y) used for texture projection.
+    ff, v, img = fit_face(mh, cfg, lm_photo, cls_photo, "face_landmarker.task")
+    BodyConfig(extra_targets=ff.extra_targets)       # the fitted head
+
+Pipeline (all software, CPU):
+  1. the model head is rendered frontally (orthographic, own skin texture, eyes, brows) with the numpy
+     rasteriser and MediaPipe FaceLandmarker runs on the render; each model landmark is ray-cast onto
+     the skin mesh -> a mesh anchor (triangle, barycentrics).
+  2. the photo landmarks are similarity-aligned to the model's in the frontal plane (-> the "photo
+     camera" used later for texture projection); depth differences come from MediaPipe's own z of both
+     faces (detector-consistent), heavily damped.  Forehead / face-oval landmarks (hidden by the fringe,
+     or placed inconsistently between a photo and a CG render) get low weight.
+  3. extra linear terms: the front-view skin silhouette (ear outer edges, ear-lobe height, lower face and
+     neck) and the eye openings (lid heights, corners) are matched to the photo's segmentation / eye
+     contours.
+  4. bounded least squares over the modifier weights (one side of each decr/incr pair), then a closed
+     loop: render, re-detect, feed the 2D landmark residuals back into the targets (a few iterations).
 """
 from __future__ import annotations
 
@@ -23,15 +27,11 @@ from dataclasses import dataclass
 
 import numpy as np
 import scipy.sparse as sp
-import scipy.sparse.linalg as spla
 from PIL import Image
-from scipy.spatial import cKDTree
 
 from build_body import BodyConfig, vertex_normals
-from mh_assets import MH, N_SKIN
+from mh_assets import MH
 from raster import rasterize, sample_bilinear
-
-MP_MODEL_DEFAULT = None  # set by caller (path to face_landmarker.task)
 
 # MediaPipe face mesh index sets
 FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152,
@@ -221,66 +221,6 @@ def anchor_pos(v, at, ab):
     return np.einsum("nk,nkj->nj", ab, v[at])
 
 
-# ============================================================================ deformation
-def cotan_laplacian(V, T):
-    n = len(V)
-    I, J, W = [], [], []
-    for k in range(3):
-        i, j, o = T[:, k], T[:, (k + 1) % 3], T[:, (k + 2) % 3]
-        e1, e2 = V[i] - V[o], V[j] - V[o]
-        cot = np.einsum("ij,ij->i", e1, e2) / np.maximum(np.linalg.norm(np.cross(e1, e2), axis=1), 1e-12)
-        cot = np.clip(cot, -5, 50)  # robust to slivers
-        I += [i, j]
-        J += [j, i]
-        W += [0.5 * cot, 0.5 * cot]
-    I, J, W = np.concatenate(I), np.concatenate(J), np.concatenate(W)
-    A = sp.csr_matrix((W, (I, J)), shape=(n, n))
-    L = A - sp.diags(np.asarray(A.sum(1)).ravel())
-    ar = 0.5 * np.linalg.norm(np.cross(V[T[:, 1]] - V[T[:, 0]], V[T[:, 2]] - V[T[:, 0]]), axis=1)
-    M = np.zeros(n)
-    for k in range(3):
-        np.add.at(M, T[:, k], ar / 3)
-    return L.tocsr(), M
-
-
-class HeadDeformer:
-    """Bi-Laplacian deformation of the head/neck skin with soft anchor constraints."""
-
-    def __init__(self, v0, tris, free_mask, smooth_reg=1e-3):
-        self.v0 = v0
-        self.n = len(v0)
-        self.free = np.nonzero(free_mask)[0]
-        used = np.unique(tris)
-        L, M = cotan_laplacian(v0, tris)
-        M = np.where(M > 0, M, M[M > 0].mean())
-        Minv = sp.diags(1.0 / M)
-        Q = (L.T @ Minv @ L).tocsr()
-        self.Q = Q
-        self.M = M
-        self.scale = float(np.median(Q.diagonal()[used]))
-        self.smooth_reg = smooth_reg
-
-    def solve(self, at, ab, delta, w, lam=10.0, B=None):
-        """at/ab anchors (or a sparse selector B (m,n)), delta (m,3) desired displacement, w (m,) or (m,3)
-        weights -> (n,3) displacement.  Per-axis weights allow x-only constraints (silhouettes)."""
-        if B is None:
-            m = len(at)
-            rows = np.repeat(np.arange(m), 3)
-            B = sp.csr_matrix((ab.ravel(), (rows, at.ravel())), shape=(m, self.n))
-        w = np.asarray(w, float)
-        if w.ndim == 1:
-            w = np.repeat(w[:, None], 3, 1)
-        F = self.free
-        Bf = B[:, F].tocsr()
-        d = np.zeros((self.n, 3))
-        for j in range(3):
-            Wd = sp.diags(w[:, j] * lam * self.scale)
-            A = (self.Q[F][:, F] + Bf.T @ Wd @ Bf + sp.diags(self.smooth_reg * self.scale * np.ones(len(F)))).tocsc()
-            rhs = Bf.T @ (Wd @ delta[:, j])
-            d[F, j] = spla.spsolve(A, np.asarray(rhs).ravel())
-        return d
-
-
 # ============================================================================ helpers / groups
 def vertex_groups(base):
     """group name -> vertex ids (from the faces of each group)."""
@@ -290,30 +230,6 @@ def vertex_groups(base):
         if len(f):
             out[g] = np.unique(f.ravel())
     return out
-
-
-def propagate_to_helpers(v0, d_skin, base, skin_ids, y_cut):
-    """Displacement for non-skin vertices (helpers, joint cubes) near the head: inverse-distance blend of
-    the nearest skin vertices; eye helpers / eye joints move rigidly (mean), teeth + tongue too."""
-    d = d_skin.copy()
-    groups = vertex_groups(base)
-    other = np.setdiff1d(np.nonzero(v0[:, 1] > y_cut)[0], skin_ids)
-    if len(other):
-        tree = cKDTree(v0[skin_ids])
-        dist, nn = tree.query(v0[other], k=12)
-        w = 1.0 / np.maximum(dist, 1e-3) ** 2
-        w /= w.sum(1, keepdims=True)
-        d[other] = np.einsum("nk,nkj->nj", w, d_skin[skin_ids][nn])
-    rigid_sets = []
-    for side in ("l", "r"):
-        rigid_sets.append([f"helper-{side}-eye", f"joint-{side}-eye", f"joint-{side}-eye-target"])
-    rigid_sets.append(["helper-upper-teeth", "helper-lower-teeth", "helper-tongue", "joint-tongue-1",
-                       "joint-tongue-2", "joint-tongue-3", "joint-tongue-4", "joint-mouth"])
-    for names in rigid_sets:
-        ids = np.unique(np.concatenate([groups[n] for n in names if n in groups]))
-        core = groups.get(names[0], ids)
-        d[ids] = d[core].mean(0)
-    return d
 
 
 # ============================================================================ MakeHuman-target face fit
@@ -380,7 +296,7 @@ def fit_modifiers(mh, v0, at, ab, T, w_xy, w_z, extra=None, ridge=0.02, mods=Non
     mods = mods or face_modifiers(mh)
     n = len(v0)
     A0 = anchor_pos(v0, at, ab)
-    cols, labels = [], []
+    cols = []
     Ds = []
     for label, neg, pos in mods:
         for sgn, rels in ((-1, neg), (1, pos)):
@@ -536,6 +452,71 @@ def silhouette_terms(v, sc, cam, ph_L, ph_R, ph_ear, ear_mid, jaw_end, weight, n
     return S, T, Wt
 
 
+def eye_opening_terms(v, sc, cam, S2, weight, n, inset=(6.5, 2.0), corner_ext=1.0):
+    """Linear constraints that make the model's eye openings (where the eyeball is the front-most
+    surface, front view) match the photo's eye contours (MediaPipe, render px): lid heights across the
+    middle of each eye and the corner positions."""
+    import cv2
+    res = cam.res
+    P2, Z = cam.project(v)
+    tid, bary, dsk = rasterize(P2, Z, sc.tv, res, res)
+    ev = sc.eyes.fit(v)
+    etv, _ = sc.eyes.mesh.triangles(sc.eye_mask)
+    P2e, Ze = cam.project(ev)
+    te, _, de = rasterize(P2e, Ze, etv, res, res)
+    opening = (te >= 0) & (de > dsk)
+    I, J, W, T, Wt = [], [], [], [], []
+
+    def add(y, x, tx=None, ty=None):
+        if not (0 <= y < res and 0 <= x < res) or tid[y, x] < 0:
+            return
+        r = len(T)
+        t = sc.tv[tid[y, x]]
+        I.extend([r] * 3)
+        J.extend(list(t))
+        W.extend(list(bary[y, x]))
+        tgt = np.zeros(3)
+        w = np.zeros(3)
+        if tx is not None:
+            tgt[0] = (tx * 2 / res - 1) * cam.half + cam.center[0]
+            w[0] = weight
+        if ty is not None:
+            tgt[1] = (1 - ty * 2 / res) * cam.half + cam.center[1]
+            w[1] = weight
+        T.append(tgt)
+        Wt.append(w)
+
+    from face_texture import EYE_L, EYE_R
+    for ring in (EYE_R, EYE_L):
+        poly = np.zeros((res, res), np.uint8)
+        cv2.fillPoly(poly, [np.round(S2[ring] * 8).astype(np.int32)], 1, shift=3)
+        x0, x1 = S2[ring, 0].min(), S2[ring, 0].max()
+        cx = 0.5 * (x0 + x1)
+        box = np.zeros_like(opening)
+        box[:, int(x0) - 15:int(x1) + 15] = True
+        mo = opening & box & (np.abs(np.arange(res)[:, None] - S2[ring, 1].mean()) < 40)
+        if not mo.any():
+            continue
+        for x in range(int(x0 + 0.2 * (x1 - x0)), int(x1 - 0.2 * (x1 - x0)), 3):
+            pc = np.nonzero(poly[:, x])[0]
+            mc = np.nonzero(mo[:, x])[0]
+            if len(pc) < 2 or len(mc) < 2:
+                continue
+            add(mc.min() - 1, x, ty=pc.min() + inset[0])      # the photo contour sits on the lash line
+            add(mc.max() + 1, x, ty=pc.max() + 1 - inset[1])
+        ys, xs = np.nonzero(mo)
+        # corners: leftmost / rightmost opening pixels
+        # corners: the photo's almond eyes run out to thin inner / outer corners
+        for sel, tx in ((xs.argmin(), x0 + inset[1] + 1 - corner_ext), (xs.argmax(), x1 - inset[1] - 1 + corner_ext)):
+            y, x = ys[sel], xs[sel]
+            add(y, x - 1 if tx < cx else x + 1, tx=tx)
+    S = sp.csr_matrix((W, (I, J)), shape=(len(T), n))
+    T = np.array(T).reshape(-1, 3)
+    Wt = np.array(Wt).reshape(-1, 3)
+    cur = S @ v
+    return S, np.where(Wt > 0, T, cur), Wt
+
+
 @dataclass
 class FaceFit:
     extra_targets: list          # [(target rel, weight)] for BodyConfig.extra_targets
@@ -546,7 +527,7 @@ class FaceFit:
 
 
 def fit_face(mh: MH, cfg: BodyConfig, lm_photo, cls_photo, mp_model, iters=3, ridge=0.05, wz=0.2, oval_weight=0.1,
-             sil_weight=1.5, allow=("head-invertedtriangular", "head-oval"), log=print):
+             sil_weight=1.5, allow=("head-invertedtriangular", "head-oval"), eye_weight=3.0, log=print):
     """Fit MakeHuman face / head / neck modifiers so the model's frontal landmarks and lower-face
     silhouette match the photo.  lm_photo (478,3) MediaPipe landmarks in photo pixels; cls_photo (H,W)
     selfie-multiclass map of the photo (2 body skin, 3 face skin)."""
@@ -568,7 +549,7 @@ def fit_face(mh: MH, cfg: BodyConfig, lm_photo, cls_photo, mp_model, iters=3, ri
     w = np.ones(468)
     w[UPPER_FOREHEAD] = 0.1
     w[LEFT_BROW + RIGHT_BROW] = 0.5
-    w[LEFT_EYE + RIGHT_EYE] = 2.0
+    w[LEFT_EYE + RIGHT_EYE] = 1.0
     w[LIPS_INNER + LIPS_OUTER] = 1.5
     oval = [i for i in FACE_OVAL if i not in UPPER_FOREHEAD]
     w[oval] = oval_weight
@@ -600,6 +581,8 @@ def fit_face(mh: MH, cfg: BodyConfig, lm_photo, cls_photo, mp_model, iters=3, ri
     v = v0
     for it in range(iters + 1):
         Ssel, Tt, We = silhouette_terms(v, sc, cam, ph_L, ph_R, ph_ear, ear_mid, jaw_end, sil_weight, n)
+        Se, Te, We_e = eye_opening_terms(v, sc, cam, S2, eye_weight, n)
+        Ssel, Tt, We = sp.vstack([Ssel, Se]).tocsr(), np.vstack([Tt, Te]), np.vstack([We, We_e])
         Tt0 = Tt
         et, info = fit_modifiers(mh, v0, at, ab, T, w, wzv, extra=[(Ssel, Tt0, We)], ridge=ridge,
                                  mods=face_modifiers(mh, allow=allow))

@@ -209,17 +209,10 @@ def retarget(rig_json, bvh_path, fps_out=None, t0=None, t1=None):
 
 
 def mat_to_quat(M):
-    """(...,3,3) -> (...,4) xyzw."""
-    M = np.asarray(M)
-    w = np.sqrt(np.maximum(0, 1 + M[..., 0, 0] + M[..., 1, 1] + M[..., 2, 2])) / 2
-    x = np.sqrt(np.maximum(0, 1 + M[..., 0, 0] - M[..., 1, 1] - M[..., 2, 2])) / 2
-    y = np.sqrt(np.maximum(0, 1 - M[..., 0, 0] + M[..., 1, 1] - M[..., 2, 2])) / 2
-    z = np.sqrt(np.maximum(0, 1 - M[..., 0, 0] - M[..., 1, 1] + M[..., 2, 2])) / 2
-    x = np.copysign(x, M[..., 2, 1] - M[..., 1, 2])
-    y = np.copysign(y, M[..., 0, 2] - M[..., 2, 0])
-    z = np.copysign(z, M[..., 1, 0] - M[..., 0, 1])
-    q = np.stack([x, y, z, w], -1)
-    return q / np.linalg.norm(q, axis=-1, keepdims=True)
+    """(...,3,3) -> (...,4) xyzw (robust Shepperd conversion, see mh_rig.mat_to_quat)."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from mh_rig import mat_to_quat as _m2q
+    return _m2q(M)
 
 
 def save_npz(res, out):

@@ -24,6 +24,10 @@ scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 const key = new THREE.DirectionalLight(0xffffff, 2.0); scene.add(key);
 const gltf = await new GLTFLoader().loadAsync('/model.glb');
 scene.add(gltf.scene);
+// hair cards: alpha-to-coverage with MSAA instead of a hard alpha test (soft tips, no thinning at a
+// distance) -- the setting recommended for the film renderer
+gltf.scene.traverse(o => { if (o.isMesh && /hair/i.test(o.material.name)) {
+  o.material.alphaToCoverage = true; o.material.alphaTest = 0.3; o.material.needsUpdate = true; } });
 const box = new THREE.Box3().setFromObject(gltf.scene);
 const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
 window.bbox = { min: box.min.toArray(), max: box.max.toArray() };

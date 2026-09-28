@@ -115,9 +115,67 @@ def blend_normals(base, detail):
 
 
 # ----------------------------------------------------------------------------- main
+def fold_height(P, shirt, d_cuff, d_hem, joints, rng, CUFF_BAND=6.0, HEM_BAND=4.5):
+    """Low-frequency drape of a fitted knit as a height field (cm) over the shirt texels, from their rest
+    3D position P (cm): rings of bunched fabric above the cuffs, soft horizontal folds in the crook of
+    the elbow, diagonal drag lines from the armpits towards the waist, and gentle blousing above the
+    hem rib.  joints: rest joint positions (cm) 'shoulder.L', 'elbow.L', 'wrist.L' (and .R), 'chest'."""
+    h = np.zeros(P.shape[:2], np.float32)
+    noise = ndimage.gaussian_filter(rng.standard_normal((P.shape[0] // 32, P.shape[1] // 32)).astype(np.float32), 1.5)
+    noise = np.kron(noise / (noise.std() + 1e-6), np.ones((32, 32), np.float32))[:P.shape[0], :P.shape[1]]
+    for s in "LR":
+        sh, el, wr = (np.asarray(joints[f"{k}.{s}"], np.float32) for k in ("shoulder", "elbow", "wrist"))
+        for a, b in ((sh, el), (el, wr)):
+            pass
+        # arm parameter: distance along elbow -> wrist and angle about the forearm axis
+        ax = (wr - el) / np.linalg.norm(wr - el)
+        rel = P - el
+        t = rel @ ax
+        radial = rel - t[..., None] * ax
+        side = (P[..., 0] * (1 if s == "L" else -1)) > 8.0
+        m = shirt & side
+        # cuff bunching: 3-4 wavy rings in the 8 cm above the cuff rib
+        dd = d_cuff - CUFF_BAND
+        ring = m & (dd > 0) & (dd < 9)
+        ang = np.arctan2(radial[..., 2], radial[..., 1])
+        wav = dd + 0.5 * np.sin(2 * ang + 1.3 * noise) + 0.35 * noise
+        env = np.exp(-dd / 4.0) * np.clip(dd / 0.6, 0, 1)
+        h[ring] += (0.16 * env * (0.5 - 0.5 * np.cos(2 * np.pi * wav / 2.3)))[ring]
+        # crook of the elbow: folds on the inner (flexion) side of the arm
+        ua = (el - sh) / np.linalg.norm(el - sh)
+        flex_dir = ax - ua * (ax @ ua)                       # the forearm bends towards this side
+        flex_dir /= max(np.linalg.norm(flex_dir), 1e-6)
+        rel_e = P - el
+        de = np.linalg.norm(rel_e, axis=-1)
+        inner = np.clip((rel_e @ flex_dir) / np.maximum(de, 1e-6), 0, 1)
+        along = rel_e @ ((ax + ua) / np.linalg.norm(ax + ua))
+        env = np.exp(-(de / 6.0) ** 2) * inner ** 0.7
+        wv = along + 0.6 * noise + 0.4 * np.sin(2 * ang)
+        h[m] += (0.22 * env * (0.5 - 0.5 * np.cos(2 * np.pi * wv / 2.6)))[m]
+        # armpit drag lines on the torso (front and back): stripes running from the armpit down-in
+        arm_pit = sh + np.array([-(4.0 if s == "L" else -4.0), -9.0, 0.0], np.float32)
+        waist = np.asarray(joints["chest"], np.float32) * np.array([0, 1, 1], np.float32) + np.array([0, -24.0, 0], np.float32)
+        dirv = (waist - arm_pit)
+        dirv[2] = 0
+        dirv /= np.linalg.norm(dirv)
+        perp = np.array([-dirv[1], dirv[0], 0.0], np.float32)
+        rel_a = P - arm_pit
+        u_ = rel_a @ dirv
+        v_ = rel_a @ perp
+        torso = shirt & ~side & (np.abs(P[..., 0]) > 2.0)
+        env = np.clip(1 - u_ / 22.0, 0, 1) * np.clip(u_ / 2.0, 0, 1) * np.exp(-(v_ / 5.0) ** 2)
+        h[torso] += (0.12 * env * (0.5 - 0.5 * np.cos(2 * np.pi * (v_ + 0.5 * noise) / 2.4)))[torso]
+    # blousing above the hem rib: soft horizontal waves, stronger at the sides / back
+    dh = d_hem - HEM_BAND
+    bl = shirt & (dh > 0) & (dh < 10) & (P[..., 1] < joints["chest"][1] - 10)
+    env = np.exp(-dh / 5.0) * np.clip(dh / 0.8, 0, 1)
+    h[bl] += (0.12 * env * (0.5 - 0.5 * np.cos(2 * np.pi * (dh + 0.8 * noise) / 3.2)))[bl]
+    return ndimage.gaussian_filter(h, 2.0)
+
+
 def make_suit_textures(proxy, fitted_v_dm, size=4096, base_size=2048, seed=7,
                        knit_srgb=(24, 25, 30), trouser_srgb=(42, 43, 48), button_srgb=(202, 178, 142),
-                       placket_len_cm=9.5, placket_w_cm=2.3, n_buttons=3, log=print):
+                       placket_len_cm=9.5, placket_w_cm=2.3, n_buttons=3, joints_cm=None, log=print):
     rng = np.random.default_rng(seed)
     m = proxy.mesh
     pos_cm = fitted_v_dm * 10.0
@@ -250,6 +308,11 @@ def make_suit_textures(proxy, fitted_v_dm, size=4096, base_size=2048, seed=7,
     hb = ndimage.gaussian_filter(h, 1.2)
     n_btn = height_to_normal(hb, strength_knit * 9)
     n_shirt[but | placket] = n_btn[but | placket]
+    fold = None
+    if joints_cm is not None:
+        fold = fold_height(P, shirt, d_cuff, d_hem, joints_cm, rng, CUFF_BAND, HEM_BAND)
+        n_fold = height_to_normal(fold, px_per_cm)
+        n_shirt = blend_normals(n_fold, n_shirt)
     normal = np.zeros((size, size, 3), np.float32)
     normal[..., 2] = 1
     normal[shirt] = n_shirt[shirt]
@@ -258,6 +321,9 @@ def make_suit_textures(proxy, fitted_v_dm, size=4096, base_size=2048, seed=7,
     if mat.get("normalmapTexture_abs"):
         on = np.asarray(Image.open(mat["normalmapTexture_abs"]).convert("RGB").resize((size, size), Image.BICUBIC),
                         np.float32) / 127.5 - 1
+        # blur away the jeans' 5-pocket stitching / rivets; keep the low-frequency folds
+        on = ndimage.gaussian_filter(on, (size / 512.0, size / 512.0, 0))
+        on[..., :2] *= 1.3
         on /= np.linalg.norm(on, axis=-1, keepdims=True)
         normal[trous] = on[trous]
     # ---- base colour (linear), then sRGB
@@ -282,6 +348,7 @@ def make_suit_textures(proxy, fitted_v_dm, size=4096, base_size=2048, seed=7,
         od = np.asarray(Image.open(mat["diffuseTexture_abs"]).convert("RGB").resize((size, size), Image.BICUBIC),
                         np.float32) / 255.0
         lum = srgb_to_lin(od) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+        lum = ndimage.gaussian_filter(lum, size / 512.0)
         mu = float(np.median(lum[trous]))
         rel = np.clip(lum / max(mu, 1e-4), 0.3, 3.0)
         base[trous] = tr_lin * (rel[trous] ** 0.3)[:, None]
@@ -292,6 +359,9 @@ def make_suit_textures(proxy, fitted_v_dm, size=4096, base_size=2048, seed=7,
                         np.float32) / 255.0
         ao = 0.35 + 0.65 * ao
     ao[shirt] *= (0.85 + 0.15 * np.clip(hs[shirt], 0, 1))
+    if fold is not None:   # fold valleys a touch darker
+        fl = fold - ndimage.gaussian_filter(fold, 12)
+        ao[shirt] *= np.clip(1 + 1.2 * fl[shirt], 0.75, 1.0)
     # ---- pad + pack
     base = dilate(base, valid)
     normal = dilate(normal, valid)
@@ -309,3 +379,71 @@ def make_suit_textures(proxy, fitted_v_dm, size=4096, base_size=2048, seed=7,
             "neck_front_cm": neck_front.tolist(), "buttons_y_cm": by}
     return {"base": base_img, "normal": Image.fromarray(nrm8), "orm": orm_img, "info": info,
             "masks": {"shirt": shirt, "trousers": trous, "placket": placket, "buttons": but}}
+
+
+# ----------------------------------------------------------------------------- shoes
+def make_shoe_textures(proxy, fitted_v_dm, size=2048, upper_srgb=(24, 24, 26), sole_srgb=(226, 222, 214),
+                       lining_srgb=(40, 40, 42), sole_height_cm=2.3, log=print):
+    """MakeHuman's shoes02 / 05 / 06 share one low-top sneaker mesh; this turns it into a plain black
+    leather sneaker with an off-white cup sole.  The garment's own photo texture only contributes its
+    high-pass luminance (stitching, lace and panel edges) as a subtle relief; colours are constants.
+    Sole = texels whose rest-pose 3D point lies within sole_height_cm of the lowest shoe point (plus the
+    downward-facing outsole island); lining = texels inside the collar (behind the upper, near the top)."""
+    m = proxy.mesh
+    pos_cm = fitted_v_dm * 10.0
+    tv, tu = m.triangles()
+    F = len(m.fuv)
+    quad = m.fv[:, 3] != m.fv[:, 2]
+    tri_face = np.concatenate([np.arange(F), np.nonzero(quad)[0]])
+    # per-triangle normal (for the outsole / lining tests)
+    e1 = pos_cm[tv[:, 1]] - pos_cm[tv[:, 0]]
+    e2 = pos_cm[tv[:, 2]] - pos_cm[tv[:, 0]]
+    fn = np.cross(e1, e2)
+    fn /= np.maximum(np.linalg.norm(fn, axis=1, keepdims=True), 1e-9)
+    attr = np.concatenate([pos_cm[tv], np.repeat(fn[:, None], 3, 1)], 2)
+    lab, P = rasterize(m.vt[tu], attr, tri_face, size)
+    valid = lab >= 0
+    y = P[..., 1]
+    ymin = pos_cm[:, 1].min()
+    # each foot separately: height above its own lowest point
+    sole = valid & (y < ymin + sole_height_cm)
+    sole |= valid & (P[..., 4] < -0.6)                       # downward-facing outsole
+    # lining: inward-facing surface near the collar (normal points towards the ankle axis)
+    cx = np.where(P[..., 0] > 0, pos_cm[pos_cm[:, 0] > 0, 0].mean(), pos_cm[pos_cm[:, 0] <= 0, 0].mean())
+    heel_z = pos_cm[:, 2].min()
+    radial = np.stack([P[..., 0] - cx, np.zeros_like(y), P[..., 2] - (heel_z + 4.0)], -1)
+    inward = np.sum(radial * P[..., 3:6], -1) < -0.3 * np.linalg.norm(radial, axis=-1)
+    lining = valid & inward & (y > ymin + 4.0) & ~sole
+    upper = valid & ~sole & ~lining
+    mat = proxy.material or {}
+    od = np.asarray(Image.open(mat["diffuseTexture_abs"]).convert("L").resize((size, size), Image.BICUBIC),
+                    np.float32) / 255.0
+    od = ndimage.gaussian_filter(od, 1.5)
+    hp = od - ndimage.gaussian_filter(od, 5.0)
+    hp = np.clip(hp / (np.std(hp[upper]) + 1e-6), -3, 3)
+    base = np.zeros((size, size, 3), np.float32)
+    up_l, so_l, li_l = (srgb_to_lin(np.array(c) / 255.0) for c in (upper_srgb, sole_srgb, lining_srgb))
+    base[upper] = up_l * (1.0 + 0.015 * hp[upper])[:, None]
+    base[sole] = so_l * (1.0 + 0.04 * hp[sole])[:, None]
+    base[lining] = li_l
+    # thin darker line where the upper meets the sole (the glued edge)
+    d_sole = ndimage.distance_transform_edt(~sole)
+    edge = upper & (d_sole < size / 1024.0 * 3)
+    base[edge] *= 0.55
+    # height: stitches / lace edges from the high-pass, a soft groove along the sole edge
+    h = 0.06 * ndimage.gaussian_filter(hp, 1.5)            # smooth leather: only a trace of the panel lines
+    h[sole] = 0.2 * hp[sole] + 0.8 * np.sin(np.clip(y[sole] - ymin, 0, None) * 2 * np.pi / 0.35) * \
+        (y[sole] > ymin + 0.6)
+    n = height_to_normal(h, 0.9)
+    rough = np.where(sole, 0.62, np.where(lining, 0.85, 0.44)).astype(np.float32)
+    # leather grain: very fine noise in the roughness
+    rng = np.random.default_rng(3)
+    rough[upper] += 0.05 * ndimage.gaussian_filter(rng.standard_normal((size, size)).astype(np.float32), 1.2)[upper]
+    base = dilate(base, valid)
+    n = dilate(n, valid)
+    rough = dilate(rough, valid)
+    log(f"  shoe texture {size}: sole {sole.mean():.3f} upper {upper.mean():.3f} lining {lining.mean():.3f}")
+    base8 = (lin_to_srgb(base) * 255 + 0.5).astype(np.uint8)
+    nrm8 = ((n * 0.5 + 0.5) * 255 + 0.5).astype(np.uint8)
+    orm8 = (np.stack([np.ones_like(rough), np.clip(rough, 0, 1), np.zeros_like(rough)], -1) * 255 + 0.5).astype(np.uint8)
+    return {"base": Image.fromarray(base8), "normal": Image.fromarray(nrm8), "orm": Image.fromarray(orm8)}
