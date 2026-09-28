@@ -10,7 +10,7 @@ Everything on screen is generated in the browser: the scenes are GLSL, the sound
 
 ## 剧照 / Stills
 
-Frames from the rendered run (`out/ether.mp4`, 1280×720, 3′57″):
+Frames from the rendered run (1280×720, 3′57″). A compressed copy of the whole video is in [`video/ether-web.mp4`](video/ether-web.mp4) (20 MB); the full-quality master is what `tools/render.js` produces.
 
 | | |
 | --- | --- |
