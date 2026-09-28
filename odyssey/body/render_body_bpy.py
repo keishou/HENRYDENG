@@ -77,14 +77,19 @@ def tune_materials(meshes):
                     bsdf.inputs["Sheen Roughness"].default_value = 0.45
                 bsdf.inputs["Specular IOR Level"].default_value = 0.35
             elif name.startswith("eyes"):
-                bsdf.inputs["Coat Weight"].default_value = 0.6
-                bsdf.inputs["Coat Roughness"].default_value = 0.03
+                # a wet cornea, but a small soft catchlight (a big glassy one reads as a doll's eye)
+                bsdf.inputs["Coat Weight"].default_value = 0.18
+                bsdf.inputs["Coat Roughness"].default_value = 0.06
+                # the eyeball's own (rough) specular lays a grey veil over the dark iris under big
+                # softboxes; the coat alone gives the wet catchlight
+                bsdf.inputs["Specular IOR Level"].default_value = 0.15
             elif name.startswith(("eyebrows", "eyelashes", "hair")):
                 m.surface_render_method = "DITHERED" if hasattr(m, "surface_render_method") else None
                 if name.startswith("hair"):
                     bsdf.inputs["Coat Weight"].default_value = 0.0
-                    bsdf.inputs["Sheen Weight"].default_value = 0.15
-                    bsdf.inputs["Sheen Roughness"].default_value = 0.4
+                    bsdf.inputs["Sheen Weight"].default_value = 0.1
+                    bsdf.inputs["Sheen Roughness"].default_value = 0.5
+                    bsdf.inputs["Specular IOR Level"].default_value = min(bsdf.inputs["Specular IOR Level"].default_value, 0.3)
 
 
 def cyclorama(color=(0.62, 0.60, 0.57), radius=1.2, depth=6.0, width=14.0, height=6.0, back_y=2.2):
@@ -146,7 +151,7 @@ def studio(scene, cam_dist=5.2, cam_h=1.02, look_h=0.92, lens=85, res=(1080, 192
     # key: big soft box front-left, above eye level (warm)
     area_light("key", (-2.6, -3.2, 3.0), (0, 0, 1.2), 420, 2.2, (1.0, 0.95, 0.9), 1.6)
     # fill: front-right, low, cool, very soft
-    area_light("fill", (3.2, -2.8, 1.3), (0, 0, 1.0), 70, 3.0, (0.9, 0.95, 1.0), 2.0)
+    area_light("fill", (3.2, -2.8, 1.3), (0, 0, 1.0), 150, 3.0, (0.95, 0.97, 1.0), 2.0)
     # rims: behind left / right to separate the black knit from the backdrop
     area_light("rim_l", (-2.2, 2.0, 2.4), (0, 0, 1.3), 260, 0.8, (1.0, 0.97, 0.94), 2.0)
     area_light("rim_r", (2.3, 1.8, 2.2), (0, 0, 1.2), 230, 0.8, (0.95, 0.97, 1.0), 2.0)
@@ -228,6 +233,9 @@ def portraits(scene, cam, top, a, out, info):
     cam.data.type = "PERSP"
     cam.data.lens = 85
     scene.render.resolution_x, scene.render.resolution_y = 1200, 1500
+    # portrait fill: a big soft source just above the camera (key : fill about 2 : 1 on the face), so the
+    # lower face does not read lumpy from one-sided shading; small and diffuse in the eyes
+    area_light("face_fill", tuple(head_c + Vector((0.15, -1.6, 0.35))), tuple(head_c), 60, 1.2, (1.0, 0.97, 0.94), 0.9)
     cam.location = head_c + Vector((0, -0.95, 0.03))
     cam.rotation_euler = (head_c + Vector((0, 0, -0.02)) - cam.location).to_track_quat("-Z", "Y").to_euler()
     shots = () if a.photo_framing_only else (("front", 0), ("34", -35), ("side", -90), ("back", 180), ("34_left", 35))
@@ -282,6 +290,7 @@ def main():
     ap.add_argument("--view", default="AgX", help="view transform (AgX, Standard, Filmic, ...)")
     ap.add_argument("--look", default="AgX - Punchy")
     ap.add_argument("--photo-framing-only", action="store_true")
+    ap.add_argument("--hide", default="", help="comma-separated mesh names to hide (e.g. outfit,hair)")
     a = ap.parse_args(argv)
     out = Path(a.outdir)
     out.mkdir(parents=True, exist_ok=True)
@@ -290,6 +299,9 @@ def main():
     scene = bpy.context.scene
     top, arm, meshes = import_glb(a.glb, a.action)
     tune_materials(meshes)
+    for o in meshes:
+        if any(o.name.startswith(h) for h in a.hide.split(",") if h):
+            o.hide_render = True
     cam = studio(scene, res=res)
     cycles(scene, a.samples)
     scene.view_settings.exposure = a.exposure

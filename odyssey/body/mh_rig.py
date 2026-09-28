@@ -66,17 +66,39 @@ def blender_bone_matrix(head, tail, roll):
 
 
 def mat_to_quat(M):
-    """(...,3,3) rotation -> (...,4) quaternion xyzw (glTF order)."""
+    """(...,3,3) rotation -> (...,4) unit quaternion xyzw (glTF order), w >= 0.
+    Shepperd's method: branch on the largest of w, x, y, z so the result is exact also near 180 deg
+    (w ~ 0), where taking signs from near-zero matrix differences flips components at random."""
     M = np.asarray(M, float)
-    w = np.sqrt(np.maximum(0, 1 + M[..., 0, 0] + M[..., 1, 1] + M[..., 2, 2])) / 2
-    x = np.sqrt(np.maximum(0, 1 + M[..., 0, 0] - M[..., 1, 1] - M[..., 2, 2])) / 2
-    y = np.sqrt(np.maximum(0, 1 - M[..., 0, 0] + M[..., 1, 1] - M[..., 2, 2])) / 2
-    z = np.sqrt(np.maximum(0, 1 - M[..., 0, 0] - M[..., 1, 1] + M[..., 2, 2])) / 2
-    x = np.copysign(x, M[..., 2, 1] - M[..., 1, 2])
-    y = np.copysign(y, M[..., 0, 2] - M[..., 2, 0])
-    z = np.copysign(z, M[..., 1, 0] - M[..., 0, 1])
-    q = np.stack([x, y, z, w], -1)
-    return q / np.linalg.norm(q, axis=-1, keepdims=True)
+    shp = M.shape[:-2]
+    M = M.reshape(-1, 3, 3)
+    tr = M[:, 0, 0] + M[:, 1, 1] + M[:, 2, 2]
+    cand = np.stack([tr, M[:, 0, 0], M[:, 1, 1], M[:, 2, 2]], 1)
+    k = cand.argmax(1)
+    q = np.zeros((len(M), 4))
+    # w largest
+    i = k == 0
+    s = np.sqrt(np.maximum(1 + tr[i], 1e-12)) * 2
+    q[i] = np.stack([(M[i, 2, 1] - M[i, 1, 2]) / s, (M[i, 0, 2] - M[i, 2, 0]) / s,
+                     (M[i, 1, 0] - M[i, 0, 1]) / s, 0.25 * s], 1)
+    # x largest
+    i = k == 1
+    s = np.sqrt(np.maximum(1 + M[i, 0, 0] - M[i, 1, 1] - M[i, 2, 2], 1e-12)) * 2
+    q[i] = np.stack([0.25 * s, (M[i, 0, 1] + M[i, 1, 0]) / s, (M[i, 0, 2] + M[i, 2, 0]) / s,
+                     (M[i, 2, 1] - M[i, 1, 2]) / s], 1)
+    # y largest
+    i = k == 2
+    s = np.sqrt(np.maximum(1 - M[i, 0, 0] + M[i, 1, 1] - M[i, 2, 2], 1e-12)) * 2
+    q[i] = np.stack([(M[i, 0, 1] + M[i, 1, 0]) / s, 0.25 * s, (M[i, 1, 2] + M[i, 2, 1]) / s,
+                     (M[i, 0, 2] - M[i, 2, 0]) / s], 1)
+    # z largest
+    i = k == 3
+    s = np.sqrt(np.maximum(1 - M[i, 0, 0] - M[i, 1, 1] + M[i, 2, 2], 1e-12)) * 2
+    q[i] = np.stack([(M[i, 0, 2] + M[i, 2, 0]) / s, (M[i, 1, 2] + M[i, 2, 1]) / s, 0.25 * s,
+                     (M[i, 1, 0] - M[i, 0, 1]) / s], 1)
+    q = np.where(q[:, 3:4] < 0, -q, q)
+    q /= np.linalg.norm(q, axis=1, keepdims=True)
+    return q.reshape(shp + (4,))
 
 
 @dataclass
@@ -210,25 +232,61 @@ class Rig:
         return out
 
     # ------------------------------------------------------------- stand pose
-    def pose_stand(self, arm_out_deg=6.0, arm_fwd_deg=3.0, elbow_deg=12.0, wrist_deg=0.0,
-                   palm_back_deg=10.0, twist_split=0.5, finger_curl_deg=(6.0, 12.0, 7.0), thumb_deg=6.0,
-                   finger_close=0.7, thumb_close=0.6, shoulder_drop_deg=2.0, shoulder_share=0.5,
-                   leg_in_deg=2.5, toe_out_deg=6.0):
+    def pose_stand(self, arm_out_deg=3.0, arm_fwd_deg=3.0, elbow_deg=14.0, forearm_in_deg=3.0, wrist_deg=0.0,
+                   palm_back_deg=18.0, twist_split=0.5,
+                   finger_curl_deg=((8.0, 14.0, 8.0), (10.0, 18.0, 10.0), (12.0, 22.0, 12.0), (15.0, 26.0, 14.0)),
+                   thumb_curl_deg=(10.0, 12.0, 10.0), finger_close=1.0, finger_squeeze_deg=2.5, thumb_close=0.85,
+                   shoulder_drop_deg=0.0, shoulder_share=0.25,
+                   stance_half_width=0.095, toe_out_deg=7.0, straight_flex_deg=4.0,
+                   weight_shift=1.0, weight_side="R", pelvis_roll_deg=2.6, pelvis_yaw_deg=3.0,
+                   free_foot_fwd=0.045, free_foot_out=0.035, free_toe_out_deg=14.0, stand_foot_in=0.022,
+                   spine_counter=1.5, head_tilt_deg=1.5, head_turn_deg=2.5):
         """Relaxed standing pose built from MakeHuman's A-pose rest (upper arms ~49 deg below horizontal,
-        elbows already bent ~45 deg forward).  Each arm segment is AIMED at a world target (not rotated additively): upper arm
-        hangs slightly out/forward, soft elbow, palm faces the thigh (turned a little back), fingers
-        loosely curled; legs come in a little with the feet kept flat and turned out.
-        Returns {bone: rest-frame rotation} for fk()."""
+        elbows already bent ~45 deg forward).  Each limb segment is AIMED at a world target (not rotated
+        additively).
+
+        Arms: hang close to the body with soft elbows, the palm faces the thigh (thumb forward), fingers
+        closed together with a graded curl (index least, little finger most), thumb along the index.
+        Legs: solved with two-bone IK to foot targets on the floor, knees bending over the toes.
+        weight_shift in [0, 1] blends in a relaxed contrapposto: weight on `weight_side` (that leg nearly
+        straight, its foot under the body), the pelvis rolls so the free hip drops and the free knee softens,
+        the free foot sits a little forward and turned out; the spine counter-rolls (shoulders tilt the
+        other way) and the head tilts / turns slightly.  weight_shift=0 gives the symmetric neutral stance
+        that motion retargeting is calibrated on.  Returns {bone: rest-frame rotation} for fk()."""
         ix = self.index
         E = {}
         fwd = np.array([0.0, 0.0, 1.0])
         up = np.array([0.0, 1.0, 0.0])
+        ws = float(weight_shift)
 
         def D_of(name):
             return self.fk(E)[0][ix[name]]
 
+        def H_of(name):
+            return self.fk(E)[1][ix[name]]
+
         def unit(x):
             return x / np.linalg.norm(x)
+
+        def frame(a, b):
+            """Orthonormal frame with first axis along a, second as close as possible to b."""
+            e1 = unit(a)
+            e2 = unit(b - e1 * (b @ e1))
+            return np.column_stack([e1, e2, np.cross(e1, e2)])
+
+        # ---- pelvis / spine / head (contrapposto): weight side sw = +1 (L) / -1 (R)
+        sw = 1.0 if weight_side == "L" else -1.0
+        roll = np.radians(pelvis_roll_deg) * ws
+        # free hip (side -sw) drops: rotation about +z by angle sw*roll lifts +x when sw > 0
+        E["root"] = axis_angle(up, -sw * np.radians(pelvis_yaw_deg) * ws) @ axis_angle(fwd, sw * roll)
+        # counter-roll spread over the lumbar / thoracic spine: net chest roll = (1 - spine_counter) * roll
+        for b, w in (("spine04", 0.3), ("spine03", 0.35), ("spine02", 0.35)):
+            E[b] = axis_angle(fwd, -sw * roll * spine_counter * w) @ axis_angle(up, sw * np.radians(pelvis_yaw_deg) * ws * w)
+        # neck brings the head back near level, with a slight tilt and turn
+        chest_roll = sw * roll * (1 - spine_counter)
+        head_roll = -chest_roll + np.radians(head_tilt_deg) * ws * sw
+        for b, w in (("neck01", 0.35), ("neck02", 0.35), ("head", 0.3)):
+            E[b] = axis_angle(up, -sw * np.radians(head_turn_deg) * ws * w) @ axis_angle(fwd, head_roll * w)
 
         for s, sx in (("L", 1.0), ("R", -1.0)):
             hd = lambda n: self.head[ix[f"{n}.{s}"]]  # noqa: E731
@@ -239,16 +297,18 @@ class Rig:
             out, fw = np.radians(arm_out_deg), np.radians(arm_fwd_deg)
             t_ua = np.array([sx * np.sin(out), -np.cos(out) * np.cos(fw), np.cos(out) * np.sin(fw)])
             # share part of the arm drop with shoulder01 (the deltoid/acromion bone): with linear blend
-            # skinning a single 40 deg rotation at the gleno-humeral joint balloons the shoulder cap
+            # skinning a single 40 deg rotation at the gleno-humeral joint balloons the shoulder cap, but
+            # a large share drops and narrows the shoulder line (wine-bottle slope); ~0.25 keeps it level
             full = min_rot(a, D_of(f"shoulder01.{s}").T @ t_ua)
             ang_full = np.arccos(np.clip((np.trace(full) - 1) / 2, -1, 1))
             if shoulder_share > 0 and ang_full > 1e-6:
                 axf = np.array([full[2, 1] - full[1, 2], full[0, 2] - full[2, 0], full[1, 0] - full[0, 1]])
                 E[f"shoulder01.{s}"] = axis_angle(axf, shoulder_share * ang_full)
             E[f"upperarm01.{s}"] = min_rot(a, D_of(f"shoulder01.{s}").T @ t_ua)
-            # forearm: bend forward from the upper arm by elbow_deg
+            # forearm: bend forward from the upper arm by elbow_deg, and a little in towards the thigh
             f = hd("wrist") - hd("lowerarm01")
             t_fa = axis_angle(np.cross(t_ua, fwd), np.radians(elbow_deg)) @ t_ua
+            t_fa = axis_angle(fwd, sx * np.radians(forearm_in_deg)) @ t_fa
             E[f"lowerarm01.{s}"] = min_rot(f, D_of(f"upperarm02.{s}").T @ t_fa)
             # palm normal in rest from the thumb side: with the palm on the thigh the thumb points forward,
             # which gives n = sx * (hand_dir x thumb_dir) for both hands
@@ -274,23 +334,24 @@ class Rig:
             t_h = axis_angle(np.cross(t_fa, n_w), np.radians(wrist_deg)) @ unit(t_fa)
             Dw = D_of(f"lowerarm02.{s}")
             E[f"wrist.{s}"] = min_rot(h_rest, Dw.T @ t_h)
-            # fingers: close the MakeHuman splay towards the middle finger (about the palm normal), then flex
-            # towards the palm (rest-frame axes; the hand moves rigidly with the wrist)
+            # fingers: close the MakeHuman splay onto the middle finger (about the palm normal) and squeeze
+            # them together a little more (they touch), then a graded flex towards the palm (index least,
+            # little finger most) -- rest-frame axes; the hand moves rigidly with the wrist
             d3 = self.tail[ix[f"finger3-1.{s}"]] - self.head[ix[f"finger3-1.{s}"]]
 
-            def adduct(d, target, frac):
+            def adduct(d, target, frac, extra=0.0):
                 a_ = d - n_rest * (d @ n_rest)
                 b_ = target - n_rest * (target @ n_rest)
                 ang_ = np.arctan2(np.cross(a_, b_) @ n_rest, a_ @ b_)
-                return axis_angle(n_rest, frac * ang_)
+                return axis_angle(n_rest, frac * ang_ + np.sign(ang_) * extra)
 
             for fi in range(2, 6):
                 for k in range(1, 4):
                     b = f"finger{fi}-{k}.{s}"
                     d = self.tail[ix[b]] - self.head[ix[b]]
-                    curl = np.radians(finger_curl_deg[k - 1] * (1 + 0.12 * (fi - 2)))
+                    curl = np.radians(finger_curl_deg[fi - 2][k - 1])
                     if k == 1 and fi != 3:
-                        A = adduct(d, d3, finger_close)
+                        A = adduct(d, d3, finger_close, np.radians(finger_squeeze_deg) * (0.5 if fi == 4 else 1.0))
                         E[b] = axis_angle(np.cross(A @ d, n_rest), curl) @ A
                     else:
                         E[b] = axis_angle(np.cross(d, n_rest), curl)
@@ -299,19 +360,70 @@ class Rig:
                 b = f"finger1-{k}.{s}"
                 d = self.tail[ix[b]] - self.head[ix[b]]
                 if k == 1:  # thumb: swing towards the index finger in 3D (MakeHuman's rest thumb sticks out)
-                    full = min_rot(d, d2 + 0.15 * np.linalg.norm(d2) * n_rest)
+                    full = min_rot(d, d2 + 0.2 * np.linalg.norm(d2) * n_rest)
                     ang_ = np.arccos(np.clip((np.trace(full) - 1) / 2, -1, 1))
                     axf = np.array([full[2, 1] - full[1, 2], full[0, 2] - full[2, 0], full[1, 0] - full[0, 1]])
                     A = axis_angle(axf, thumb_close * ang_) if ang_ > 1e-6 else np.eye(3)
-                    E[b] = axis_angle(np.cross(A @ d, n_rest), np.radians(thumb_deg)) @ A
+                    E[b] = axis_angle(np.cross(A @ d, n_rest), np.radians(thumb_curl_deg[0])) @ A
                 else:
-                    E[b] = axis_angle(np.cross(d, n_rest), np.radians(thumb_deg))
-            # legs: bring the feet in, turn them out a little, keep the soles flat
-            R_in = axis_angle(fwd, -sx * np.radians(leg_in_deg))
-            R_out = axis_angle(up, sx * np.radians(toe_out_deg))
-            E[f"upperleg01.{s}"] = R_out @ R_in
-            # D[foot] = D[lowerleg02] @ E_foot = (R_out R_in) E_foot  ->  want R_out (flat sole, toes out)
-            E[f"foot.{s}"] = (R_out @ R_in).T @ R_out
+                    E[b] = axis_angle(np.cross(d, n_rest), np.radians(thumb_curl_deg[k - 1]))
+
+        # ---- legs: two-bone IK to foot targets on a common floor, knees over the toes, soles flat
+        Dfk, Hfk = self.fk(E)
+        L = {}
+        for s in "LR":
+            hip, kn, an = (self.head[ix[f"{n}.{s}"]] for n in ("upperleg01", "lowerleg01", "foot"))
+            L[s] = (np.linalg.norm(kn - hip), np.linalg.norm(an - kn))
+        ank_rest_z = self.head[ix["foot.L"]][2]
+
+        def reach(s):   # hip -> ankle distance for a leg bent by straight_flex_deg
+            l1, l2 = L[s]
+            return np.sqrt(l1 ** 2 + l2 ** 2 + 2 * l1 * l2 * np.cos(np.radians(straight_flex_deg)))
+
+        targets, yaws = {}, {}
+        for s, sx in (("L", 1.0), ("R", -1.0)):
+            hip = Hfk[ix[f"upperleg01.{s}"]]
+            stand = (sx == sw)
+            x = sx * stance_half_width
+            z = ank_rest_z
+            yaw = toe_out_deg
+            if ws > 0:
+                if stand:
+                    x -= sx * stand_foot_in * ws
+                else:
+                    x += sx * free_foot_out * ws
+                    z += free_foot_fwd * ws
+                    yaw += (free_toe_out_deg - toe_out_deg) * ws
+            targets[s] = np.array([x, np.nan, z])
+            yaws[s] = yaw
+        # floor height: the standing leg (both legs when neutral) reaches it with straight_flex_deg of bend
+        ys = []
+        for s in ("LR" if ws == 0 else ("L" if sw > 0 else "R")):
+            hip = Hfk[ix[f"upperleg01.{s}"]]
+            t = targets[s]
+            ys.append(hip[1] - np.sqrt(max(reach(s) ** 2 - (t[0] - hip[0]) ** 2 - (t[2] - hip[2]) ** 2, 1e-6)))
+        ank_y = min(ys)
+        for s, sx in (("L", 1.0), ("R", -1.0)):
+            targets[s][1] = ank_y
+            hip = Hfk[ix[f"upperleg01.{s}"]]
+            l1, l2 = L[s]
+            T = targets[s]
+            r = T - hip
+            d = np.clip(np.linalg.norm(r), abs(l1 - l2) + 1e-4, 0.9995 * (l1 + l2))
+            u = unit(r)
+            R_out = axis_angle(up, sx * np.radians(yaws[s]))
+            kf = R_out @ fwd                              # the knee bends over the toes
+            v = unit(kf - u * (kf @ u))
+            ca = np.clip((l1 ** 2 + d ** 2 - l2 ** 2) / (2 * l1 * d), -1, 1)
+            knee = hip + l1 * (ca * u + np.sqrt(1 - ca ** 2) * v)
+            ankle = hip + u * d
+            hip0, kn0, an0 = (self.head[ix[f"{n}.{s}"]] for n in ("upperleg01", "lowerleg01", "foot"))
+            W_th = frame(knee - hip, kf) @ frame(kn0 - hip0, fwd).T
+            W_sh = frame(ankle - knee, kf) @ frame(an0 - kn0, fwd).T
+            Dp = D_of(f"pelvis.{s}")
+            E[f"upperleg01.{s}"] = Dp.T @ W_th
+            E[f"lowerleg01.{s}"] = D_of(f"upperleg02.{s}").T @ W_sh
+            E[f"foot.{s}"] = D_of(f"lowerleg02.{s}").T @ R_out
         return E
 
     # -------------------------------------------------------------- export
