@@ -2,6 +2,25 @@
 
 A new cloud session starts with no memory of the previous conversation. It only sees what is committed on branch
 `claude/quirky-hopper-3gv1u9` of `keishou/HENRYDENG`. This file is everything it needs to pick up the work.
+Last updated 2026-09-28.
+
+## 0. Current direction (read this first)
+
+The user changed direction on 2026-09-28. The film is now **《潜影》 Latent Image**: a stream-of-consciousness,
+philosophical, high-aesthetic music short film (意识流，哲学高级审美音乐短片) on the same song, with **the user himself as
+the protagonist**. His face comes from the passport-style photo he supplied; other angles and the full body come from
+high-aesthetic generative models (his words: "这张脸就够了，其他角度拿，全身，拿其他高审美模型来拼"). The aesthetic
+reference he sent is @anabology's runway film (https://x.com/anabology/status/2103534482930491441), studied in
+`research/REFERENCE.md`.
+
+- **Source of truth:** `claudepop/BIBLE.md` (rules) and `claudepop/shots.json` (63 shots, timing, text, cameras, plate
+  prompts). Validate with `python3 claudepop/film/tools/validate_shots.py`.
+- **Two stages.** Stage 1 (no fal): the engine, type/HUD, every 3D/TYPE shot at final quality and a full 720p animatic in
+  which every GEN shot is a previs render of the 3D stand-in. Stage 2 (a session with a fal key): character sheet →
+  keyframes → video plates → automatic likeness verification → drop into the locked edit (BIBLE section 10).
+- **Superseded:** the K-pop / Claude-idol / meme brief in section 4 and the v1 "riso-zine idol" preproduction another
+  session pushed (archived in `claudepop/archive/v1_riso_idol/`, see its README). The v1 study reports in `audit/`,
+  `craft/` and `zeitgeist/` are still useful background.
 
 ## 1. First steps in the new session
 
@@ -9,43 +28,44 @@ A new cloud session starts with no memory of the previous conversation. It only 
 2. Clone the reference project, which contains the song and the timed lyrics:
    `GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 https://github.com/JohnHeibel/pdoomvideo /home/user/johnheibel/pdoomvideo`
    - song: `assets/pdoom.mp3` (156.7 s, 48 kHz stereo). Never re-encode it for the final mix and never commit it here.
-   - lyrics: `src/lyrics.js` (`[start, end, text]`, timed from burned-in subtitles; refined timings live in `claudepop/analysis/`).
-3. Check the external services before planning around them (the keys are attached by the environment's agent proxy, so no key is
-   needed in the command; a 401 means the credential is missing or has the wrong header):
+   - lyrics: `src/lyrics.js`; the word-level timing we cut to is `claudepop/analysis/song.json`.
+3. **Ask the user to attach the photo again** (the phone photo of the form page with the passport photo on it). It is not
+   in git and the previous container is gone. Save it as `claudepop/out/subject/page.jpg`, then rebuild the stand-in,
+   the identity pack and the similarity scorer: `claudepop/avatar/tools/build_all.sh` (about 15 min plus downloads).
+   Regenerate the audio intermediates (stems, vocal envelope) with `claudepop/analysis/tools/run_all.sh` if needed.
+4. Check the external services (keys are attached by the environment's agent proxy; a 401 means missing or wrong header):
    ```bash
-   curl -sS -o /dev/null -w "fal %{http_code}\n" https://queue.fal.run/fal-ai/flux/dev/requests/00000000-0000-0000-0000-000000000000/status
+   curl -sS -o /dev/null -w "fal %{http_code}\n" https://fal.run/fal-ai/flux/schnell -X POST -H 'Content-Type: application/json' -d '{}'
    curl -sS -o /dev/null -w "elevenlabs %{http_code}\n" https://api.elevenlabs.io/v1/user
    curl -sS -o /dev/null -w "x.com %{http_code}\n" https://x.com
    ```
-   Expected setup (done by the user in the environment editor): Network access = Full; API credentials:
-   fal → hosts `fal.run`, `*.fal.run`, `rest.alpha.fal.ai`, header `Authorization: Key <key>`;
-   ElevenLabs → host `api.elevenlabs.io`, header `xi-api-key: <key>`.
-   If a check fails, tell the user exactly which host/header, and continue with the pure-JS path.
-4. Read `claudepop/BIBLE.md` (the production bible and shot list) and `claudepop/shots.json`, then the study reports under
-   `claudepop/analysis/`, `claudepop/audit/`, `claudepop/zeitgeist/`, `claudepop/craft/` and the treatments in `claudepop/treatments/`.
-   If `BIBLE.md` is missing, the preproduction run did not finish: redo it from the brief below.
+   Expected setup (done by the user in the environment editor, API credentials): fal → hosts `fal.run`, `*.fal.run`,
+   `rest.fal.ai`, `api.fal.ai`, `rest.alpha.fal.ai`, header `Authorization: Key <key>`; ElevenLabs (optional, sound
+   design only) → host `api.elevenlabs.io`, header `xi-api-key: <key>`. A 422 from the fal check means authenticated.
+   In the 2026-09-28 session both returned 401 (no credentials), so stage 1 was done without them.
+5. Read `BIBLE.md`, `shots.json`, `avatar/REPORT.md` (incl. Verification and the angle/light rules), `avatar/LOOKDEV.md`,
+   `research/GENMEDIA.md` (the fal playbook: models, schemas, prices, moderation, privacy), `research/REFERENCE.md`,
+   `research/REPORT.md` and `research/lyric_concepts.json`.
+6. Before generating anything with his face: confirm the user's consent to send the photo to fal (BIBLE 10.7) and the open
+   questions in BIBLE section 12.
 
-## 2. What already exists
-
-**Preproduction is complete (2026-09-28).** The winning treatment is **OUT OF REGISTER** (`treatments/zine.md`): Claude ✻ as a
-cut-paper K-pop idol printed in a runaway riso zine, with grafts from the idol and timeline treatments (`treatments/JUDGING.md`).
-`BIBLE.md` is the document the build follows; `tools/build_shots.py` is the single source of truth for timing and regenerates
-`shots.json` plus the generated parts of the bible (`python3 claudepop/tools/build_shots.py --check` validates).
-Key numbers: 132 BPM, 4/4, beat k = 0.235 + 0.454545 k s, 60 fps master, 79 shots, 303 type events, 14 optional video plates.
-Open questions for the user are in `BIBLE.md` section 10 (notably which Shinji meme is meant, and what "CDR" refers to).
-The four study `REPORT.md` files were reconstructed from the workflow's structured results.
+## 2. What exists
 
 | Path | What |
 |---|---|
-| `claudepop/analysis/` | Song analysis: beat grid, sections, per-word/syllable lyric timing (`song.json`, `lyrics_refined.js`), alignment tools. Vocal stems are not in git: regenerate with the tools (the UVR MDX-Net model must be re-downloaded) |
-| `claudepop/audit/` | Audit of the previous P(doom) video: how its p5.brush paper look works, what is weak, a Linux render harness (`tools/render_linux.mjs`) |
-| `claudepop/zeitgeist/` | AI-Twitter events and memes (Navier–Stokes, math being eaten, the Shinji meme…), dated and sourced, mapped to lyric lines |
-| `claudepop/craft/` | K-pop MV directing, kinetic typography, paper/riso rendering techniques for headless Chromium |
-| `claudepop/treatments/` | Three competing treatments (idol stage, doomscroll timeline, riso zine) |
-| `claudepop/BIBLE.md`, `shots.json` | The judged synthesis: style bible, cast, exact timing table, both production modes, module split |
+| `claudepop/BIBLE.md`, `shots.json` | The locked production bible and shot list for Latent Image |
+| `claudepop/analysis/` | `song.json` (132 BPM grid, sections, phrases, word/letter timing, hits, events), `REPORT.md`, tools (`run_all.sh`) |
+| `claudepop/research/` | Philosophy of every lyric and film language (`REPORT.md`, `lyric_concepts.json`), the anabology/donald/Claude-Pop reference study (`REFERENCE.md`), the fal playbook (`GENMEDIA.md`) |
+| `claudepop/avatar/` | Stand-in build (photo face fitted to a MakeHuman body, rigged, CMU mocap), identity pack and ArcFace similarity scorer: code in `tools/`, `REPORT.md`, `LOOKDEV.md` |
+| `claudepop/film/` | The film engine (three.js, deterministic `renderAt(t)`), look-dev harness, `src/avatar.js`, validators |
+| `claudepop/treatments/` | The three v2 treatments (A room, B omega point, C reconstruction → chosen) |
+| `claudepop/audit/`, `craft/`, `zeitgeist/` | v1 studies: the previous P(doom) video, K-pop/type/paper craft, AI-Twitter memes |
+| `claudepop/archive/v1_riso_idol/` | The superseded v1 preproduction |
 
-Not in git (gitignored, regenerate when needed): rendered frames, contact sheets, fonts, audio stems, any png/jpg/mp4/wav.
-The repo is PUBLIC: keep generated media out of it (use `claudepop/out/`, which is ignored, or a private repo/artifact).
+Not in git (gitignored, regenerate when needed): everything under `claudepop/out/` (the photo, avatar meshes and
+textures, identity pack, stems, frames, renders), fonts, any png/jpg/mp4/wav. **The repo is PUBLIC and the film shows a
+real person's face: no face data or face-derived numbers in tracked files, ever.** Deliver media through private
+artifacts or chat files.
 
 ## 3. Environment facts
 
@@ -53,13 +73,14 @@ The repo is PUBLIC: keep generated media out of it (use `claudepop/out/`, which 
   args `--use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist`. That Chromium has no H.264 decoder:
   decode video plates to image sequences with ffmpeg first.
 - ffmpeg: `pip install imageio-ffmpeg`, then `python3 -c "import imageio_ffmpeg as f; print(f.get_ffmpeg_exe())"`.
-- A proven frame-accurate JS film pipeline (deterministic `renderAt(t)`, Playwright capture to JPEG frames, resumable,
-  then ffmpeg encode) exists in `odyssey/film/` (`render.mjs`, `src/main.js`, `src/engine.js`). Reuse its structure.
+- Workflow agents run at most 2 at a time on this machine (min(16, CPUs − 2)).
+- Subagents cannot write report `.md` files (the harness refuses them); have them return the text and save it yourself.
+- Measured render costs (SwiftShader): BIBLE 9.6. A full 1080p pass is about an hour on one worker.
 - Files sent to the user in chat must be under 30 MiB. Larger videos go in an artifact, split into ≤15 MB parts (see
-  `odyssey/split_fmp4.py` and how `odyssey/out/site/` streamed fragments via MediaSource).
+  `odyssey/split_fmp4.py`).
 - When using playwright with a proxy, set `PLAYWRIGHT_DISABLE_FORCED_CHROMIUM_PROXIED_LOOPBACK=1` so localhost is not proxied.
 
-## 4. The brief (verbatim, as the user gave it)
+## 4. The original brief (verbatim, as the user gave it; partly superseded by section 0)
 
 > I've included an MP4 file and an original link to a video that is called "Claude Pop." It's a pop song that is about increasing rate of progress and the experience of the singularity approaching.
 >
@@ -111,18 +132,17 @@ The repo is PUBLIC: keep generated media out of it (use `claudepop/out/`, which 
 >
 > make no mistakes.
 
-## 5. Gaps and assumptions to confirm with the user
+## 5. Gaps and assumptions
 
-- "foul" in the brief means **fal** (fal.ai), which hosts the image models and Seedance.
-- The `/asic` folder, its docs (ElevenLabs, Seedance "gen media" markdown) and the `mesh` / `video scoring` skills did not exist in the
-  previous session. Ask the user to attach them (e.g. as a GitHub repo) if they matter; otherwise use the public API docs.
-- The MP4 of the original Blender video never arrived. The audio is assumed to be `pdoom.mp3` from the PDoomVideo repo
-  ("I'm Upping My P(doom)", 156.7 s). Confirm if the user has a different master.
-- x.com was blocked in the previous session, so the reference posts were never viewed. If the network is now Full, look at
-  https://x.com/other__reality/status/2102514581684052169 and the user's aesthetic reference
-  https://x.com/anabology/status/2103534482930491441 before locking the style.
+- "foul" in the brief means **fal** (fal.ai).
+- The `/asic` folder, its docs and the `mesh` / `video scoring` skills never existed in these sessions; the public API
+  docs were used instead (`research/GENMEDIA.md`).
+- The MP4 of the original Blender video never arrived; the audio is `pdoom.mp3` from the PDoomVideo repo.
+- Research found that the original brief is donald's public prompt (x.com/donaldjewkes/status/2102801469976248500) and
+  that anabology's film uses a different song (`research/REFERENCE.md`).
 
 ## 6. Other project on this branch
 
-`odyssey/` is a separate, earlier project (a film built from the user's passport photo, plus a full-body model in `odyssey/body/`).
-Leave it alone unless the user asks about it. Its face-derived data must never be committed (the repo is public).
+`odyssey/` is a separate, earlier project (ΟΥΤΙΣ, a film built from the same photo, plus a MakeHuman full-body pipeline in
+`odyssey/body/` that the Latent Image stand-in builds on). Leave it alone unless the user asks about it. Its face-derived
+data must never be committed.
