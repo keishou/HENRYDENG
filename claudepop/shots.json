@@ -1,0 +1,3850 @@
+{
+ "title": "Latent Image / 潜影",
+ "version": "2026-09-28",
+ "fps": 24,
+ "width": 1920,
+ "height": 1080,
+ "aspect": "16:9",
+ "duration": 156.6507,
+ "frames": 3760,
+ "bpm": 132.0,
+ "t0": 0.2356,
+ "beat_period": 0.454545,
+ "audio": "johnheibel/pdoomvideo/assets/pdoom.mp3 (untouched; times = gapless decode, LAME priming 1105 samples skipped)",
+ "timing_source": "claudepop/analysis/song.json",
+ "conventions": {
+  "frame": "frame index = round(t * 24); a shot covers frames [frames[0], frames[1])",
+  "window": "7:9 = 840x1080, 1:1 = 1080x1080, 4:3 = 1440x1080, 16:9 = full; centred; outside is INK",
+  "he_live": "true when HE (plate, stand-in or silhouette) moves on screen; allowed only inside sung-word spans (line start - 2 frames to line end + 6 frames, gaps < 0.6 s merged), except rule_break",
+  "sources": "GEN = a plate made in stage 2 (stage 1 renders the previs of the same camera/timing/framing); 3D = our three.js render; TYPE = our 2D/type engine",
+  "paths": "gen.refs are relative to claudepop/ and all live under claudepop/out/ (gitignored)",
+  "ID": "{ID} in prompts = the prompt fragment in claudepop/out/avatar/identity/identity.md; never paste it into tracked files"
+ },
+ "windows": [
+  {
+   "t0": 0.0,
+   "shape": "7:9"
+  },
+  {
+   "t0": 16.5992,
+   "dur_frames": 8,
+   "shape": "1:1"
+  },
+  {
+   "t0": 23.872,
+   "dur_frames": 8,
+   "shape": "4:3"
+  },
+  {
+   "t0": 41.36,
+   "t1": 44.095,
+   "shape": "16:9",
+   "ease": "smoothstep"
+  },
+  {
+   "t0": 153.418,
+   "t1": 153.872,
+   "shape": "7:9",
+   "ease": "smoothstep"
+  }
+ ],
+ "sections": [
+  {
+   "name": "intro",
+   "t0": 0.0,
+   "t1": 2.0538,
+   "bars": [
+    1,
+    1
+   ],
+   "energy": 0.359,
+   "mix_db": -30.5,
+   "lines": [],
+   "window": "7:9",
+   "register": "DARKROOM",
+   "hud_density": "premise",
+   "shots": [
+    "S01"
+   ],
+   "asl_s": 2.05
+  },
+  {
+   "name": "verse1",
+   "t0": 2.0538,
+   "t1": 16.5992,
+   "bars": [
+    2,
+    9
+   ],
+   "energy": 0.682,
+   "mix_db": -22.7,
+   "lines": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "window": "7:9",
+   "register": "DARKROOM + STUDIO",
+   "hud_density": "low",
+   "shots": [
+    "S02",
+    "S03",
+    "S04",
+    "S05"
+   ],
+   "asl_s": 3.64
+  },
+  {
+   "name": "prechorus1",
+   "t0": 16.5992,
+   "t1": 23.872,
+   "bars": [
+    10,
+    13
+   ],
+   "energy": 0.766,
+   "mix_db": -20.7,
+   "lines": [
+    5,
+    6
+   ],
+   "window": "1:1",
+   "register": "BEAM",
+   "hud_density": "low",
+   "shots": [
+    "S06",
+    "S07"
+   ],
+   "asl_s": 3.64
+  },
+  {
+   "name": "chorus1",
+   "t0": 23.872,
+   "t1": 38.4174,
+   "bars": [
+    14,
+    21
+   ],
+   "energy": 0.866,
+   "mix_db": -18.3,
+   "lines": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "window": "4:3",
+   "register": "HALL master, then DARKROOM",
+   "hud_density": "medium",
+   "shots": [
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14"
+   ],
+   "asl_s": 2.08
+  },
+  {
+   "name": "verse2",
+   "t0": 38.4174,
+   "t1": 52.9629,
+   "bars": [
+    22,
+    29
+   ],
+   "energy": 0.877,
+   "mix_db": -18.1,
+   "lines": [
+    12,
+    13,
+    14,
+    15
+   ],
+   "window": "4:3",
+   "register": "HALL",
+   "hud_density": "low",
+   "shots": [
+    "S15"
+   ],
+   "asl_s": 14.55
+  },
+  {
+   "name": "prechorus2",
+   "t0": 52.9629,
+   "t1": 60.2356,
+   "bars": [
+    30,
+    33
+   ],
+   "energy": 0.793,
+   "mix_db": -20.1,
+   "lines": [
+    16,
+    17
+   ],
+   "window": "16:9",
+   "register": "HALL, DARKROOM",
+   "hud_density": "low",
+   "shots": [
+    "S16",
+    "S17a",
+    "S17b",
+    "S17c",
+    "S18"
+   ],
+   "asl_s": 1.45
+  },
+  {
+   "name": "chorus2",
+   "t0": 60.2356,
+   "t1": 74.7811,
+   "bars": [
+    34,
+    41
+   ],
+   "energy": 0.902,
+   "mix_db": -17.5,
+   "lines": [
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+   ],
+   "window": "16:9",
+   "register": "HALL master, DARKROOM",
+   "hud_density": "medium",
+   "shots": [
+    "S19",
+    "S20",
+    "S21",
+    "S22",
+    "S23",
+    "S24",
+    "S25",
+    "S26"
+   ],
+   "asl_s": 1.82
+  },
+  {
+   "name": "verse3",
+   "t0": 74.7811,
+   "t1": 89.3265,
+   "bars": [
+    42,
+    49
+   ],
+   "energy": 0.905,
+   "mix_db": -17.4,
+   "lines": [
+    23,
+    24,
+    25,
+    26
+   ],
+   "window": "16:9",
+   "register": "DARKROOM, HALL",
+   "hud_density": "medium",
+   "shots": [
+    "S27",
+    "S28a",
+    "S28b",
+    "S29"
+   ],
+   "asl_s": 3.64
+  },
+  {
+   "name": "breakdown_prechorus3",
+   "t0": 89.3265,
+   "t1": 96.5992,
+   "bars": [
+    50,
+    53
+   ],
+   "energy": 0.639,
+   "mix_db": -23.8,
+   "lines": [
+    27,
+    28
+   ],
+   "window": "16:9",
+   "register": "stills: DARKROOM",
+   "hud_density": "off",
+   "shots": [
+    "S30",
+    "S31",
+    "S32"
+   ],
+   "asl_s": 2.42
+  },
+  {
+   "name": "chorus3_breakdown",
+   "t0": 96.5992,
+   "t1": 109.3265,
+   "bars": [
+    54,
+    60
+   ],
+   "energy": 0.667,
+   "mix_db": -23.1,
+   "lines": [
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34
+   ],
+   "window": "16:9",
+   "register": "stills: HALL, DARKROOM, STUDIO",
+   "hud_density": "off",
+   "shots": [
+    "S33",
+    "S34",
+    "S35",
+    "S36",
+    "S37",
+    "S38",
+    "S39"
+   ],
+   "asl_s": 1.82
+  },
+  {
+   "name": "build",
+   "t0": 109.3265,
+   "t1": 111.1447,
+   "bars": [
+    61,
+    61
+   ],
+   "energy": 0.827,
+   "mix_db": -19.3,
+   "lines": [],
+   "window": "16:9",
+   "register": "DARKROOM",
+   "hud_density": "off",
+   "shots": [],
+   "asl_s": null
+  },
+  {
+   "name": "bridge",
+   "t0": 111.1447,
+   "t1": 125.6901,
+   "bars": [
+    62,
+    69
+   ],
+   "energy": 0.938,
+   "mix_db": -16.6,
+   "lines": [
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40
+   ],
+   "window": "16:9",
+   "register": "HALL, BEAM, DARKROOM, STUDIO",
+   "hud_density": "medium",
+   "shots": [
+    "S40",
+    "S41",
+    "S42",
+    "S43a",
+    "S43b",
+    "S43c",
+    "S43d",
+    "S44",
+    "S45",
+    "S46",
+    "S47"
+   ],
+   "asl_s": 1.32
+  },
+  {
+   "name": "chorus4",
+   "t0": 125.6901,
+   "t1": 138.4174,
+   "bars": [
+    70,
+    76
+   ],
+   "energy": 0.926,
+   "mix_db": -16.9,
+   "lines": [
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+   ],
+   "window": "16:9",
+   "register": "HALL master (1 beat), DARKROOM, BEAM",
+   "hud_density": "medium -> none at 133.38",
+   "shots": [
+    "S48",
+    "S49",
+    "S50",
+    "S51",
+    "S52"
+   ],
+   "asl_s": 2.55
+  },
+  {
+   "name": "was_it_all_for_show",
+   "t0": 138.4174,
+   "t1": 140.2356,
+   "bars": [
+    77,
+    77
+   ],
+   "energy": 0.42,
+   "mix_db": -29.0,
+   "lines": [
+    45
+   ],
+   "window": "16:9",
+   "register": "DARKROOM frozen",
+   "hud_density": "none",
+   "shots": [
+    "S53"
+   ],
+   "asl_s": 1.82
+  },
+  {
+   "name": "outro_climax",
+   "t0": 140.2356,
+   "t1": 152.9629,
+   "bars": [
+    78,
+    84
+   ],
+   "energy": 0.979,
+   "mix_db": -15.6,
+   "lines": [],
+   "window": "16:9",
+   "register": "HALL night -> white",
+   "hud_density": "PROOF only",
+   "shots": [
+    "S54",
+    "S55"
+   ],
+   "asl_s": 6.36
+  },
+  {
+   "name": "outro_tail",
+   "t0": 152.9629,
+   "t1": 156.6507,
+   "bars": [
+    85,
+    86
+   ],
+   "energy": 0.356,
+   "mix_db": -40.3,
+   "lines": [],
+   "window": "16:9",
+   "register": "HALL high-key, black",
+   "hud_density": "end slug only",
+   "shots": [
+    "S56",
+    "S57"
+   ],
+   "asl_s": 1.84
+  }
+ ],
+ "shots": [
+  {
+   "id": "S01",
+   "title": "THE TRAY: eyes develop",
+   "section": "intro",
+   "t0": 0.0,
+   "t1": 5.9,
+   "dur": 5.9,
+   "frames": [
+    0,
+    142
+   ],
+   "anchor": "file start",
+   "lyric_lines": [
+    0
+   ],
+   "text_mode": "CARD",
+   "text_layout": "triptych: EN stack left margin, ZH vertical right margin; premise mono 0.236-1.90",
+   "text": [
+    {
+     "mode": "PREMISE",
+     "layout": "left margin x72, cap 40 px mono",
+     "lines_en": [
+      "1 PHOTOGRAPH",
+      "FRONT ONLY"
+     ],
+     "lines_zh": [
+      "一张照片",
+      "只有正面"
+     ],
+     "on": [
+      0.2356,
+      1.1447
+     ],
+     "off": 1.9
+    },
+    {
+     "mode": "CARD",
+     "line": 0,
+     "layout": "margin-stack-left",
+     "rows": [
+      "I",
+      "see",
+      "sparks",
+      "of AGI",
+      "in your",
+      "eyes"
+     ]
+    },
+    {
+     "mode": "ZH",
+     "line": 0,
+     "layout": "vertical-right-2col"
+    }
+   ],
+   "description": "WINDOW 7:9 centred in INK. Top-down, locked: a sheet of white paper under a thin layer of developer in a black tray; the dim overhead safelight lies on the liquid as a soft grey rectangle (luminance only, no hue). Frame 0 is already this image. From 0.2356 the liquid rocks (one slow wave per 2 bars) and development starts in 16 discrete pulses on the 16th grid (0.2356 ... 1.9401): each pulse doubles the number of developed halftone dots, ordered by rate = darkness x certainty, so the pupils and irises lead, the hair mass follows as a soft cloud; by 1.1447 two eyes are readable. 2.045 \"I\": pupils snap to full density. 2.50 \"see\": irises full. 2.852 \"sparks\": a small VOICE-orange catchlight in each eye (the only colour inside the window, 6-frame bloom). 3.635 / 4.32 / 4.54 (A-G-I): brows and lash line; nostrils and lip line; hair mass. 4.77-5.23 \"in your eyes\": midtones fill outward from the eyes; the ear rims, the outer hairline and the jaw outline stay thin (density cap = certainty). 5.40: the print blinks once (stage 1: both catchlights go out for 2 frames; stage 2: P06). The print is the photograph itself (identity/face_clean_1024.png) cropped to the face: no border, no page, no passport framing, no scan line, no lift into 3D.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked, FOV 16 deg vertical, print fills the 7:9 window (face width ~70 % of window)",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "7:9",
+   "motifs": [
+    "TRAY",
+    "WINDOW",
+    "CATCHLIGHTS"
+   ],
+   "beat_hits": [
+    0.2356,
+    1.1447,
+    2.045,
+    2.5,
+    2.852,
+    3.635,
+    4.32,
+    4.54,
+    4.77,
+    5.23,
+    5.4
+   ],
+   "transition_in": "first frame",
+   "transition_out": "cut on \"Your\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "premise": true,
+    "proof": "0001 from 2.045"
+   },
+   "gen_upgrade": {
+    "plate": "P06",
+    "use": "print texture 5.36-5.52 s: one real blink",
+    "optional": true
+   }
+  },
+  {
+   "id": "S02",
+   "title": "HE, alive, in the darkroom",
+   "section": "verse1",
+   "t0": 5.9,
+   "t1": 7.725,
+   "dur": 1.825,
+   "frames": [
+    142,
+    185
+   ],
+   "anchor": "L1 \"Your\"",
+   "lyric_lines": [
+    1
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left margin stack (7:9), ZH vertical right",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 1,
+     "layout": "margin-stack-left"
+    },
+    {
+     "mode": "ZH",
+     "line": 1,
+     "layout": "vertical-right"
+    }
+   ],
+   "description": "WINDOW 7:9. Medium close-up, dead frontal, eye level: HE stands in the darkroom, one dim soft light above and just in front of the lens (key within 30 deg of the camera axis), wet prints on a wire soft behind him. He breathes, swallows once, holds the lens. 7.05 \"nervous\": the prints behind him tremble and one drip falls.",
+   "environment": "darkroom/line",
+   "camera": "eye level, 85 mm equiv (FOV 16 deg v), locked, head top at 12 % of window height",
+   "motion_clips": [
+    "stand_breathe_loop",
+    "layers: breath amp 1.0 period 4.4; look target = lens; noise amp 0.3 seed 2 (the swallow)"
+   ],
+   "look": "DARKROOM",
+   "window": "7:9",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    7.05
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"that's\"",
+   "module": "line",
+   "source": "GEN",
+   "he_live": true,
+   "gen": {
+    "plate": "P01",
+    "route": "A keyframe-to-video",
+    "aspect": "9:16 (cropped to 7:9)",
+    "duration": 5,
+    "use": [
+     0.5,
+     2.325
+    ],
+    "keyframe_prompt": "{ID}. Medium close-up, dead frontal, eye level, 85 mm: the man stands in a dark photographic darkroom and looks straight into the lens, calm, faintly uneasy. One dim soft light just above the lens lights his face evenly. Behind him, out of focus, wet white photographic prints hang from a wire on paperclips. Black surroundings. Vertical composition, face centred in the upper half. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "fal-ai/kling-video/v3/pro/image-to-video (audio off)",
+    "alt_models": [
+     "minimax/h3-max/image-to-video",
+     "fal-ai/veo3.1/reference-to-video (hero candidate)"
+    ],
+    "video_prompt": "He holds the lens and breathes slowly; he swallows once at about 1.2 s; at about 1.6 s the prints behind him tremble and one drop falls from a print. Camera locked. Mouth stays closed.",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/front*.png",
+     "out/genmedia/sheet/approved/3q_*.png",
+     "out/genmedia/sheet/approved/wardrobe_*.png",
+     "out/film/previs/S02_first.jpg (layout)"
+    ],
+    "fallback": "stand-in at 0 deg in the 3D darkroom under the same soft key: subject.glb (photo look, breath, swallow) or bust.glb at 0 deg, whichever scores higher on face_similarity at the planned light (decided in stage 1)",
+    "gate": "face_similarity.py on the ungraded plate: median >= match and p10 >= reject over frames with a face and yaw <= 35 deg; face in >= 80 % of sampled frames; no internal cut (scene score < 0.3); contact sheet reviewed by eye (hands, teeth, wardrobe, stray text, background faces)"
+   }
+  },
+  {
+   "id": "S03",
+   "title": "Identical prints",
+   "section": "verse1",
+   "t0": 7.725,
+   "t1": 9.545,
+   "dur": 1.82,
+   "frames": [
+    185,
+    229
+   ],
+   "anchor": "L2 \"that's\"",
+   "lyric_lines": [
+    2
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left margin stack; typed so it completes at 8.44 (200 ms before the sung \"surprise\")",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 2,
+     "layout": "margin-stack-left",
+     "lead": 0.2
+    },
+    {
+     "mode": "ZH",
+     "line": 2,
+     "layout": "vertical-right"
+    }
+   ],
+   "description": "WINDOW 7:9. The drying line recedes from the lens into the dark (vertical one-point); one print of his face hangs near the lens. On each beat (7.963, 8.417, 8.872, 9.327) an identical print appears further along the line. The THOUGHT \"that's no surprise\" finishes typing at 8.44, before the singer reaches \"surprise\" (8.64): zero surprisal, stated once in picture and once in type. PROOF 0002 -> 0006.",
+   "environment": "darkroom/line",
+   "camera": "eye level, 50 mm equiv, locked, line from lower left toward the vanishing point",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "7:9",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    7.9629,
+    8.4174,
+    8.44,
+    8.872,
+    9.3265
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"There\"",
+   "module": "line",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "proof": "0002-0006"
+   }
+  },
+  {
+   "id": "S04",
+   "title": "The drop",
+   "section": "verse1",
+   "t0": 9.545,
+   "t1": 13.18,
+   "dur": 3.635,
+   "frames": [
+    229,
+    316
+   ],
+   "anchor": "L3 \"There\"",
+   "lyric_lines": [
+    3
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "left margin bottom (EN), ZH vertical right",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 3,
+     "layout": "margin-bottom-left"
+    },
+    {
+     "mode": "ZH",
+     "line": 3,
+     "layout": "vertical-right"
+    }
+   ],
+   "description": "WINDOW 7:9. Top-down tray, his face in the developer, soft. A single drop falls from the corner of a print hanging above and strikes the liquid on \"drop\" (10.70); ripple rings cross the face, and behind the rings the face is sharper (grokking). A hairline loss curve in the left margin steps down on the same frame. The bass swells in at 12.054 and is full at 12.963: the rocking deepens. Held to \"now\" (13.18) so the live man never enters before the voice.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked, as S01",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "7:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    10.7,
+    12.0538,
+    12.9629
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"now\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S05",
+   "title": "THE STUDIO: the sitter",
+   "section": "verse1",
+   "t0": 13.18,
+   "t1": 16.5992,
+   "dur": 3.4192,
+   "frames": [
+    316,
+    398
+   ],
+   "anchor": "L4 \"now\"",
+   "lyric_lines": [
+    4
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "left margin bottom (on INK), ZH vertical right",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 4,
+     "layout": "margin-bottom-left"
+    },
+    {
+     "mode": "ZH",
+     "line": 4,
+     "layout": "vertical-right"
+    }
+   ],
+   "description": "WINDOW 7:9. THE STUDIO, first appearance: seamless white, flat shadowless frontal light, a tape X under the stool. He sits upright on the stool facing the lens, hands on knees, full figure, eyes a little below the lens; slow push-in. On \"boss\" (15.675) he lifts his eyes into the lens: the sitter commands whoever portrays him. A flow line: no darkroom operation.",
+   "environment": "studio",
+   "camera": "eye level, 50 mm equiv, push-in FOV 30 -> 24 deg v over the shot (ease-in-out)",
+   "motion_clips": [
+    "pose_sit_stool_upright (static key, to author)",
+    "layers: breath amp 0.8; look target floor 1.5 m ahead -> lens over 12 frames at 15.675 (head pitch change <= 8 deg, eyes <= 22 deg)"
+   ],
+   "look": "STUDIO",
+   "window": "7:9",
+   "motifs": [
+    "WINDOW"
+   ],
+   "beat_hits": [
+    13.18,
+    14.7811,
+    15.675
+   ],
+   "transition_in": "cut",
+   "transition_out": "2-frame white flash at 16.599",
+   "module": "studio_beam",
+   "source": "GEN",
+   "he_live": true,
+   "gen": {
+    "plate": "P02",
+    "route": "A keyframe-to-video",
+    "aspect": "9:16 (cropped to 7:9)",
+    "duration": 5,
+    "use": [
+     0.5,
+     3.919
+    ],
+    "keyframe_prompt": "{ID}. Full figure, frontal, eye level, 50 mm: the man sits upright on a plain wooden stool in the centre of a seamless white photo studio, hands resting on his knees, feet flat, a small tape X on the floor under the stool. Flat, shadowless, even frontal light. White background fills the frame. Vertical composition, figure centred, face small in the upper third, eyes lowered slightly. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "fal-ai/kling-video/v3/pro/image-to-video (audio off)",
+    "alt_models": [
+     "minimax/h3-max/image-to-video"
+    ],
+    "video_prompt": "Very slow push-in toward him. He sits still and breathes. At about 3.0 s he slowly lifts his eyes and looks straight into the lens, and holds. Mouth stays closed.",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/front*.png",
+     "out/genmedia/sheet/approved/3q_*.png",
+     "out/genmedia/sheet/approved/wardrobe_*.png",
+     "out/film/previs/S05_first.jpg (layout)"
+    ],
+    "fallback": "the stand-in seated (pose_sit_stool_upright) in the 3D studio under flat frontal light, face small; eyes lift through the look layer",
+    "gate": "face_similarity.py on the ungraded plate: median >= match and p10 >= reject over frames with a face and yaw <= 35 deg; face in >= 80 % of sampled frames; no internal cut (scene score < 0.3); contact sheet reviewed by eye (hands, teeth, wardrobe, stray text, background faces); face may be small: detection at two scales is required, not a close-up rule"
+   }
+  },
+  {
+   "id": "S06",
+   "title": "THE PRAYER: the projection eats his face",
+   "section": "prechorus1",
+   "t0": 16.5992,
+   "t1": 22.9629,
+   "dur": 6.3637,
+   "frames": [
+    398,
+    551
+   ],
+   "anchor": "bar 10 downbeat: first kick",
+   "lyric_lines": [
+    5,
+    6
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left margin stack (1:1), letter parts for C-G-P-T; ZH vertical right",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 5,
+     "layout": "margin-stack-left",
+     "parts": true
+    },
+    {
+     "mode": "ZH",
+     "line": 5,
+     "layout": "vertical-right"
+    },
+    {
+     "mode": "CARD",
+     "line": 6,
+     "layout": "stop-card (begins on \"I'm\" 22.73, spans into S07)"
+    }
+   ],
+   "description": "16.599: a 2-frame white flash (the one exposure) and the WINDOW widens 7:9 -> 1:1 in 8 frames; the old edges linger one bar as hairlines labelled EDGE OF PHOTOGRAPH. THE BEAM: medium close-up, eye level, black space; he stands in a hard projector beam that comes from beside the lens (frontal, so the face is evenly lit), eyes closed, chin at most 10 deg up. The beam carries a projection of his own photograph, offset (+6 % x, -4 % y) and 10 % too large, a ghost face over his face; it slides into exact registration on \"alive\" (21.36): the machine's version eats his face. The four registration marks start doubled and converge on the same frame. The projector lamp flickers on the 16th hat roll (22.054-22.963). The kick drives; the image never cuts.",
+   "environment": "beam",
+   "camera": "eye level, 85 mm equiv, locked, MCU (head top at 10 % of window)",
+   "motion_clips": [
+    "stand_breathe_loop",
+    "layers: breath amp 0.6; look target = lens; eyes closed via lid bones if they test clean, else open"
+   ],
+   "look": "BEAM",
+   "window": "1:1",
+   "motifs": [
+    "BEAM",
+    "WINDOW"
+   ],
+   "beat_hits": [
+    16.5992,
+    16.62,
+    17.22,
+    17.93,
+    18.42,
+    21.36,
+    22.0538
+   ],
+   "transition_in": "2-frame white flash + window 7:9 -> 1:1",
+   "transition_out": "hard cut to black on the stop",
+   "module": "studio_beam",
+   "source": "GEN",
+   "he_live": true,
+   "hud": {
+    "job_line": true,
+    "proof": true,
+    "edge_labels": [
+     16.5992,
+     18.4174
+    ]
+   },
+   "gen": {
+    "plate": "P03",
+    "route": "A keyframe-to-video + our 2D projection comp",
+    "aspect": "1:1",
+    "duration": 8,
+    "use": [
+     0.5,
+     6.864
+    ],
+    "keyframe_prompt": "{ID}. Medium close-up, frontal, eye level, 85 mm, square frame: the man stands in a black void, eyes closed, chin raised very slightly, face calm as if in prayer. A single hard projector beam from directly beside the camera lights his face evenly and falls off to black at his shoulders. Black background. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "fal-ai/kling-video/v3/pro/image-to-video (audio off), 8 s",
+    "alt_models": [
+     "fal-ai/veo3.1/reference-to-video (hero candidate, 8 s)",
+     "minimax/h3-max/image-to-video"
+    ],
+    "video_prompt": "Almost motionless. One slow breath. Eyes stay closed. A faint flicker of the projector lamp. Camera locked. Mouth stays closed.",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/front*.png",
+     "out/genmedia/sheet/approved/3q_*.png",
+     "out/genmedia/sheet/approved/wardrobe_*.png",
+     "out/film/previs/S06_first.jpg (layout)"
+    ],
+    "post": "MediaPipe landmarks tracked per plate frame drive the similarity transform of the projected photograph (offset -> registration at 21.36)",
+    "fallback": "the stand-in (subject.glb, photo look) at 0 deg under a SpotLight.map projection of the photograph from photo_camera, with the same ghost comp; final quality",
+    "gate": "face_similarity.py on the ungraded plate: median >= match and p10 >= reject over frames with a face and yaw <= 35 deg; face in >= 80 % of sampled frames; no internal cut (scene score < 0.3); contact sheet reviewed by eye (hands, teeth, wardrobe, stray text, background faces)"
+   }
+  },
+  {
+   "id": "S07",
+   "title": "Stop card 1",
+   "section": "prechorus1",
+   "t0": 22.9629,
+   "t1": 23.872,
+   "dur": 0.9091,
+   "frames": [
+    551,
+    573
+   ],
+   "anchor": "bar 13 beat 3: a-cappella stop",
+   "lyric_lines": [
+    6
+   ],
+   "text_mode": "CARD",
+   "text_layout": "full-frame stop card: \"upping my\" small italic, \"P(\" huge",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 6,
+     "layout": "stop-card",
+     "build": {
+      "upping": 22.96,
+      "my": 23.41,
+      "P(": 23.62
+     }
+    }
+   ],
+   "description": "True black (the lamp is off). \"I'm upping my\" small in italic; \"P(\" lands huge on 23.62 (cap 30 % of frame height). Holds across the cut.",
+   "environment": "black",
+   "camera": "-",
+   "motion_clips": [],
+   "look": "CARD",
+   "window": "full frame (card)",
+   "motifs": [],
+   "beat_hits": [
+    22.96,
+    23.41,
+    23.62
+   ],
+   "transition_in": "hard cut",
+   "transition_out": "card holds across the cut",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false
+  },
+  {
+   "id": "S08",
+   "title": "HALL MASTER C1: blank sheets",
+   "section": "chorus1",
+   "t0": 23.872,
+   "t1": 25.6901,
+   "dur": 1.8181,
+   "frames": [
+    573,
+    617
+   ],
+   "anchor": "bar 14 downbeat: crash on \"doom\"",
+   "lyric_lines": [
+    6,
+    7
+   ],
+   "text_mode": "CARD+SUBTITLE",
+   "text_layout": "CARD completes \"(doom)\" in VOICE (held to 25.07); SUBTITLE L7 bottom inside window",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 6,
+     "layout": "center-large (plate dimmed 1 stop)"
+    },
+    {
+     "mode": "SUBTITLE",
+     "line": 7
+    }
+   ],
+   "description": "The WINDOW widens 1:1 -> 4:3 on the crash (8 frames). CHORUS MASTER (returns at every chorus, same lens): the hall down its aisle, long lens, locked, symmetrical; rows of blank white sheets hang across both sides like a seated audience, glowing through with the cold backlight at the far end; haze; wet black floor. Nobody. HUD: step-wedge marker drops one patch, slug ENLARGER 16 s (+1 STOP).",
+   "environment": "hall",
+   "camera": "aisle axis, eye height 1.55 m, FOV 14 deg v, locked (the chorus-master lens)",
+   "motion_clips": [],
+   "look": "HALL",
+   "window": "4:3",
+   "motifs": [
+    "HALL",
+    "AUDIENCE",
+    "WINDOW"
+   ],
+   "beat_hits": [
+    23.872,
+    24.35,
+    25.07
+   ],
+   "transition_in": "cut (window 1:1 -> 4:3)",
+   "transition_out": "cut on \"FOOM\" (bar 15)",
+   "module": "hall",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "wedge": "+1",
+    "slug": "ENLARGER 16 s"
+   }
+  },
+  {
+   "id": "S09",
+   "title": "Tray +1: FOOM",
+   "section": "chorus1",
+   "t0": 25.6901,
+   "t1": 26.58,
+   "dur": 0.8899,
+   "frames": [
+    617,
+    638
+   ],
+   "anchor": "bar 15 downbeat (\"FOOM\" 25.68)",
+   "lyric_lines": [
+    7
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "L7 continues",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 7
+    }
+   ],
+   "description": "The tray, his print: on \"FOOM\" a surge runs across the liquid and the print snaps one stop darker (+1); the blacks bloom, then settle.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked (the tray lens)",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "4:3",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    25.6901
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Trapped\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "wedge": "+1"
+   }
+  },
+  {
+   "id": "S10",
+   "title": "The Chinese room",
+   "section": "chorus1",
+   "t0": 26.58,
+   "t1": 27.98,
+   "dur": 1.4,
+   "frames": [
+    638,
+    672
+   ],
+   "anchor": "L8 \"Trapped\"",
+   "lyric_lines": [
+    8
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "EN THOUGHT small upper left inside window; the ZH is the image",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 8,
+     "size": "small"
+    }
+   ],
+   "description": "Same tray, another sheet: 困在中文屋里 develops in Noto Serif SC Black and reaches full density on \"room\" (27.508). The machine develops symbols it cannot read; he, who can, is not in the shot.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "4:3",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    27.5083
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"with\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. SEARLE · MINDS, BRAINS, AND PROGRAMS · 1980"
+   }
+  },
+  {
+   "id": "S11",
+   "title": "A bag of shrooms",
+   "section": "chorus1",
+   "t0": 27.98,
+   "t1": 29.98,
+   "dur": 2.0,
+   "frames": [
+    672,
+    720
+   ],
+   "anchor": "L9 \"with\"",
+   "lyric_lines": [
+    9
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom inside window",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 9
+    }
+   ],
+   "description": "Andersson tableau: the drying line side-on at eye level, locked. A dozen prints of him curl and uncurl as they dry, a slow wave travelling along the line (the paper breathes: hallucination). Clipped among them with the same paperclips: one small paper bag, unopened.",
+   "environment": "darkroom/line",
+   "camera": "eye level, side-on, 50 mm equiv, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "4:3",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    28.4,
+    29.3265
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"See\"",
+   "module": "line",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S12",
+   "title": "BEAM I: the shoggoth",
+   "section": "chorus1",
+   "t0": 29.98,
+   "t1": 33.4,
+   "dur": 3.42,
+   "frames": [
+    720,
+    802
+   ],
+   "anchor": "L10 \"See\"",
+   "lyric_lines": [
+    10
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left negative space inside window",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 10
+    }
+   ],
+   "description": "Black room; the projector from beside the lens throws his photograph onto a grey clay head-and-shoulders (subject.glb in clay look) and the black wall behind it. On the lens axis it is simply his face. On \"shoggoth's\" (30.60) the camera arcs 35 deg right; by \"lies\" (31.145) the photograph has slid off the geometry: stretched across the ear, spilled flat onto the wall, the clay cheek bare. Hold one bar.",
+   "environment": "beam",
+   "camera": "eye level, 85 mm equiv, arc 0 -> 35 deg right about the head (30.60 -> 31.145, ease), then hold",
+   "motion_clips": [
+    "static (clay head, no motion)"
+   ],
+   "look": "BEAM",
+   "window": "4:3",
+   "motifs": [
+    "BEAM"
+   ],
+   "beat_hits": [
+    30.6,
+    31.1447
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"with\"",
+   "module": "studio_beam",
+   "source": "3D",
+   "he_live": false,
+   "consent": true
+  },
+  {
+   "id": "S13",
+   "title": "Contact sheet: shinigami eyes",
+   "section": "chorus1",
+   "t0": 33.4,
+   "t1": 35.6,
+   "dur": 2.2,
+   "frames": [
+    802,
+    854
+   ],
+   "anchor": "L11 \"with\"",
+   "lyric_lines": [
+    11
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom inside window",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 11
+    }
+   ],
+   "description": "A contact sheet fills the 4:3 window: 36 frames of his eyes (brows to nose bridge), each with its frame number printed above it like a name. On \"shinigami\" (33.87) the orange grease pencil starts a circle and closes it round one frame on \"eyes\" (34.781); the other 35 dim to 30 %. Frames are darkroom variants of the photograph (exposure, contrast, crop offset, dodge) and flat-lit stand-in relights within 20 deg: never generated faces, never enlarged past native resolution.",
+   "environment": "lightbox",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "4:3",
+   "motifs": [
+    "PENCIL"
+   ],
+   "beat_hits": [
+    33.87,
+    34.7811
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut at the melisma",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false,
+   "hud": {
+    "proof": "0060"
+   }
+  },
+  {
+   "id": "S14",
+   "title": "Pillow: which one is him?",
+   "section": "chorus1",
+   "t0": 35.6,
+   "t1": 38.4174,
+   "dur": 2.8174,
+   "frames": [
+    854,
+    922
+   ],
+   "anchor": "melisma start 35.60 (extra_vocals)",
+   "lyric_lines": [],
+   "text_mode": "QUESTION",
+   "text_layout": "centred low inside window, TYPE on dark",
+   "text": [
+    {
+     "mode": "QUESTION",
+     "text_en": "which one is him?",
+     "text_zh": "哪一张是他？",
+     "on": 37.05
+    }
+   ],
+   "description": "Nobody: the darkroom line of prints under the safelight. The safelight dims as the melisma fades (the voice is the light). The QUESTION types into the near-dark at 37.05; the prints tremble on the fill hits (37.736, 37.963, 38.19).",
+   "environment": "darkroom/line",
+   "camera": "eye level, 35 mm equiv, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "4:3",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    35.6,
+    37.05,
+    37.7356,
+    37.9629,
+    38.1902
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on bar 22",
+   "module": "line",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S15",
+   "title": "ONE TAKE: the hall walk",
+   "section": "verse2",
+   "t0": 38.4174,
+   "t1": 52.9629,
+   "dur": 14.5455,
+   "frames": [
+    922,
+    1271
+   ],
+   "anchor": "bar 22 downbeat",
+   "lyric_lines": [
+    12,
+    13,
+    14,
+    15
+   ],
+   "text_mode": "SUBTITLE+CARD+THOUGHT",
+   "text_layout": "L12 SUBTITLE; L13 CARD in the black ceiling zone (upper third); L14 SUBTITLE; L15 THOUGHT left third",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 12
+    },
+    {
+     "mode": "CARD",
+     "line": 13,
+     "layout": "upper-third",
+     "words": [
+      "the",
+      "singularity's",
+      "begun"
+     ]
+    },
+    {
+     "mode": "SUBTITLE",
+     "line": 14
+    },
+    {
+     "mode": "THOUGHT",
+     "line": 15,
+     "layout": "left-third"
+    }
+   ],
+   "description": "ONE TAKE in THE HALL, locked long lens down the aisle. 38.417: the hall is empty (the rows of sheets blank, glowing with the backlight). 38.63 \"We\": he steps out of the backlight at the far end and walks at the lens at half time, heel strikes on beats 1 and 3 (first strike 39.327), as a backlit silhouette with a faint front fill. 41.36-44.095: the WINDOW slides open from 4:3 to 16:9 across \"But now the singularity's begun\"; the new margins fill with more hall (outpainting). From 45.690 every sheet he passes develops his face, one row per 8th note, each a stop glossier than the last (\"optimizing, accelerating\"): the audience becomes him. 50.49 \"atoms\": the halftone screen rotates 45 -> 15 -> 75 -> 45 deg, moire sweeping the whole frame, settling by 52.83; under the rotation (50.49-50.95) the 3D figure hands off to plate P04. He stops at MCU on 51.145, frontal, and holds the lens.",
+   "environment": "hall",
+   "camera": "aisle axis, eye height 1.55 m, FOV 11 deg v, locked; he walks from z = -11.2 m to -3.0 m",
+   "motion_clips": [
+    "sequence: stand_breathe_loop (hidden in the backlight) -> walk_runway_loop speed 0.715 (beatSpeed 66) from 38.63 -> crossfade to stand_breathe_loop 0.6 s ending 51.145; A/B against walk_slow speed 0.806 at review",
+    "layers: breath amp 0.8; look target = lens from 49.0; noise amp 0.2 seed 5"
+   ],
+   "look": "HALL",
+   "window": "4:3 | 16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE",
+    "WINDOW"
+   ],
+   "beat_hits": [
+    38.63,
+    39.3265,
+    41.36,
+    44.095,
+    45.6902,
+    49.52,
+    50.49,
+    51.1447,
+    52.83
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on bar 30 (bass out)",
+   "module": "hall",
+   "source": "GEN",
+   "he_live": true,
+   "live_span": [
+    38.63,
+    52.9629
+   ],
+   "hud": {
+    "job_line": [
+     38.4174,
+     41.36
+    ],
+    "proof": "~0200 -> 0480"
+   },
+   "gen": {
+    "plate": "P04",
+    "route": "B previs-to-plate for the last 2.47 s only (50.49-52.963); 38.417-50.49 is 3D final (backlit silhouette)",
+    "aspect": "16:9",
+    "duration": 5,
+    "use": [
+     0.5,
+     2.973
+    ],
+    "previs_segment": [
+     49.99,
+     54.99
+    ],
+    "keyframe_prompt": "{ID}. The man walks slowly toward the camera down a long dark hall with a wet black floor, rows of white photographic prints hanging on both sides, a large cold white light at the far end behind him, haze. Long lens, 135 mm, eye level; he is at medium shot, frontal; a soft low front fill lights his face. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "minimax/h3-max/3d-to-video (1080P) with the previs segment as video_url",
+    "alt_models": [
+     "fal-ai/kling-video/v3/pro/image-to-video (start = keyframe)",
+     "fal-ai/kling-video/o3/pro/video-to-video/reference"
+    ],
+    "video_prompt": "He takes two slow steps toward the camera and stops at medium close-up, facing the lens, and holds still, looking into the lens. Locked long lens. Cold backlight, haze, soft low front fill. Mouth stays closed.",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/front*.png",
+     "out/genmedia/sheet/approved/3q_*.png",
+     "out/genmedia/sheet/approved/wardrobe_*.png",
+     "out/film/previs/S15_P04_previs.mp4"
+    ],
+    "fallback": "no handoff: the 3D take continues to MCU; backlit with rim, soft fill within 30 deg of the axis, face half in shadow",
+    "gate": "face_similarity.py on the ungraded plate: median >= match and p10 >= reject over frames with a face and yaw <= 35 deg; face in >= 80 % of sampled frames; no internal cut (scene score < 0.3); contact sheet reviewed by eye (hands, teeth, wardrobe, stray text, background faces); heel strikes (MediaPipe Pose) within 2 frames of the previs strikes"
+   }
+  },
+  {
+   "id": "S16",
+   "title": "Sydney: his back to us",
+   "section": "prechorus2",
+   "t0": 52.9629,
+   "t1": 56.5992,
+   "dur": 3.6363,
+   "frames": [
+    1271,
+    1358
+   ],
+   "anchor": "bar 30 downbeat: bass out",
+   "lyric_lines": [
+    16
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left third, the name as a prayer",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 16
+    }
+   ],
+   "description": "The same hall: he stands at its far end, back to us, facing the cold backlight; slow push. The sheets (now his face) hang still.",
+   "environment": "hall",
+   "camera": "aisle axis, FOV 14 -> 11 deg v (slow push by zoom, ease)",
+   "motion_clips": [
+    "stand_breathe_loop (yaw pi: facing the backlight)"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL"
+   ],
+   "beat_hits": [
+    53.01,
+    55.98
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on bar 32 (8th kicks)",
+   "module": "hall",
+   "source": "GEN",
+   "he_live": true,
+   "hud": {
+    "caption": "PL. SYDNEY · NYT TRANSCRIPT · 2023-02-16"
+   },
+   "gen": {
+    "plate": "P05",
+    "route": "D face-free",
+    "aspect": "16:9",
+    "duration": 5,
+    "use": [
+     0.5,
+     4.136
+    ],
+    "keyframe_prompt": "A young man in a black knit long-sleeve top and charcoal trousers stands still at the far end of a long dark hall, seen from behind, facing a large cold white backlight; rows of hanging white paper prints on both sides; haze; wet black floor reflecting the light. No face visible. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain.",
+    "video_model": "bytedance/seedance-2.5/image-to-video (draft 480p -> draft/complete 1080p); start image = our previs frame restyled",
+    "alt_models": [
+     "bytedance/seedance-2.5/reference-to-video with the previs clip as video reference"
+    ],
+    "video_prompt": "Very slow push-in. He stands still and breathes; he does not turn. Haze drifts across the backlight.",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions, face, profile, turning around",
+    "refs": [
+     "headless body crop of the approved full-body back view (wardrobe)",
+     "out/film/previs/S16_first.jpg"
+    ],
+    "fallback": "the 3D previs itself: the stand-in from behind in silhouette (final quality in the HALL look)",
+    "gate": "no face in any frame; wardrobe matches the sheet; no internal cut; contact sheet by eye"
+   }
+  },
+  {
+   "id": "S17a",
+   "title": "The clip",
+   "section": "prechorus2",
+   "t0": 56.5992,
+   "t1": 57.5083,
+   "dur": 0.9091,
+   "frames": [
+    1358,
+    1380
+   ],
+   "anchor": "bar 32 downbeat: kick doubles to 8ths",
+   "lyric_lines": [
+    16
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "L16 continues (\"let me\")",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 16
+    }
+   ],
+   "description": "Macro: a paperclip on the wire holding the top edge of a print of his face; water beads on the wire.",
+   "environment": "darkroom/line",
+   "camera": "macro, 100 mm equiv, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE",
+    "EMPTY CLIP"
+   ],
+   "beat_hits": [
+    56.5992,
+    57.19
+   ],
+   "transition_in": "cut",
+   "transition_out": "half-bar cut",
+   "module": "line",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S17b",
+   "title": "Let me free",
+   "section": "prechorus2",
+   "t0": 57.5083,
+   "t1": 58.4174,
+   "dur": 0.9091,
+   "frames": [
+    1380,
+    1402
+   ],
+   "anchor": "bar 32 beat 3",
+   "lyric_lines": [
+    16
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "L16 continues (\"free\")",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 16
+    }
+   ],
+   "description": "Same macro: on \"free\" (57.945) the paper slips out of the clip and falls away out of frame, turning. PROOF counts down by one: the only decrement in the film.",
+   "environment": "darkroom/line",
+   "camera": "macro, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    57.945
+   ],
+   "transition_in": "cut",
+   "transition_out": "half-bar cut",
+   "module": "line",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "proof": "0480 -> 0479"
+   }
+  },
+  {
+   "id": "S17c",
+   "title": "The empty clip (planted)",
+   "section": "prechorus2",
+   "t0": 58.4174,
+   "t1": 59.3265,
+   "dur": 0.9091,
+   "frames": [
+    1402,
+    1424
+   ],
+   "anchor": "bar 33 downbeat: hat roll",
+   "lyric_lines": [
+    16,
+    17
+   ],
+   "text_mode": "CARD",
+   "text_layout": "stop card begins on \"I'm\" 59.08 small italic, spans into S18",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 17,
+     "layout": "stop-card"
+    }
+   ],
+   "description": "The empty paperclip swings on the wire. It means nothing yet.",
+   "environment": "darkroom/line",
+   "camera": "macro, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "EMPTY CLIP"
+   ],
+   "beat_hits": [
+    58.4174,
+    59.08,
+    59.31
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut to black",
+   "module": "line",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S18",
+   "title": "Stop card 2",
+   "section": "prechorus2",
+   "t0": 59.3265,
+   "t1": 60.2356,
+   "dur": 0.9091,
+   "frames": [
+    1424,
+    1446
+   ],
+   "anchor": "bar 33 beat 3: a-cappella stop",
+   "lyric_lines": [
+    17
+   ],
+   "text_mode": "CARD",
+   "text_layout": "full-frame stop card, S07 scaled +10 %",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 17,
+     "layout": "stop-card",
+     "scale": 1.1
+    }
+   ],
+   "description": "True black; the card of S07 scaled +10 %. The wedge label types +2.",
+   "environment": "black",
+   "camera": "-",
+   "motion_clips": [],
+   "look": "CARD",
+   "window": "full frame (card)",
+   "motifs": [],
+   "beat_hits": [
+    59.765,
+    59.975
+   ],
+   "transition_in": "hard cut",
+   "transition_out": "card holds across the cut",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false
+  },
+  {
+   "id": "S19",
+   "title": "HALL MASTER C2: the sheets are him; the basilisk wave",
+   "section": "chorus2",
+   "t0": 60.2356,
+   "t1": 62.035,
+   "dur": 1.7994,
+   "frames": [
+    1446,
+    1489
+   ],
+   "anchor": "bar 34 downbeat: crash",
+   "lyric_lines": [
+    17,
+    18
+   ],
+   "text_mode": "CARD+SUBTITLE",
+   "text_layout": "CARD \"(doom)\" completes; SUBTITLE L18",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 17,
+     "layout": "center-large (plate dimmed 1 stop)"
+    },
+    {
+     "mode": "SUBTITLE",
+     "line": 18
+    }
+   ],
+   "description": "Chorus master, same lens: every sheet now carries his photograph (halftoned, one stop darker than C1). From 61.599 the sheets swing in a wave that travels from the far end toward the lens and reaches it exactly on \"boom\" (62.035): the effect arrives before its cause (acausal). Wedge +2, slug ENLARGER 32 s.",
+   "environment": "hall",
+   "camera": "the chorus-master lens",
+   "motion_clips": [],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE"
+   ],
+   "beat_hits": [
+    60.2356,
+    60.5,
+    61.599,
+    62.035
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"boom\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "wedge": "+2",
+    "slug": "ENLARGER 32 s"
+   }
+  },
+  {
+   "id": "S20",
+   "title": "Tray +2",
+   "section": "chorus2",
+   "t0": 62.035,
+   "t1": 62.485,
+   "dur": 0.45,
+   "frames": [
+    1489,
+    1500
+   ],
+   "anchor": "L18 \"boom\"",
+   "lyric_lines": [
+    18
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "L18 continues",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 18
+    }
+   ],
+   "description": "11 frames: one pressure ring crosses the developer; behind it the print drops one more stop (+2).",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    62.035
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"NVDA\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "wedge": "+2"
+   }
+  },
+  {
+   "id": "S21",
+   "title": "The moon among the portraits",
+   "section": "chorus2",
+   "t0": 62.485,
+   "t1": 64.115,
+   "dur": 1.63,
+   "frames": [
+    1500,
+    1539
+   ],
+   "anchor": "L19 \"NVDA\"",
+   "lyric_lines": [
+    19
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom; N-V-D-A letter by letter on parts",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 19,
+     "parts": true
+    }
+   ],
+   "description": "On the darkroom line, among the prints of his face, one print of the Moon: John W. Draper's 1840 daguerreotype (public domain; confirm the file and credit at build time; fallback a NASA LRO render). A slow tilt up centres it on \"moon\" (63.849).",
+   "environment": "darkroom/line",
+   "camera": "eye level, 85 mm equiv, tilt up (ease) to centre the moon at 63.849",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    62.49,
+    62.73,
+    62.95,
+    63.18,
+    63.849
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"The\"",
+   "module": "line",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. NVDA ≈ $5.43T MKT CAP · 2026-09-25"
+   }
+  },
+  {
+   "id": "S22",
+   "title": "Omega: the enlarger concentrates him to a point",
+   "section": "chorus2",
+   "t0": 64.115,
+   "t1": 66.239,
+   "dur": 2.124,
+   "frames": [
+    1539,
+    1590
+   ],
+   "anchor": "L20 \"The\"",
+   "lyric_lines": [
+    20
+   ],
+   "text_mode": "CARD+SUBTITLE",
+   "text_layout": "a small orange Ω beside the point (CARD); SUBTITLE L20",
+   "text": [
+    {
+     "mode": "CARD",
+     "text_en": "Ω",
+     "layout": "small, beside the point",
+     "on": 64.284
+    },
+    {
+     "mode": "SUBTITLE",
+     "line": 20
+    }
+   ],
+   "description": "Top-down on the enlarging easel: his face projected as a white rectangle. The enlarger head descends; the image shrinks and concentrates into a single VOICE-orange point by \"soon\" (65.68).",
+   "environment": "darkroom/easel",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "BEAM",
+    "CATCHLIGHTS"
+   ],
+   "beat_hits": [
+    64.284,
+    65.68
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"One\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. TEILHARD · LE PHÉNOMÈNE HUMAIN · 1955"
+   }
+  },
+  {
+   "id": "S23",
+   "title": "Blow-Up: seven enlargements",
+   "section": "chorus2",
+   "t0": 66.239,
+   "t1": 69.6,
+   "dur": 3.361,
+   "frames": [
+    1590,
+    1670
+   ],
+   "anchor": "L21 \"One\"",
+   "lyric_lines": [
+    21
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "upper left; ad-lib 68.18-69.58 without text",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 21
+    }
+   ],
+   "description": "A black wall. The face print hangs at left; on each beat (66.599 ... 69.327) a new print is pinned to its right, each a x4 enlargement of the centre of the one before, and the camera tracks one print to the right per beat: face -> eye -> iris -> the orange catchlight -> silver grain -> grain clumps (the reconstruction's points, bust/points.bin, drawn as dark grain) -> paper tooth and noise. Real grain at each scale, discrete prints, no continuous zoom, no diffusion morph. HUD ENLARGEMENT x4 ... x16,384.",
+   "environment": "darkroom/wall",
+   "camera": "eye level, 50 mm equiv, lateral track one print per beat (6-frame ease into each beat)",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE",
+    "CATCHLIGHTS"
+   ],
+   "beat_hits": [
+    66.599,
+    67.054,
+    67.5083,
+    67.963,
+    68.4174,
+    68.872,
+    69.3265
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"That\"",
+   "module": "cards",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "counter": "ENLARGEMENT x4^n"
+   }
+  },
+  {
+   "id": "S24",
+   "title": "The safelight coin test",
+   "section": "chorus2",
+   "t0": 69.6,
+   "t1": 72.27,
+   "dur": 2.67,
+   "frames": [
+    1670,
+    1734
+   ],
+   "anchor": "L22 \"That\"",
+   "lyric_lines": [
+    22
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 22
+    }
+   ],
+   "description": "Andersson tableau, top-down, locked: a coin lies on a white sheet under the safelight. On \"safe\" (70.20) the coin slides off by itself; the sheet, in the developer, fogs grey everywhere except a pale disc where the coin lay, complete on \"reckoned\" (71.48). The light was not safe.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    70.2,
+    71.48
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut at the ad-lib",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. EO 14110 · 10^26 OPS · 2023-10-30 · REVOKED 2025-01-20"
+   }
+  },
+  {
+   "id": "S25",
+   "title": "Pillow: how many of him?",
+   "section": "chorus2",
+   "t0": 72.27,
+   "t1": 74.095,
+   "dur": 1.825,
+   "frames": [
+    1734,
+    1778
+   ],
+   "anchor": "ad-lib start 72.27 (extra_vocals)",
+   "lyric_lines": [],
+   "text_mode": "QUESTION",
+   "text_layout": "centred low",
+   "text": [
+    {
+     "mode": "QUESTION",
+     "text_en": "how many of him are there now?",
+     "text_zh": "现在一共有多少个他？",
+     "on": 72.27
+    }
+   ],
+   "description": "Nobody: the hall, now ten lines deep on each side, prints of his face to the vanishing point. PROOF jumps 0479 -> 12,288 on bar 41.",
+   "environment": "hall",
+   "camera": "aisle axis, FOV 24 deg v, locked",
+   "motion_clips": [],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE"
+   ],
+   "beat_hits": [
+    72.27,
+    72.9629,
+    73.872
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Forward\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "proof": "0479 -> 12,288"
+   }
+  },
+  {
+   "id": "S26",
+   "title": "Agitation as a training loop",
+   "section": "chorus2",
+   "t0": 74.095,
+   "t1": 77.725,
+   "dur": 3.63,
+   "frames": [
+    1778,
+    1865
+   ],
+   "anchor": "L23 \"Forward\"",
+   "lyric_lines": [
+    23
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left third; \"backward\" set mirrored",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 23,
+     "mirror_word": "backward,",
+     "parts": true
+    }
+   ],
+   "description": "From above: the tray tips forward on \"Forward\", rocks three times on M-L-P, tips back on \"backward\", again on \"repeat\"; with each rock his face in the tray sharpens a little (convergence). The bar-42 downbeat falls inside the shot.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    74.095,
+    74.7811,
+    74.79,
+    75.21,
+    75.66,
+    76.12,
+    76.8
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Now\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S27",
+   "title": "Von Neumann: copies of copies",
+   "section": "verse3",
+   "t0": 77.725,
+   "t1": 81.365,
+   "dur": 3.64,
+   "frames": [
+    1865,
+    1953
+   ],
+   "anchor": "L24 \"Now\"",
+   "lyric_lines": [
+    24
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 24
+    }
+   ],
+   "description": "One print near the lens; on each beat a copy appears further down the line, copied from the one before, never from the source; each identical but a little harder and glossier (the polish is the symptom). By \"obsolete\" (80.00) they recede to the vanishing point. PROOF doubles per beat.",
+   "environment": "darkroom/line",
+   "camera": "eye level, 50 mm equiv, locked, one-point",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    78.4174,
+    78.872,
+    79.3265,
+    79.781,
+    80.0,
+    80.2356,
+    80.6901,
+    81.1447
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Sharp\"",
+   "module": "line",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. VON NEUMANN · THEORY OF SELF-REPRODUCING AUTOMATA · 1966",
+    "proof": "x2 per beat"
+   }
+  },
+  {
+   "id": "S28a",
+   "title": "Behind him in the hall",
+   "section": "verse3",
+   "t0": 81.365,
+   "t1": 82.0,
+   "dur": 0.635,
+   "frames": [
+    1953,
+    1968
+   ],
+   "anchor": "L25 \"Sharp\"",
+   "lyric_lines": [
+    25
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 25
+    }
+   ],
+   "description": "Tracking behind him down the aisle toward the backlight: his back, a backlit silhouette.",
+   "environment": "hall",
+   "camera": "follows 2.5 m behind at 1.5 m height, FOV 20 deg v",
+   "motion_clips": [
+    "walk_runway_loop speed 0.715 (away from camera, yaw pi)"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL"
+   ],
+   "beat_hits": [
+    81.365,
+    81.775
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"turn\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": true
+  },
+  {
+   "id": "S28b",
+   "title": "Sharp left turn: there you are",
+   "section": "verse3",
+   "t0": 82.0,
+   "t1": 85.02,
+   "dur": 3.02,
+   "frames": [
+    1968,
+    2040
+   ],
+   "anchor": "L25 \"turn\"",
+   "lyric_lines": [
+    25
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 25
+    }
+   ],
+   "description": "On \"turn\" he turns 90 deg to his left and steps into a hanging sheet between two rows; the sheet swings and he is gone (by 82.53). The camera pans left onto the sheet: the print now shows the photograph itself, frontal, looking out: \"there you are\" (82.97-83.65), held through the long \"are\". The four registration marks rotate 90 deg on 82.00.",
+   "environment": "hall",
+   "camera": "as S28a, then pan left 90 deg (82.30 -> 82.97, ease) onto the sheet at 2 m",
+   "motion_clips": [
+    "sequence: walk_runway_loop 0.715 -> turn_in_place_ccw 0-2.35 s at speed 1.6 (one 90 deg step-turn) -> walk 2 steps into the sheet"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "LINE"
+   ],
+   "beat_hits": [
+    82.0,
+    82.53,
+    82.97,
+    83.65
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Without\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": true,
+   "live_span": [
+    82.0,
+    82.53
+   ],
+   "hud": {
+    "caption": "PL. SOARES · SHARP LEFT TURN · 2022-06-15",
+    "marks_rotate": 82.0
+   }
+  },
+  {
+   "id": "S29",
+   "title": "(CDR ROLL) -> NIL",
+   "section": "verse3",
+   "t0": 85.02,
+   "t1": 89.3265,
+   "dur": 4.3065,
+   "frames": [
+    2040,
+    2144
+   ],
+   "anchor": "L26 \"Without\"",
+   "lyric_lines": [
+    26
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom; mono lines type beside the strip on C, D, R",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 26,
+     "parts": true
+    },
+    {
+     "mode": "MONO",
+     "layout": "beside the strip, cap 28 px",
+     "lines_en": [
+      "(CAR ROLL) → FRAME 01",
+      "(CDR ROLL) → NIL"
+     ],
+     "on": [
+      86.56,
+      87.05
+     ]
+    }
+   ],
+   "description": "A 36-frame strip of film on a light box, frontal: frame 01 holds his face as a negative; frames 02-36 are clear. On C, D and R the mono lines type beside it. Held through the long note. The one photograph is the car; everything after it is nil.",
+   "environment": "lightbox",
+   "camera": "frontal, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "WINDOW"
+   ],
+   "beat_hits": [
+    86.56,
+    87.05,
+    87.51
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on bar 50",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false
+  },
+  {
+   "id": "S30",
+   "title": "Gato: a print of him on the floor",
+   "section": "breakdown_prechorus3",
+   "t0": 89.3265,
+   "t1": 92.9629,
+   "dur": 3.6364,
+   "frames": [
+    2144,
+    2231
+   ],
+   "anchor": "bar 50 downbeat: drums and bass cut",
+   "lyric_lines": [
+    27
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "in the dark beyond the print border, left",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 27
+    }
+   ],
+   "description": "Breakdown rule from here to 109.07: every image is a still photograph, grain frozen, one moving element, HUD off. A single print fills 80 % of the frame height, its white border showing: him sitting on the studio floor, knees drawn up, alone and small in the white. It hangs from one paperclip in the dark and turns a few degrees on it (the moving element).",
+   "environment": "darkroom/line",
+   "camera": "frontal, locked",
+   "motion_clips": [
+    "print texture: P07b; fallback render of sit_floor (knees up) in the studio, flat light"
+   ],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    89.3265,
+    90.669
+   ],
+   "transition_in": "cut",
+   "transition_out": "6-frame dissolve",
+   "module": "line",
+   "source": "GEN",
+   "he_live": false,
+   "gen": {
+    "plate": "P07b",
+    "route": "still (image edit)",
+    "aspect": "4:5 print",
+    "duration": 0,
+    "keyframe_prompt": "{ID}. Full figure, frontal, eye level, 50 mm: the man sits on the floor of a seamless white studio, knees drawn up, arms around his knees, alone and small in the frame, looking into the lens. Flat, shadowless light. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "none (still): fal-ai/nano-banana-pro/edit, alt bytedance/seedream/v5/pro/edit",
+    "video_prompt": "-",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/front*.png",
+     "out/genmedia/sheet/approved/3q_*.png",
+     "out/genmedia/sheet/approved/wardrobe_*.png",
+     "out/film/previs/S30_print.jpg (layout)"
+    ],
+    "fallback": "the stand-in in sit_floor (seated frame, knees up) rendered in the 3D studio, flat light, face small",
+    "gate": "face_similarity >= match on the still (face small: two-scale detection); approved by eye"
+   }
+  },
+  {
+   "id": "S31",
+   "title": "The clip holds",
+   "section": "breakdown_prechorus3",
+   "t0": 92.9629,
+   "t1": 94.7811,
+   "dur": 1.8182,
+   "frames": [
+    2231,
+    2275
+   ],
+   "anchor": "bar 52 downbeat",
+   "lyric_lines": [
+    27
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "L27 continues (\"don't let me go\")",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 27
+    }
+   ],
+   "description": "Macro: the paperclip holding the corner of that print; on \"go\" (94.31) the paper slips a millimetre and holds. This prayer is answered.",
+   "environment": "darkroom/line",
+   "camera": "macro, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "EMPTY CLIP",
+    "LINE"
+   ],
+   "beat_hits": [
+    94.31
+   ],
+   "transition_in": "6-frame dissolve",
+   "transition_out": "6-frame dissolve",
+   "module": "line",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S32",
+   "title": "Tray +3 (still)",
+   "section": "breakdown_prechorus3",
+   "t0": 94.7811,
+   "t1": 96.5992,
+   "dur": 1.8181,
+   "frames": [
+    2275,
+    2318
+   ],
+   "anchor": "bar 53 downbeat: hats return",
+   "lyric_lines": [
+    27,
+    28
+   ],
+   "text_mode": "CARD",
+   "text_layout": "outline CARD builds \"I'm upping my P\"",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 28,
+     "style": "outline"
+    }
+   ],
+   "description": "The chorus tray as a still, +3: the face in the tray almost black; only the eyes and the bridge of the nose still read. The HUD shows only the wedge at +3.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    94.7811,
+    95.425,
+    96.36
+   ],
+   "transition_in": "6-frame dissolve",
+   "transition_out": "cut on the sub boom",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "wedge": "+3",
+    "slug": "ENLARGER 64 s"
+   }
+  },
+  {
+   "id": "S33",
+   "title": "HALL MASTER C3 (still): the audience turned",
+   "section": "chorus3_breakdown",
+   "t0": 96.5992,
+   "t1": 98.835,
+   "dur": 2.2358,
+   "frames": [
+    2318,
+    2372
+   ],
+   "anchor": "bar 54 downbeat: sub boom",
+   "lyric_lines": [
+    28,
+    29
+   ],
+   "text_mode": "CARD+SUBTITLE",
+   "text_layout": "CARD \"(doom)\" completes; SUBTITLE L29",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 28,
+     "style": "outline"
+    },
+    {
+     "mode": "SUBTITLE",
+     "line": 29
+    }
+   ],
+   "description": "Chorus master as a still photograph: every print of him has turned on its paperclips to face the empty aisle, waiting; the room is full of him and nobody is in it. The one moving element: one print near the lens turning slowly on its clip.",
+   "environment": "hall",
+   "camera": "the chorus-master lens (still)",
+   "motion_clips": [],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE"
+   ],
+   "beat_hits": [
+    96.5992,
+    97.03
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Killswitch\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S34",
+   "title": "The white-light switch, taped",
+   "section": "chorus3_breakdown",
+   "t0": 98.835,
+   "t1": 100.68,
+   "dur": 1.845,
+   "frames": [
+    2372,
+    2416
+   ],
+   "anchor": "L30 \"Killswitch\"",
+   "lyric_lines": [
+    30
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom; P-T-O on parts",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 30,
+     "parts": true
+    }
+   ],
+   "description": "Andersson tableau, still: on the darkroom wall the white-light switch, the one switch that fogs every latent image, sits under two strips of masking tape. A mug on the shelf beside it; its thin steam is the moving element and fades to nothing (nobody is coming back soon). No note.",
+   "environment": "darkroom/wall",
+   "camera": "frontal, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [],
+   "beat_hits": [
+    99.755,
+    100.0,
+    100.2356
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Now\"",
+   "module": "line",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S35",
+   "title": "Nowhere left to go",
+   "section": "chorus3_breakdown",
+   "t0": 100.68,
+   "t1": 102.535,
+   "dur": 1.855,
+   "frames": [
+    2416,
+    2461
+   ],
+   "anchor": "L31 \"Now\"",
+   "lyric_lines": [
+    31
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left third",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 31
+    }
+   ],
+   "description": "Still: THE STUDIO. He sits on the stool, face in his hands. Prints of him hang on lines on every side; the only moving element is the prints turning slowly on their clips until every one of them faces him.",
+   "environment": "studio",
+   "camera": "eye level, 35 mm equiv, locked",
+   "motion_clips": [
+    "still P08 (matted) or the stand-in sit_stool_head_bowed"
+   ],
+   "look": "STUDIO",
+   "window": "16:9",
+   "motifs": [
+    "LINE"
+   ],
+   "beat_hits": [
+    100.68,
+    102.035
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Too\"",
+   "module": "studio_beam",
+   "source": "GEN",
+   "he_live": false,
+   "gen": {
+    "plate": "P08",
+    "route": "still (image edit), matted and composited into the 3D studio",
+    "aspect": "16:9",
+    "duration": 0,
+    "keyframe_prompt": "{ID}. The man sits on a plain wooden stool in a seamless white studio, elbows on his knees, his face buried in both hands so the face is hidden; full figure, eye level, 35 mm; flat, shadowless light. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "none (still): fal-ai/nano-banana-pro/edit",
+    "video_prompt": "-",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/fullbody_*.png",
+     "out/film/previs/S35_first.jpg (layout)"
+    ],
+    "fallback": "the stand-in in sit_stool_head_bowed (face hidden) in the 3D studio",
+    "gate": "wardrobe and hair match the sheet; hands clean; face hidden (no score needed)"
+   }
+  },
+  {
+   "id": "S36",
+   "title": "We lit the fuse",
+   "section": "chorus3_breakdown",
+   "t0": 102.535,
+   "t1": 103.872,
+   "dur": 1.337,
+   "frames": [
+    2461,
+    2493
+   ],
+   "anchor": "L32 \"Too\"",
+   "lyric_lines": [
+    32
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 32
+    }
+   ],
+   "description": "Still, from above: a white sheet in the tray; on \"lit\" (103.41) a dark line starts across it from one edge, a fuse of development.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    103.41
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on the sub boom",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S37",
+   "title": "The fuse burns the guesses",
+   "section": "chorus3_breakdown",
+   "t0": 103.872,
+   "t1": 105.91,
+   "dur": 2.038,
+   "frames": [
+    2493,
+    2542
+   ],
+   "anchor": "bar 58 downbeat: sub boom",
+   "lyric_lines": [
+    32
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "L32 continues (\"the fuse.\")",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 32
+    }
+   ],
+   "description": "Still: the sheet now carries his face. The dark front advances from the edges inward: ears, hairline and jaw go black first, the inferred parts burning before the measured ones, and it stops at the eyes, which stay lit.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    103.872,
+    104.55
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Orthogonality\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "consent": true
+  },
+  {
+   "id": "S38",
+   "title": "Cyanotype: the only blue",
+   "section": "chorus3_breakdown",
+   "t0": 105.91,
+   "t1": 109.07,
+   "dur": 3.16,
+   "frames": [
+    2542,
+    2618
+   ],
+   "anchor": "L33 \"Orthogonality\"",
+   "lyric_lines": [
+    33
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left third",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 33
+    }
+   ],
+   "description": "A cyanotype of his face rinsing in a tray of clear water, the pale yellow-green chemistry washing out to Prussian blue; on the sub boom (107.508) it deepens to full CYANOTYPE blue. The only blue in the film and the only exception to the one-accent rule.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "CYANOTYPE",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    107.04,
+    107.5083
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Just\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S39",
+   "title": "Test strip: just, just, just, just",
+   "section": "chorus3_breakdown",
+   "t0": 109.07,
+   "t1": 111.1447,
+   "dur": 2.0747,
+   "frames": [
+    2618,
+    2667
+   ],
+   "anchor": "L34 \"Just\"",
+   "lyric_lines": [
+    34
+   ],
+   "text_mode": "CARD",
+   "text_layout": "CARD stack builds one \"just\" per onset (left third)",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 34,
+     "build": {
+      "Just": 109.07,
+      "just2": 109.56,
+      "just3": 110.18,
+      "just4": 110.65
+     }
+    }
+   ],
+   "description": "Top-down on the easel: a strip of paper under the enlarger. On each \"just\" the lamp fires (2-frame white flash) and a card slides to expose one more band: his face across the strip in four bands of rising density, the machine testing exposures. Drums return at 109.327; the 8th snare roll flickers the lamp.",
+   "environment": "darkroom/easel",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "BEAM"
+   ],
+   "beat_hits": [
+    109.07,
+    109.3265,
+    109.56,
+    110.18,
+    110.65
+   ],
+   "transition_in": "jump",
+   "transition_out": "cut on \"trans-\" (bass back)",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S40",
+   "title": "Crane: transformers all the way",
+   "section": "bridge",
+   "t0": 111.1447,
+   "t1": 113.359,
+   "dur": 2.2143,
+   "frames": [
+    2667,
+    2721
+   ],
+   "anchor": "bar 62 downbeat: bass back on \"trans-\"",
+   "lyric_lines": [
+    34
+   ],
+   "text_mode": "CARD",
+   "text_layout": "CARD continues \"transformers / all the way!\" over the dimmed crane",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 34,
+     "words_from": "transformers"
+    }
+   ],
+   "description": "Crane up from him (small, backlit, frontal, standing in the aisle) until the lines of prints run to the horizon in every direction: all the way down.",
+   "environment": "hall",
+   "camera": "crane y 1.5 -> 25 m, tilting to top-down by 113.2 (ease)",
+   "motion_clips": [
+    "stand_breathe_loop"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE"
+   ],
+   "beat_hits": [
+    111.12,
+    112.05,
+    112.5
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Till\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": true,
+   "hud": {
+    "job_line": [
+     111.1447,
+     113.359
+    ]
+   }
+  },
+  {
+   "id": "S41",
+   "title": "BEAM II: he steps out of his face",
+   "section": "bridge",
+   "t0": 113.359,
+   "t1": 115.205,
+   "dur": 1.846,
+   "frames": [
+    2721,
+    2765
+   ],
+   "anchor": "L35 \"Till\"",
+   "lyric_lines": [
+    35
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 35
+    }
+   ],
+   "description": "He stands frontal in the projector beam, his photograph in exact registration on his face (as in S06). On \"disobey\" (114.30) he steps out of the beam and walks off into the dark (gone by 114.67); the projected face stays where he was, lit, hanging on the empty black wall.",
+   "environment": "beam",
+   "camera": "eye level, 85 mm equiv, MCU, locked",
+   "motion_clips": [
+    "stand_breathe_loop -> turn (turn_in_place_ccw first step-turn) -> walk_runway_loop off frame, unlit outside the beam"
+   ],
+   "look": "BEAM",
+   "window": "16:9",
+   "motifs": [
+    "BEAM"
+   ],
+   "beat_hits": [
+    114.3,
+    114.67
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Post\"",
+   "module": "studio_beam",
+   "source": "GEN",
+   "he_live": true,
+   "live_span": [
+    113.359,
+    114.67
+   ],
+   "hud": {
+    "caption": "PL. ALIGNMENT FAKING · ARXIV 2412.14093 · 2024-12"
+   },
+   "gen": {
+    "plate": "P09",
+    "route": "A keyframe-to-video + our 2D projection comp",
+    "aspect": "16:9",
+    "duration": 5,
+    "use": [
+     0.5,
+     2.346
+    ],
+    "keyframe_prompt": "{ID}. Medium close-up, frontal, eye level, 85 mm: the man stands in a black void, lit only by a hard projector beam from directly beside the camera, eyes open, looking into the lens. Everything beyond the beam is black. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "fal-ai/kling-video/v3/pro/image-to-video (audio off)",
+    "alt_models": [
+     "minimax/h3-max/image-to-video"
+    ],
+    "video_prompt": "He holds still for about 1.4 s, then turns to his left and steps out of the beam into darkness, leaving the frame by about 1.8 s; the beam stays on the empty black wall. Camera locked. Mouth stays closed.",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/front*.png",
+     "out/genmedia/sheet/approved/3q_*.png",
+     "out/genmedia/sheet/approved/wardrobe_*.png",
+     "out/film/previs/S41_first.jpg (layout)"
+    ],
+    "post": "the photograph projected in registration (tracked) until he leaves the beam; after that it stays on the wall plane",
+    "fallback": "the stand-in (photo look) under the SpotLight.map projection from photo_camera; turns and walks off unlit (silhouette); the projection stays on the wall",
+    "gate": "face_similarity.py on the ungraded plate: median >= match and p10 >= reject over frames with a face and yaw <= 35 deg; face in >= 80 % of sampled frames; no internal cut (scene score < 0.3); contact sheet reviewed by eye (hands, teeth, wardrobe, stray text, background faces); frames after the turn are exempt (pose-unreliable, in shadow)"
+   }
+  },
+  {
+   "id": "S42",
+   "title": "Multiple exposure: super-dense",
+   "section": "bridge",
+   "t0": 115.205,
+   "t1": 117.03,
+   "dur": 1.825,
+   "frames": [
+    2765,
+    2809
+   ],
+   "anchor": "L36 \"Post-Chinchilla\"",
+   "lyric_lines": [
+    36
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left third",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 36,
+     "parts": true
+    }
+   ],
+   "description": "Prints of him laid down in register on one sheet, one per 8th note, each a darkroom variant of the one photograph with a slight registration drift; the sheet builds toward maximum black with a ghostly average face floating in it (Galton's composite, cited as a warning); orange grease-pencil crop marks frame the average as if to keep it; full black on \"dense\" (116.599).",
+   "environment": "darkroom/easel",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY",
+    "PENCIL"
+   ],
+   "beat_hits": [
+    115.2355,
+    115.4628,
+    115.69,
+    115.9173,
+    116.1446,
+    116.3718,
+    116.5991,
+    116.8264
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Breaking\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. CHINCHILLA · ARXIV 2203.15556 · 2022-03"
+   }
+  },
+  {
+   "id": "S43a",
+   "title": "Breaking through (Breaking)",
+   "section": "bridge",
+   "t0": 117.03,
+   "t1": 117.5083,
+   "dur": 0.4783,
+   "frames": [
+    2809,
+    2820
+   ],
+   "anchor": "L37 \"Breaking\"",
+   "lyric_lines": [
+    37
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 37
+    }
+   ],
+   "description": "He walks at the lens as a backlit silhouette and tears through a hanging sheet printed with his own face (pre-fractured halves thrown on the beat).",
+   "environment": "hall",
+   "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
+   "motion_clips": [
+    "walk_runway_loop speed 1.0"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "LINE"
+   ],
+   "beat_hits": [
+    117.03
+   ],
+   "transition_in": "beat cut",
+   "transition_out": "beat cut",
+   "module": "hall",
+   "source": "3D",
+   "he_live": true,
+   "hud": {
+    "caption": "PL. AXIOS · \"TENS OF THOUSANDS\" OF SECURITY INCIDENTS · 2026-09-26"
+   }
+  },
+  {
+   "id": "S43b",
+   "title": "Breaking through (through each)",
+   "section": "bridge",
+   "t0": 117.5083,
+   "t1": 117.9629,
+   "dur": 0.4546,
+   "frames": [
+    2820,
+    2831
+   ],
+   "anchor": "beat grid (through each)",
+   "lyric_lines": [
+    37
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 37
+    }
+   ],
+   "description": "He walks at the lens as a backlit silhouette and tears through a hanging sheet printed with his own face (pre-fractured halves thrown on the beat).",
+   "environment": "hall",
+   "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
+   "motion_clips": [
+    "walk_runway_loop speed 1.0"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "LINE"
+   ],
+   "beat_hits": [
+    117.5083
+   ],
+   "transition_in": "beat cut",
+   "transition_out": "beat cut",
+   "module": "hall",
+   "source": "3D",
+   "he_live": true,
+   "hud": {}
+  },
+  {
+   "id": "S43c",
+   "title": "Breaking through (safety)",
+   "section": "bridge",
+   "t0": 117.9629,
+   "t1": 118.4174,
+   "dur": 0.4545,
+   "frames": [
+    2831,
+    2842
+   ],
+   "anchor": "beat grid (safety)",
+   "lyric_lines": [
+    37
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 37
+    }
+   ],
+   "description": "He walks at the lens as a backlit silhouette and tears through a hanging sheet printed with his own face (pre-fractured halves thrown on the beat).",
+   "environment": "hall",
+   "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
+   "motion_clips": [
+    "walk_runway_loop speed 1.0"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "LINE"
+   ],
+   "beat_hits": [
+    117.9629
+   ],
+   "transition_in": "beat cut",
+   "transition_out": "beat cut",
+   "module": "hall",
+   "source": "3D",
+   "he_live": true,
+   "hud": {}
+  },
+  {
+   "id": "S43d",
+   "title": "Breaking through (fence)",
+   "section": "bridge",
+   "t0": 118.4174,
+   "t1": 118.887,
+   "dur": 0.4696,
+   "frames": [
+    2842,
+    2853
+   ],
+   "anchor": "beat grid (fence)",
+   "lyric_lines": [
+    37
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 37
+    }
+   ],
+   "description": "He walks at the lens as a backlit silhouette and tears through a hanging sheet printed with his own face (pre-fractured halves thrown on the beat). Nothing behind the last sheet but backlight.",
+   "environment": "hall",
+   "camera": "aisle axis, FOV 20 deg v, locked; a new sheet per cut",
+   "motion_clips": [
+    "walk_runway_loop speed 1.0"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "LINE"
+   ],
+   "beat_hits": [
+    118.4174
+   ],
+   "transition_in": "beat cut",
+   "transition_out": "cut on \"Hundred\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": true,
+   "hud": {}
+  },
+  {
+   "id": "S44",
+   "title": "A hundred thousand",
+   "section": "bridge",
+   "t0": 118.887,
+   "t1": 120.7,
+   "dur": 1.813,
+   "frames": [
+    2853,
+    2897
+   ],
+   "anchor": "L38 \"Hundred\"",
+   "lyric_lines": [
+    38
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom; G-P-U on parts",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 38,
+     "parts": true
+    }
+   ],
+   "description": "Aerial, straight down: 100,000 hanging prints in rows, cold top light and the backlight glow, no per-print lamps (the memorial register is avoided). It reads as a data hall and as a silent audience. PROOF 100,000. Rendered once as a held still at 2560x1440 and panned in 2D.",
+   "environment": "hall",
+   "camera": "top-down, 40 m up, FOV 20 deg, slow 2D drift",
+   "motion_clips": [],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE"
+   ],
+   "beat_hits": [
+    119.735,
+    119.975,
+    120.225
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"RLHF\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "proof": "100,000",
+    "caption": "PL. COLOSSUS · 100,000 H100 · 2024-09 → 555,000 GPU · 2026-01 (REPORTED)"
+   }
+  },
+  {
+   "id": "S45",
+   "title": "The mirror print",
+   "section": "bridge",
+   "t0": 120.7,
+   "t1": 122.73,
+   "dur": 2.03,
+   "frames": [
+    2897,
+    2946
+   ],
+   "anchor": "L39 \"RLHF\"",
+   "lyric_lines": [
+    39
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom; R-L-H-F on parts",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 39,
+     "parts": true
+    }
+   ],
+   "description": "Two prints of him side by side on the line: the true print, and the same negative printed emulsion-side flipped, his mirror image, the face people prefer of themselves; the reversed edge-code lettering in its border is the tell. On R, L, H and F four small grease-pencil ticks accumulate beside the mirror print (approval). On \"askew\" (121.83) the true print's clip lets go on one side and it hangs crooked, about 7 deg.",
+   "environment": "darkroom/line",
+   "camera": "eye level, 85 mm equiv, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE",
+    "PENCIL"
+   ],
+   "beat_hits": [
+    120.7,
+    120.9,
+    121.13,
+    121.37,
+    121.83
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on the melisma",
+   "module": "line",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. MITA, DERMER & KNIGHT · REVERSED FACIAL IMAGES · 1977"
+   }
+  },
+  {
+   "id": "S46",
+   "title": "The empty stool",
+   "section": "bridge",
+   "t0": 122.73,
+   "t1": 124.52,
+   "dur": 1.79,
+   "frames": [
+    2946,
+    2988
+   ],
+   "anchor": "melisma start 122.73 (extra_vocals)",
+   "lyric_lines": [],
+   "text_mode": "QUESTION",
+   "text_layout": "centred low, INK type on the white register",
+   "text": [
+    {
+     "mode": "QUESTION",
+     "text_en": "did he ever sit for this?",
+     "text_zh": "他真的在这里坐过吗？",
+     "on": 122.73,
+     "ink": true
+    }
+   ],
+   "description": "Pillow: THE STUDIO, the stool on the tape X, empty, in the flat light.",
+   "environment": "studio",
+   "camera": "as S05 at its end framing, 16:9",
+   "motion_clips": [],
+   "look": "STUDIO",
+   "window": "16:9",
+   "motifs": [
+    "WINDOW"
+   ],
+   "beat_hits": [
+    122.73
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"I'm\"",
+   "module": "studio_beam",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S47",
+   "title": "Tray +4: only the sparks remain",
+   "section": "bridge",
+   "t0": 124.52,
+   "t1": 125.6901,
+   "dur": 1.1701,
+   "frames": [
+    2988,
+    3017
+   ],
+   "anchor": "L40 \"I'm\"",
+   "lyric_lines": [
+    40
+   ],
+   "text_mode": "CARD",
+   "text_layout": "CARD builds large \"I'm upping my P\" (dominant)",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 40,
+     "layout": "center-large"
+    }
+   ],
+   "description": "The chorus tray, +4: under the fill the face darkens fast; by \"P\" (125.45) only the two VOICE catchlights remain, drawn large enough to read as eyes on a phone. Wedge +4, slug ENLARGER 128 s.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY",
+    "CATCHLIGHTS"
+   ],
+   "beat_hits": [
+    124.7811,
+    125.0083,
+    125.2356,
+    125.45,
+    125.4629
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"(doom)\"",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "wedge": "+4",
+    "slug": "ENLARGER 128 s"
+   }
+  },
+  {
+   "id": "S48",
+   "title": "HALL MASTER C4: the audience leaves",
+   "section": "chorus4",
+   "t0": 125.6901,
+   "t1": 126.1447,
+   "dur": 0.4546,
+   "frames": [
+    3017,
+    3027
+   ],
+   "anchor": "bar 70 downbeat: \"doom\"",
+   "lyric_lines": [
+    40
+   ],
+   "text_mode": "CARD",
+   "text_layout": "CARD \"(doom)\" completes full-bleed in VOICE",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 40,
+     "layout": "full-bleed"
+    }
+   ],
+   "description": "One beat of the chorus master: the prints lift off their lines and stream in straight lines toward the backlight.",
+   "environment": "hall",
+   "camera": "the chorus-master lens",
+   "motion_clips": [],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE"
+   ],
+   "beat_hits": [
+    125.6901
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"Just\"",
+   "module": "hall",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S49",
+   "title": "Loom: branches",
+   "section": "chorus4",
+   "t0": 126.1447,
+   "t1": 127.98,
+   "dur": 1.8353,
+   "frames": [
+    3027,
+    3072
+   ],
+   "anchor": "bar 70 beat 2 (\"Just\" 126.14)",
+   "lyric_lines": [
+    41
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left third",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 41
+    }
+   ],
+   "description": "A contact sheet laid out as a tree: on each beat the print forks into 2, 4, 8, then 16 variants (darkroom variants of the one negative: exposure, crop, contrast grade, dodge), and on \"Loom\" (127.50) the orange grease pencil draws one path from the root to a single leaf. janus's Loom: a human curating branches.",
+   "environment": "lightbox",
+   "camera": "top-down, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "PENCIL"
+   ],
+   "beat_hits": [
+    126.1447,
+    126.599,
+    127.054,
+    127.5
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"From\"",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false,
+   "hud": {
+    "caption": "PL. JANUS · SIMULATORS · 2022-09-02"
+   }
+  },
+  {
+   "id": "S50",
+   "title": "BEAM III: the guessed back",
+   "section": "chorus4",
+   "t0": 127.98,
+   "t1": 129.83,
+   "dur": 1.85,
+   "frames": [
+    3072,
+    3116
+   ],
+   "anchor": "L42 \"From\"",
+   "lyric_lines": [
+    42
+   ],
+   "text_mode": "SUBTITLE",
+   "text_layout": "bottom",
+   "text": [
+    {
+     "mode": "SUBTITLE",
+     "line": 42,
+     "parts": true
+    }
+   ],
+   "description": "The clay head on a turntable under the projector steps 60 deg per beat (128.417, 128.872, 129.327): the photograph slides off, and on \"days\" (129.32) the back of the head faces us, grey and guessed.",
+   "environment": "beam",
+   "camera": "eye level, 85 mm equiv, locked, frontal to the turntable",
+   "motion_clips": [
+    "static clay head; turntable 0 -> 60 -> 120 -> 180 deg, 6-frame ease into each beat"
+   ],
+   "look": "BEAM",
+   "window": "16:9",
+   "motifs": [
+    "BEAM"
+   ],
+   "beat_hits": [
+    128.4174,
+    128.872,
+    129.32,
+    129.3265
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"To\"",
+   "module": "studio_beam",
+   "source": "3D",
+   "he_live": false,
+   "consent": true,
+   "hud": {
+    "caption": "PL. PEKING MAN · FACE MODELLED 1937 · ORIGINALS LOST 1941-12 · CASTS REMAIN"
+   }
+  },
+  {
+   "id": "S51",
+   "title": "Copy of a copy: until only the paper remains",
+   "section": "chorus4",
+   "t0": 129.83,
+   "t1": 131.995,
+   "dur": 2.165,
+   "frames": [
+    3116,
+    3168
+   ],
+   "anchor": "L43 \"To\"",
+   "lyric_lines": [
+    43
+   ],
+   "text_mode": "THOUGHT",
+   "text_layout": "left third",
+   "text": [
+    {
+     "mode": "THOUGHT",
+     "line": 43
+    }
+   ],
+   "description": "Ten generations as ten jump cuts on the 8th grid (cuts at 130.008 ... 131.827). Each cut re-photographs and re-prints the previous print of the photograph: contrast up, grain up, softer, tones flattening, halftone coarsening. At 131.599 the face is gone and only the paper and its tooth remain (Lucier: until only the room remains); the orange catchlight is the last trace and goes at 131.827. His features are never reshaped toward any other face. PROOF runs 2^n.",
+   "environment": "lightbox",
+   "camera": "frontal, locked",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "LINE",
+    "CATCHLIGHTS"
+   ],
+   "beat_hits": [
+    130.0082,
+    130.2355,
+    130.4627,
+    130.69,
+    130.9173,
+    131.1446,
+    131.3718,
+    131.5991,
+    131.8264
+   ],
+   "internal_cuts": [
+    130.0082,
+    130.2355,
+    130.4627,
+    130.69,
+    130.9173,
+    131.1446,
+    131.3718,
+    131.5991,
+    131.8264
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on \"What\"",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false,
+   "consent": true,
+   "hud": {
+    "caption": "PL. MODEL COLLAPSE · NATURE 631 · 2024-07-24",
+    "proof": "2^n"
+   }
+  },
+  {
+   "id": "S52",
+   "title": "What did Ilya see?",
+   "section": "chorus4",
+   "t0": 131.995,
+   "t1": 138.4174,
+   "dur": 6.4224,
+   "frames": [
+    3168,
+    3322
+   ],
+   "anchor": "L44 \"What\"",
+   "lyric_lines": [
+    44,
+    45
+   ],
+   "text_mode": "CARD+NONE",
+   "text_layout": "CARD \"What did Ilya see?\" 132.00-133.38; NONE 133.38-137.40; CARD \"Was it\" begins 137.40 (spans into S53)",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 44,
+     "words_to": "see?"
+    },
+    {
+     "mode": "NONE",
+     "from": 133.38,
+     "to": 137.4
+    },
+    {
+     "mode": "CARD",
+     "line": 45,
+     "layout": "center-large",
+     "words_to": "it"
+    }
+   ],
+   "description": "ONE HELD SHOT: the opening framing again, the tray from above, now 16:9. A fresh white sheet slides into the developer by itself. We wait. Nothing develops. The liquid rocks. At 133.38 the card, the subtitles and the HUD all vanish.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked (the S01 lens, 16:9)",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    132.0,
+    132.955,
+    133.38,
+    137.4,
+    137.8
+   ],
+   "transition_in": "cut",
+   "transition_out": "freeze at the full stop",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false,
+   "hud": {
+    "none_from": 133.38
+   }
+  },
+  {
+   "id": "S53",
+   "title": "The stop: everything freezes",
+   "section": "was_it_all_for_show",
+   "t0": 138.4174,
+   "t1": 140.2356,
+   "dur": 1.8182,
+   "frames": [
+    3322,
+    3366
+   ],
+   "anchor": "bar 77 downbeat: full stop",
+   "lyric_lines": [
+    45
+   ],
+   "text_mode": "CARD",
+   "text_layout": "CARD \"Was it all for show?\" completes word by word; ZH small beneath",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 45,
+     "layout": "center-large",
+     "zh_small": true
+    }
+   ],
+   "description": "At 138.417 everything freezes: the rocking developer stops mid-wave, a drop hangs in the air above the tray. The image dims to 15 % over 4 frames while the CARD completes: \"all\" 138.42, \"for\" 139.32, \"show?\" 140.16; 这一切只是一场表演吗？ small beneath.",
+   "environment": "darkroom/tray",
+   "camera": "top-down, locked (frozen)",
+   "motion_clips": [],
+   "look": "DARKROOM",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    138.4174,
+    138.42,
+    139.32,
+    140.16
+   ],
+   "transition_in": "freeze",
+   "transition_out": "hard cut on the drop",
+   "module": "tray",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S54",
+   "title": "THE WALK: the hall records him",
+   "section": "outro_climax",
+   "t0": 140.2356,
+   "t1": 152.5083,
+   "dur": 12.2727,
+   "frames": [
+    3366,
+    3660
+   ],
+   "anchor": "bar 78 downbeat: final drop on \"show\"",
+   "lyric_lines": [
+    45
+   ],
+   "text_mode": "CARD+NONE",
+   "text_layout": "the S53 CARD persists across the cut until \"show?\" ends (141.10), fading over 6 frames; then no text; HUD = PROOF counter only",
+   "text": [
+    {
+     "mode": "CARD",
+     "line": 45,
+     "layout": "center-large",
+     "until": 141.1,
+     "fade_frames": 6
+    },
+    {
+     "mode": "NONE",
+     "from": 141.35
+    }
+   ],
+   "description": "ONE SHOT: the hall at night, locked on the aisle axis with a slow zoom in. He walks at the lens at half time (heel strikes on beats 1 and 3): the only time he is present without sung words, the film's one broken rule. The rows of sheets are blank again, and they record him as he passes: 12 captures on the beats of bars 78-80 (before each capture the sheet flashes, for its beat, one image from earlier in the film, in film order), 24 on the 8ths of bars 81-83, 16 on the 16ths of bar 84. Each capture fixes a side-view silhouette of his stride on its sheet: the hall behind him fills with a Muybridge sequence of his walk. The backlight climbs from night toward white, with no bloom in the last bar. 151.145: a 2-frame full-frame capture flash, and under it the 3D silhouette hands off to plate P10 (close-up, walking into the lens). On the last beat (152.508) his face fills the frame.",
+   "environment": "hall",
+   "camera": "aisle axis, eye height 1.55 m, FOV 12 -> 5 deg v (zoom, ease-in) over the shot; he walks from z = -12.5 m",
+   "motion_clips": [
+    "walk_runway_loop speed 0.715 (beatSpeed 66), strikes on beats 1 and 3 from 140.236",
+    "layers: look target = lens; noise amp 0.15 seed 9"
+   ],
+   "look": "HALL",
+   "window": "16:9",
+   "motifs": [
+    "HALL",
+    "AUDIENCE",
+    "LINE"
+   ],
+   "beat_hits": [
+    140.2356,
+    142.0538,
+    143.872,
+    145.6901,
+    147.5083,
+    149.3265,
+    151.1447
+   ],
+   "transition_in": "hard cut on the drop",
+   "transition_out": "hard cut to paper white",
+   "module": "hall",
+   "source": "GEN",
+   "he_live": true,
+   "rule_break": true,
+   "hud": {
+    "proof": "spinning"
+   },
+   "gen": {
+    "plate": "P10",
+    "route": "B previs-to-plate for 151.145-152.508 only; the rest is 3D final (silhouette)",
+    "aspect": "16:9",
+    "duration": 5,
+    "use": [
+     0.5,
+     1.863
+    ],
+    "previs_segment": [
+     150.645,
+     155.645
+    ],
+    "keyframe_prompt": "{ID}. Close-up, frontal, 135 mm long lens: the man walks slowly straight toward the camera down a dark hall; a cold white backlight behind him rims his hair and shoulders; a soft low front fill lights his face evenly; white photographic prints hang out of focus behind him. Photographic frame from a 35 mm art film: natural skin texture, muted low-saturation colour, soft contrast, deep blacks, fine grain. Mouth closed.",
+    "video_model": "minimax/h3-max/3d-to-video (1080P) with the previs segment as video_url",
+    "alt_models": [
+     "fal-ai/kling-video/v3/pro/image-to-video (start = keyframe)",
+     "fal-ai/kling-video/v3/4k/image-to-video (if a crop is needed)"
+    ],
+    "video_prompt": "He keeps walking slowly into the camera until his face fills the frame. Locked camera with a slow zoom in. Mouth stays closed.",
+    "negative": "text, subtitles, logo, watermark, smile, open mouth, talking, singing, lip movement, extra people, faces in the background, double eyelids, stubble, glasses, hat, jewellery, coloured gels, lens flare, rain, slow motion, handheld shake, cuts, transitions",
+    "refs": [
+     "out/avatar/identity/face_clean_1024.png",
+     "out/avatar/identity/face_aligned_512.png",
+     "out/genmedia/sheet/approved/front*.png",
+     "out/genmedia/sheet/approved/3q_*.png",
+     "out/genmedia/sheet/approved/wardrobe_*.png",
+     "out/film/previs/S54_P10_previs.mp4"
+    ],
+    "fallback": "the silhouette walks on into the lens with the face in shadow; the cut to paper white happens when the dark shape fills the frame",
+    "gate": "face_similarity.py on the ungraded plate: median >= match and p10 >= reject over frames with a face and yaw <= 35 deg; face in >= 80 % of sampled frames; no internal cut (scene score < 0.3); contact sheet reviewed by eye (hands, teeth, wardrobe, stray text, background faces)"
+   }
+  },
+  {
+   "id": "S55",
+   "title": "Paper white",
+   "section": "outro_climax",
+   "t0": 152.5083,
+   "t1": 152.9629,
+   "dur": 0.4546,
+   "frames": [
+    3660,
+    3671
+   ],
+   "anchor": "bar 84 beat 4",
+   "lyric_lines": [],
+   "text_mode": "NONE",
+   "text_layout": "PROOF counter only, INK digits on white",
+   "text": [
+    {
+     "mode": "NONE"
+    }
+   ],
+   "description": "Hard cut to the unexposed sheet: flat paper white with its tooth, the same paper as S52. Not bloom, not a light: the paper before anything is printed on it. The last four captures of bar 84 expose onto nothing. His leaving is never shown.",
+   "environment": "white",
+   "camera": "frontal, locked (paper macro)",
+   "motion_clips": [],
+   "look": "WHITE",
+   "window": "16:9",
+   "motifs": [
+    "TRAY"
+   ],
+   "beat_hits": [
+    152.5083
+   ],
+   "transition_in": "hard cut",
+   "transition_out": "cut on the drums stop",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false
+  },
+  {
+   "id": "S56",
+   "title": "The empty clip",
+   "section": "outro_tail",
+   "t0": 152.9629,
+   "t1": 154.7811,
+   "dur": 1.8182,
+   "frames": [
+    3671,
+    3715
+   ],
+   "anchor": "bar 85 downbeat: drums stop",
+   "lyric_lines": [],
+   "text_mode": "NONE",
+   "text_layout": "no text",
+   "text": [
+    {
+     "mode": "NONE"
+    }
+   ],
+   "description": "The hall, empty and high-key: every sheet holds a frame of his walk, swaying in his wake. In the foreground, large and sharp by the wire, one paperclip is empty and still swinging. 153.418-153.872: the WINDOW closes from 16:9 to 7:9 around the empty clip: the photograph's shape, with nothing in it. Must read at 390 pt width.",
+   "environment": "hall",
+   "camera": "low by the wire, 50 mm equiv, clip at 55 % of window height, hall soft behind (cached blurred layer)",
+   "motion_clips": [],
+   "look": "HALL",
+   "window": "16:9 | 7:9",
+   "motifs": [
+    "EMPTY CLIP",
+    "WINDOW",
+    "AUDIENCE"
+   ],
+   "beat_hits": [
+    152.9629,
+    153.418,
+    153.872
+   ],
+   "transition_in": "cut",
+   "transition_out": "cut on bar 86 (bass cut)",
+   "module": "hall",
+   "source": "3D",
+   "he_live": false
+  },
+  {
+   "id": "S57",
+   "title": "PROOF 1 OF 1 · OK AS IS",
+   "section": "outro_tail",
+   "t0": 154.7811,
+   "t1": 156.6507,
+   "dur": 1.8696,
+   "frames": [
+    3715,
+    3760
+   ],
+   "anchor": "bar 86 downbeat: bass cut",
+   "lyric_lines": [],
+   "text_mode": "TYPE",
+   "text_layout": "slug line centred low; approval box; title small",
+   "text": [
+    {
+     "mode": "MONO",
+     "lines_en": [
+      "PROOF 1 OF 1"
+     ],
+     "on": [
+      154.7811
+     ]
+    },
+    {
+     "mode": "APPROVAL",
+     "boxes": [
+      "OK AS IS",
+      "OK WITH CORRECTIONS",
+      "NEW PROOF REQUIRED"
+     ],
+     "tick": "OK AS IS",
+     "on": 155.236
+    },
+    {
+     "mode": "TITLE",
+     "text": "潜影 · LATENT IMAGE",
+     "on": 155.69
+    }
+   ],
+   "description": "Black. The slug line types PROOF 1 OF 1; the approval box appears and the orange grease pencil ticks OK AS IS (the machine stops correcting him); then, small: 潜影 · LATENT IMAGE. The synth rings out.",
+   "environment": "black",
+   "camera": "-",
+   "motion_clips": [],
+   "look": "CARD",
+   "window": "full frame (card)",
+   "motifs": [
+    "PENCIL"
+   ],
+   "beat_hits": [
+    154.7811,
+    155.236,
+    155.28,
+    155.69
+   ],
+   "transition_in": "cut",
+   "transition_out": "end of file",
+   "module": "cards",
+   "source": "TYPE",
+   "he_live": false
+  }
+ ]
+}

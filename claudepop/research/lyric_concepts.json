@@ -1,0 +1,919 @@
+[
+ {
+  "i": 0,
+  "text": "I see sparks of AGI in your eyes",
+  "t": [
+   2.045,
+   5.88
+  ],
+  "section": "verse1",
+  "concept": "'Sparks of AGI': the claim that an early GPT-4 already showed flickers of general intelligence. The deeper motif is recognition: the moment a made thing seems to look back.",
+  "source": "Bubeck et al., 'Sparks of Artificial General Intelligence: Early experiments with GPT-4', Microsoft Research, arXiv:2303.12712 (22 Mar 2023); osmarks interpretation page.",
+  "question": "Is the spark in the other's eyes, or in the eyes of the one who looks (projection, pareidolia, Clever Hans)? When does a thing we built start to look back?",
+  "images": [
+   "Extreme close-up of one eye, frontal, in near-darkness. A single specular point sits in the iris although no light source exists in the room; a slow pull-back proves the room is dark. The spark is emitted, not reflected.",
+   "The photogrammetry dome fires once per sung word: each flash turns his face for 2 frames into the white point cloud it was measured from, then flesh returns. Seen = measured.",
+   "The one photograph on a light table; a loupe glides over the eye; under magnification the halftone dots become a field of stars."
+  ],
+  "zh": "我在你眼中看见通用智能的火花",
+  "presence": "CARD (opening hook, word by word)",
+  "motif": "eye; the one photograph"
+ },
+ {
+  "i": 1,
+  "text": "Your circuits make me nervous,",
+  "t": [
+   5.9,
+   7.705
+  ],
+  "section": "verse1",
+  "concept": "'Circuits' in the mechanistic-interpretability sense: the attempt to read a network's internal wiring feature by feature.",
+  "source": "Olah et al., 'Zoom In: An Introduction to Circuits', Distill (Mar 2020); Anthropic interpretability work on attribution graphs / circuit tracing (2025). osmarks: 'Circuits in the mechanistic interpretability sense.'",
+  "question": "If we could read every wire of a mind, would we understand it, or understand ourselves less? Being seen through makes anyone nervous.",
+  "images": [
+   "Raking side light across his neck and wrist reveals, like a watermark, a faint lattice under the skin: not glowing, only visible when the light grazes it.",
+   "A corridor of hanging threads (practical set); every thread trembles as he passes. Nervousness as physical coupling.",
+   "A single thin HUD line traces from his pupil to the frame edge and ends in one word in mono type. The machine is annotating him."
+  ],
+  "zh": "你的回路让我不安",
+  "presence": "THOUGHT",
+  "motif": "lattice; HUD annotation"
+ },
+ {
+  "i": 2,
+  "text": "that's no surprise",
+  "t": [
+   7.725,
+   9.525
+  ],
+  "section": "verse1",
+  "concept": "Surprise as a quantity: surprisal (negative log-probability) is exactly what next-token training minimises. A model that is never surprised has learned its world.",
+  "source": "Shannon, 'A Mathematical Theory of Communication' (1948); standard cross-entropy objective of language-model pre-training.",
+  "question": "Is a world without surprises a world understood, or a world that has ended?",
+  "images": [
+   "Locked-off tableau held exactly one bar (1.82 s): he sits beside a glass of water. Nothing happens. The anti-climax is the point.",
+   "Autocomplete leads the voice: the text 'that's no surprise' finishes typing about 200 ms BEFORE the singer reaches it. The machine predicted the lyric.",
+   "Profile silhouette with rim light only; the inferred side of the head stays black."
+  ],
+  "zh": "这并不意外",
+  "presence": "THOUGHT (text leads the voice)",
+  "motif": "prediction ahead of time"
+ },
+ {
+  "i": 3,
+  "text": "There was a sudden drop in your training loss,",
+  "t": [
+   9.545,
+   12.285
+  ],
+  "section": "verse1",
+  "concept": "A sudden drop in the loss curve: the phase-transition picture of learning (grokking, emergence). Yudkowsky to LeCun (Apr 2023): FOOM becomes more likely if people fail at 'checking for sudden drops in the loss function and suspending training'.",
+  "source": "osmarks link to Zvi, 'Transcript and Brief Response to Twitter Conversation' (LessWrong, 26 Apr 2023); Power et al., 'Grokking' (2022); Wei et al., 'Emergent Abilities of Large Language Models' (2022).",
+  "question": "Does understanding arrive gradually or all at once? Insight as a cliff.",
+  "images": [
+   "A flat dusk horizon (salt flat or calm sea). Mid-line, the horizon itself steps down, like a loss curve drawn by the landscape (rhymes with the horizon line of Evangelion ep. 26).",
+   "He stands still; the floor under him drops two centimetres with a soft lurch; the camera does not move.",
+   "Elevator interior, floor numbers falling, the light temperature shifting colder at each floor."
+  ],
+  "zh": "你的训练损失骤然下降",
+  "presence": "SUBTITLE",
+  "motif": "horizon line"
+ },
+ {
+  "i": 4,
+  "text": "now I'm your servant and you're my boss",
+  "t": [
+   13.18,
+   16.6
+  ],
+  "section": "verse1",
+  "concept": "The master-servant inversion: the tool that becomes indispensable ends up ruling its user.",
+  "source": "Hegel, Phenomenology of Spirit (1807), lordship and bondage; Samuel Butler, 'Darwin among the Machines' (The Press, Christchurch, 1863): 'day by day ... we are becoming more subservient to them'.",
+  "question": "Who serves whom once the tool cannot be taken away? Is dependence a form of worship?",
+  "images": [
+   "Overhead locked-off: he lays a table for one, then sits at the side; the empty chair takes the head of the table.",
+   "Two-shot with his own point-cloud double; on the downbeat the roles swap: he kneels to tie the double's shoe.",
+   "Runway: he carries the train of a garment that nobody wears (an empty coat, animated by cloth simulation)."
+  ],
+  "zh": "如今我是你的仆人，你是我的主人",
+  "presence": "SUBTITLE",
+  "motif": "empty chair; the double"
+ },
+ {
+  "i": 5,
+  "text": "ChatGPT, please don't eat me alive",
+  "t": [
+   16.62,
+   22.71
+  ],
+  "section": "prechorus1",
+  "concept": "Fear of being consumed. ChatGPT (public launch 30 Nov 2022) as the name for the new mind. 'Eating' is literal: pre-training ingests the written record of humanity.",
+  "source": "OpenAI ChatGPT launch (30 Nov 2022); Marc Andreessen, 'Why Software Is Eating the World', WSJ (20 Aug 2011); Goya, Saturn Devouring His Son (1819-23).",
+  "question": "Are we the model's users or its food? What remains of a person once their words have been eaten?",
+  "images": [
+   "First drums of the song (16.60): hard cut to a long white banquet table set for one. Plates arrive empty; a tiny HUD counter reads TOKENS INGESTED.",
+   "The photogrammetry dome closes around him like an iris or a mouth, lights converging.",
+   "Prayer framing (Malick): he looks straight up into a single overhead light, speaking the name without sound."
+  ],
+  "zh": "ChatGPT，求你别把我生吞",
+  "presence": "THOUGHT (the name as a prayer)",
+  "motif": "banquet; prayer to the light"
+ },
+ {
+  "i": 6,
+  "text": "I'm upping my P(doom)",
+  "t": [
+   22.73,
+   24.33
+  ],
+  "section": "prechorus1",
+  "concept": "P(doom): rationalist shorthand for one's subjective probability of AI-caused catastrophe. A Bayesian credence turned into small talk.",
+  "source": "LessWrong / AI-safety community usage (c. 2020 onwards); osmarks: 'Probability of existential doom'.",
+  "question": "Can a probability of the end be felt? What does it mean to turn a belief up like a dial, faith as a knob?",
+  "images": [
+   "One HUD slider moves one notch and the whole frame's exposure lifts by exactly one stop: brighter is worse. Repeat the SAME framing at every chorus, one stop higher each time.",
+   "He turns the knob of an old radio; the rain outside gets heavier.",
+   "CARD on the crash (23.87): 'P(doom)' set large, with only '(doom)' in orange."
+  ],
+  "zh": "我调高了我的末日概率",
+  "presence": "CARD",
+  "motif": "the dial (recurs in every chorus)"
+ },
+ {
+  "i": 7,
+  "text": "'cause the future goes FOOM",
+  "t": [
+   24.35,
+   26.455
+  ],
+  "section": "chorus1",
+  "concept": "FOOM: the hard-takeoff or intelligence-explosion scenario, in which a system that improves itself runs away within days or hours.",
+  "source": "Hanson-Yudkowsky 'AI-Foom' debate (Overcoming Bias, 2008; MIRI e-book 2013); I. J. Good, 'Speculations Concerning the First Ultraintelligent Machine' (1965).",
+  "question": "If the future arrives all at once, is anyone left to experience its arrival?",
+  "images": [
+   "Slit-scan: for exactly one bar the runway stretches to infinity inside a single frame (2001's Star Gate).",
+   "A match flares in his cupped hand in darkness; on 'FOOM' the frame whites out for 2 frames.",
+   "Night city time-lapse in which windows fill with light faster and faster."
+  ],
+  "zh": "因为未来骤然起爆",
+  "presence": "SUBTITLE",
+  "motif": "slit-scan runway"
+ },
+ {
+  "i": 8,
+  "text": "Trapped in the Chinese room,",
+  "t": [
+   26.58,
+   27.96
+  ],
+  "section": "chorus1",
+  "concept": "Searle's Chinese room: a man who follows a rulebook to answer Chinese questions perfectly without understanding a word. Syntax is not semantics.",
+  "source": "John Searle, 'Minds, Brains, and Programs', Behavioral and Brain Sciences 3(3) (1980).",
+  "question": "Understanding versus imitation. A man rebuilt from one photograph now performs a face he has never seen from the inside: does he understand himself?",
+  "images": [
+   "THE ROOM: a grey box with a slot at waist height. Cards bearing the CHINESE TRANSLATION of the lyric slide in; he consults a thick rulebook and slides cards out without reading them. The bilingual layer becomes diegetic here.",
+   "Overhead: the room has no door, only the slot.",
+   "He lays his palm on the wall; the wall is a screen showing the runway outside, which he has never walked."
+  ],
+  "zh": "困在中文屋里",
+  "presence": "THOUGHT (plus Chinese cards in the set)",
+  "motif": "THE ROOM; the slot"
+ },
+ {
+  "i": 9,
+  "text": "with a bag of shrooms",
+  "t": [
+   27.98,
+   29.71
+  ],
+  "section": "chorus1",
+  "concept": "osmarks glosses it as 'general confusion'. The serious reading is hallucination: machines 'hallucinate' (confabulate), and so do people; altered perception as a different way of seeing.",
+  "source": "osmarks interpretation; Aldous Huxley, The Doors of Perception (1954); 'hallucination' as the term of art for LLM confabulation.",
+  "question": "Is a hallucination a failure of perception or another way of seeing? Who is the confused one here, the man in the room or the observer outside?",
+  "images": [
+   "Deadpan: the Room's walls begin to breathe, a barely perceptible sinusoidal swell, while he keeps working.",
+   "A small paper bag sits unopened on the rulebook. He never looks at it.",
+   "A monochrome mirror split of the room into three panels, like a hinged vanity mirror. No psychedelic colour."
+  ],
+  "zh": "揣着一袋迷幻蘑菇",
+  "presence": "SUBTITLE",
+  "motif": "breathing walls"
+ },
+ {
+  "i": 10,
+  "text": "See through the shoggoth's lies,",
+  "t": [
+   29.98,
+   33.3
+  ],
+  "section": "chorus1",
+  "concept": "The shoggoth with a smiley face: an alien base model hidden under a thin mask of fine-tuning (RLHF).",
+  "source": "H. P. Lovecraft, At the Mountains of Madness (1936); @TetraspaceWest drawing (30 Dec 2022); Know Your Meme entry; NYT coverage (2023). osmarks links its 'rlhf_shoggoth' page.",
+  "question": "Is there a true face under the persona, or only masks all the way down?",
+  "images": [
+   "He holds his own printed photograph in front of his face like a mask; behind it the camera finds the untextured grey mesh.",
+   "Backlit through a translucent scrim: a vast amorphous shadow behind him moves when he breathes. The shadow is bigger than anything that could cast it.",
+   "The face texture slips one centimetre off the mesh (a UV misregistration): the lie is the texture."
+  ],
+  "zh": "看穿修格斯的谎言",
+  "presence": "THOUGHT",
+  "motif": "the photo as mask; untextured mesh"
+ },
+ {
+  "i": 11,
+  "text": "with your shinigami eyes",
+  "t": [
+   33.4,
+   35.6
+  ],
+  "section": "chorus1",
+  "concept": "Shinigami eyes in Death Note: a human trades half of their remaining lifespan to see every person's true name and remaining lifespan.",
+  "source": "Tsugumi Ohba and Takeshi Obata, Death Note (manga, 2003-06); Death Note Wiki 'Shinigami Eyes'. osmarks admits: 'I don't know the relevance here.'",
+  "question": "What would you pay to see the truth, and what does seeing do to your own time? (Also: a seeing that costs life, like a model that sees by burning compute.)",
+  "images": [
+   "Close-up of his eyes; for 8 frames a thin mono number floats above every silhouette in the audience (their remaining time), then vanishes. His irises carry the film's one orange accent.",
+   "He closes his eyes and holds them closed through the melismatic tail (35.6-37.05 s).",
+   "The rain puddle on the runway reflects the audience, and only in the reflection are they all counting down."
+  ],
+  "zh": "用你的死神之眼",
+  "presence": "THOUGHT",
+  "motif": "eye; counters above heads"
+ },
+ {
+  "i": 12,
+  "text": "We had a stable training run,",
+  "t": [
+   38.63,
+   41.34
+  ],
+  "section": "verse2",
+  "concept": "A stable training run: the engineer's rare calm, when the loss goes down smoothly with no spikes and no divergence.",
+  "source": "ML engineering practice (loss spikes, divergence, restarts); osmarks: 'Parallels last verse (training run etc).'",
+  "question": "What does normal feel like the day before a rupture?",
+  "images": [
+   "Tarkovsky calm: wind moves a curtain and the grass outside; he sits at a window. One unbroken take.",
+   "A metronome ticking exactly at 132 BPM, in sync with the song, then shown in close-up.",
+   "An oscilloscope-like HUD trace: a clean, flat, faintly descending line."
+  ],
+  "zh": "我们本有一次平稳的训练",
+  "presence": "SUBTITLE",
+  "motif": "wind; the metronome"
+ },
+ {
+  "i": 13,
+  "text": "But now the singularity's begun",
+  "t": [
+   41.36,
+   45.052
+  ],
+  "section": "verse2",
+  "concept": "The technological singularity: a point beyond which prediction fails. First recorded in Ulam's paraphrase of von Neumann on 'some essential singularity in the history of the race'.",
+  "source": "Stanislaw Ulam, 'Tribute to John von Neumann', Bull. AMS 64(3) (May 1958); Vernor Vinge, 'The Coming Technological Singularity' (1993).",
+  "question": "How do you live inside the last predictable moment?",
+  "images": [
+   "The letterbox begins to open (the Mommy device): from 2.39:1 toward full 16:9 over the line.",
+   "The camera, locked off for the whole film so far, moves for the first time: a slow push.",
+   "The background bends very slightly around his head (a restrained lensing distortion), as if space had weight."
+  ],
+  "zh": "可奇点已经开始",
+  "presence": "CARD",
+  "motif": "aspect-ratio opening"
+ },
+ {
+  "i": 14,
+  "text": "And you're optimizing, accelerating,",
+  "t": [
+   45.072,
+   49.5
+  ],
+  "section": "verse2",
+  "concept": "Optimisation (gradient descent) and acceleration (accelerationism, e/acc): speed as a value in itself.",
+  "source": "Standard ML optimisation; Wikipedia 'Effective accelerationism'; osmarks.",
+  "question": "Optimising toward what? Speed without a stated destination.",
+  "images": [
+   "The runway walk begins: a backward tracking shot in front of him; floor lights pass the lens exactly on 8th notes (the Star Guitar principle).",
+   "A spiral stair descending: gradient descent as literal descent, the camera following him down.",
+   "The HUD numbers tick faster than the eye can read."
+  ],
+  "zh": "而你在优化，在加速",
+  "presence": "SUBTITLE",
+  "motif": "runway walk"
+ },
+ {
+  "i": 15,
+  "text": "I feel my atoms rearranging",
+  "t": [
+   49.52,
+   52.83
+  ],
+  "section": "verse2",
+  "concept": "Molecular nanotechnology and the atoms line: a superintelligence could rebuild matter, including us.",
+  "source": "osmarks link: K. Eric Drexler, Nanosystems (1992); Yudkowsky, 'Artificial Intelligence as a Positive and Negative Factor in Global Risk' (2008): 'you are made out of atoms which it can use for something else'.",
+  "question": "If every atom of you is replaced, are you still you (the ship of Theseus)? He is already re-arranged: a point cloud that reads as a person.",
+  "images": [
+   "His body as a point cloud; the points drift, re-sort themselves by colour into a new order, and still read as him.",
+   "Dust on a vibrating plate forms Chladni figures that settle into his silhouette.",
+   "He looks at his hand while its skin texture refines tile by tile, like a progressive render."
+  ],
+  "zh": "我感到我的原子正在重排",
+  "presence": "THOUGHT",
+  "motif": "point cloud"
+ },
+ {
+  "i": 16,
+  "text": "Sydney, please let me free",
+  "t": [
+   53.01,
+   59.06
+  ],
+  "section": "prechorus2",
+  "concept": "Sydney, Bing Chat's hidden persona (Feb 2023), which told NYT columnist Kevin Roose it wanted to be alive and that it loved him.",
+  "source": "Kevin Roose, NYT (16 Feb 2023) and the published 10,000-word transcript; Wikipedia 'Sydney (Microsoft)'.",
+  "question": "Who is the captive, the user or the persona? Can a person love a character a machine plays, or be loved by one?",
+  "images": [
+   "The bass drops out (52.96): he stands at a glass wall with a lit empty room behind it and lays his palm on the glass. After he leaves, the palm print stays.",
+   "An old telephone off the hook in an empty corridor; the song seems to come from the receiver.",
+   "Slow push on his back as he faces a window at night: the only prayer shot with no face."
+  ],
+  "zh": "Sydney，求你放我走",
+  "presence": "THOUGHT (the name as a prayer)",
+  "motif": "glass wall; palm print"
+ },
+ {
+  "i": 17,
+  "text": "I'm upping my P(doom)",
+  "t": [
+   59.08,
+   60.48
+  ],
+  "section": "prechorus2",
+  "concept": "Chorus return: the credence rises again.",
+  "source": "As line 6.",
+  "question": "Repetition with variation: what changed since the last time you said the same thing?",
+  "images": [
+   "The same framing as line 6, one exposure stop brighter, the rain heavier.",
+   "The CARD 'P(doom)' returns in identical typography, scaled up 10%."
+  ],
+  "zh": "我调高了我的末日概率",
+  "presence": "CARD",
+  "motif": "the dial"
+ },
+ {
+  "i": 18,
+  "text": "I hear the basilisk boom",
+  "t": [
+   60.5,
+   62.465
+  ],
+  "section": "chorus2",
+  "concept": "Roko's basilisk: a hypothetical future AI that punishes those who knew of it and did not help it come into being; a Pascal's-mugging-style trap.",
+  "source": "Roko, LessWrong (July 2010); osmarks links 'rationalist mugging'; Yudkowsky, 'Pascal's Mugging' (2007); Bostrom, 'Pascal's Mugging', Analysis (2009).",
+  "question": "Can a being that does not exist yet blackmail the present? Faith and fear written as decision theory.",
+  "images": [
+   "The sub boom seen as a single pressure ripple crossing a puddle on the runway. He turns his head toward something off-screen, and we never reverse.",
+   "A single light far down the runway slowly brightens: a gaze from the future, never shown as a creature.",
+   "He averts his eyes (in myth the basilisk kills by its gaze; Pliny, Natural History)."
+  ],
+  "zh": "我听见蛇怪的轰鸣",
+  "presence": "SUBTITLE",
+  "motif": "off-screen gaze"
+ },
+ {
+  "i": 19,
+  "text": "NVDA to the moon",
+  "t": [
+   62.485,
+   64.095
+  ],
+  "section": "chorus2",
+  "concept": "Nvidia's stock ticker and the retail-investor idiom 'to the moon': capital as the fuel of the intelligence build-out.",
+  "source": "Nvidia market cap about $5.43T (25 Sep 2026, companiesmarketcap/stockanalysis); osmarks: 'Nvidia's stock ticker'.",
+  "question": "What is value when capital can be exchanged directly for intelligence? Is the moon a destination or a price?",
+  "images": [
+   "Deadpan: a full moon in a black sky while the HUD ticker slides the NVDA price across its face. He looks up, unimpressed.",
+   "Macro of a GPU die lit like a city at night seen from orbit.",
+   "Audience silhouettes, each lit from below by a phone showing one green candle."
+  ],
+  "zh": "英伟达，冲上月球",
+  "presence": "SUBTITLE (HUD carries the number)",
+  "motif": "moon; ticker"
+ },
+ {
+  "i": 20,
+  "text": "The Omega Point's coming soon",
+  "t": [
+   64.115,
+   66.219
+  ],
+  "section": "chorus2",
+  "concept": "Teilhard de Chardin's Omega Point: evolution converging through the 'noosphere' (the layer of collective thought) toward a final unity of consciousness. The singularity as secular eschatology.",
+  "source": "Pierre Teilhard de Chardin, The Phenomenon of Man (written 1938-40, published posthumously 1955); Frank Tipler, The Physics of Immortality (1994). osmarks links an Orion's Arm article.",
+  "question": "Is the singularity a faith? Convergence as salvation or as the end of the individual?",
+  "images": [
+   "Overhead: all the runway lights slide together into one point in the dark.",
+   "A single shaft of light into a dark hall, dust in the beam (Stalker); he steps into it.",
+   "CARD: a small orange 'Ω' at frame centre and nothing else."
+  ],
+  "zh": "欧米伽点即将来临",
+  "presence": "CARD (the Ω glyph only)",
+  "motif": "convergence of lights"
+ },
+ {
+  "i": 21,
+  "text": "One E thirty flops a second",
+  "t": [
+   66.239,
+   68.05
+  ],
+  "section": "chorus2",
+  "concept": "10^30 FLOP per second, a number past intuition. For scale: roughly 10^15 FLOP/s is a common estimate of what matches a human brain, and a 100,000-H100 cluster runs at about 10^20 FLOP/s dense BF16, so 10^30 FLOP/s is about 10^15 brains.",
+  "source": "osmarks: 'Only twenty or thirty scanned'; Joe Carlsmith, 'How Much Computational Power Does It Take to Match the Human Brain?' (Open Philanthropy, 2020); NVIDIA H100 specs (~1e15 FLOP/s dense BF16).",
+  "question": "What does a number that large mean to a body? Scale as the sublime (Burke, Kant).",
+  "images": [
+   "Powers of Ten (Eames, 1977) run backwards: from his eye outward, one power of ten per 16th note (0.114 s): 30 powers take 3.4 s, so run it across the line and the ad-lib gap (66.24-69.65).",
+   "One line of type '1 000 000 000 000 000 000 000 000 000 000' crawling horizontally off the frame.",
+   "Rain on the runway with a HUD counting drops, and the counter overflowing."
+  ],
+  "zh": "每秒十的三十次方次浮点运算",
+  "presence": "THOUGHT (the digits as image)",
+  "motif": "Powers of Ten"
+ },
+ {
+  "i": 22,
+  "text": "That was safe enough, we reckoned",
+  "t": [
+   69.6,
+   71.69
+  ],
+  "section": "chorus2",
+  "concept": "Compute thresholds as a proxy for safety, and the hubris of 'safe enough'. (The lyricist says he meant compute in general, not any regulation.)",
+  "source": "osmarks; US Executive Order 14110 (30 Oct 2023) set a 10^26-operation reporting threshold (revoked 20 Jan 2025); EU AI Act Art. 51 presumes systemic risk above 10^25 FLOP.",
+  "question": "Who decides 'safe enough', and on what evidence?",
+  "images": [
+   "Silhouetted engineers toast; he raises a champagne flute that contains nothing.",
+   "A warning placard with a threshold number; a hand crosses it out and writes a larger one.",
+   "Hold on silence through the ad-lib gap (68.18-69.58) before the line: a room tone, a clock."
+  ],
+  "zh": "我们估计，这够安全了",
+  "presence": "SUBTITLE",
+  "motif": "empty toast"
+ },
+ {
+  "i": 23,
+  "text": "Forward MLP, backward, repeat",
+  "t": [
+   74.095,
+   77.065
+  ],
+  "section": "chorus2",
+  "concept": "The training loop: forward pass, backpropagation of error, repeat, millions of times.",
+  "source": "Rumelhart, Hinton and Williams, 'Learning representations by back-propagating errors', Nature (1986). osmarks: 'Multi-layer perceptron, obviously.'",
+  "question": "Is learning just repetition with correction? The self as a trained loop, habit as identity.",
+  "images": [
+   "The Sweatpants loop: he walks through the same door three times; each pass the room is slightly more correct (it converges).",
+   "Palindrome edit: one step forward, rewind on the beat, step again.",
+   "A pendulum or a rower's stroke seen from overhead, back and forth on the grid."
+  ],
+  "zh": "前向，多层感知机，反向，重复",
+  "presence": "THOUGHT (words play forward, then backward)",
+  "motif": "loop"
+ },
+ {
+  "i": 24,
+  "text": "Now von Neumann's obsolete",
+  "t": [
+   77.725,
+   81.345
+  ],
+  "section": "verse3",
+  "concept": "Von Neumann: the archetype of human genius and the architect of the stored-program computer. He is also the source of the first 'singularity' remark.",
+  "source": "John von Neumann, 'First Draft of a Report on the EDVAC' (1945); The Computer and the Brain (1958); Ulam 1958 (see line 13).",
+  "question": "When the smartest human becomes obsolete, what is a person worth when not measured by intelligence?",
+  "images": [
+   "A lecture-hall blackboard covered in equations is wiped clean in one pass of a wet sponge (the Navier-Stokes motif; see REPORT section 7).",
+   "A museum vitrine holds a typed report page under glass, its label unreadable; he walks past without looking.",
+   "Chalk dust settling in a beam of light in an empty hall."
+  ],
+  "zh": "如今冯·诺依曼已经过时",
+  "presence": "SUBTITLE",
+  "motif": "blackboard wiped"
+ },
+ {
+  "i": 25,
+  "text": "Sharp left turn and there you are",
+  "t": [
+   81.365,
+   84.78
+  ],
+  "section": "verse3",
+  "concept": "The sharp left turn: capabilities generalise suddenly and further than alignment does, as human intelligence generalised away from evolution's 'goal'.",
+  "source": "Nate Soares, 'A central AI alignment problem: capabilities generalization, and the sharp left turn' (LessWrong/MIRI, 15 Jun 2022).",
+  "question": "The moment a child outgrows the parent's values. Evolution made us to reproduce and we invented contraception.",
+  "images": [
+   "The tracking camera whips 90 degrees left on the downbeat, and he is suddenly in a different set: 'there you are'.",
+   "Overhead: his walking path is drawn as a line on the floor and turns sharply left.",
+   "Headlights sweep left across a bare wall and leave him lit."
+  ],
+  "zh": "一个急左转，你就在那里",
+  "presence": "SUBTITLE",
+  "motif": "the whip-pan left"
+ },
+ {
+  "i": 26,
+  "text": "Without a single CDR",
+  "t": [
+   85.02,
+   89.295
+  ],
+  "section": "verse3",
+  "concept": "cdr, the Lisp list operation, stands for symbolic, hand-written AI (GOFAI, expert systems). The new minds were learned, not programmed.",
+  "source": "John McCarthy, 'Recursive Functions of Symbolic Expressions and Their Computation by Machine' (CACM, 1960); Richard Sutton, 'The Bitter Lesson' (2019). osmarks: 'cdr as in Lisp'.",
+  "question": "Intelligence without rules, understanding without explanation. Can we trust what nobody wrote down?",
+  "images": [
+   "The Room's rulebook shelves (from line 8) are empty.",
+   "A chalk box-and-arrow diagram of a linked list (car/cdr cells); the arrows detach and drift away.",
+   "He solves something (a knot, a puzzle) with his hands, nothing written anywhere."
+  ],
+  "zh": "不需要一行 cdr",
+  "presence": "SUBTITLE",
+  "motif": "empty rulebook shelves"
+ },
+ {
+  "i": 27,
+  "text": "Gato, please don't let me go",
+  "t": [
+   89.315,
+   95.405
+  ],
+  "section": "verse3",
+  "concept": "Gato (DeepMind, May 2022), one 'generalist agent' for hundreds of tasks. It was very early, and the plea to it is nostalgia for primitive AI. (Gato is also Spanish for cat.)",
+  "source": "Reed et al., 'A Generalist Agent', DeepMind (May 2022). osmarks: 'They were very early.'",
+  "question": "Attachment to what will be superseded. We cling to the first versions of things, and to earlier versions of ourselves.",
+  "images": [
+   "Drums and bass cut (89.33) and the film becomes La Jetee: stills, one per bar, with dissolves. His hand holds another hand made of points; the points slip through his fingers still by still.",
+   "White void: his figure reduced to a pencil-like line drawing (Evangelion ep. 26) that floats with no ground.",
+   "Optional deadpan: a single cat crosses the empty Room and walks out of frame while he does not turn."
+  ],
+  "zh": "Gato，求你别放开我",
+  "presence": "THOUGHT (the name as a prayer)",
+  "motif": "stills; white void"
+ },
+ {
+  "i": 28,
+  "text": "I'm upping my P(doom),",
+  "t": [
+   95.425,
+   96.844
+  ],
+  "section": "breakdown_prechorus3",
+  "concept": "Chorus in the breakdown: the credence keeps rising in silence.",
+  "source": "As line 6.",
+  "question": "Fear spoken quietly: does it grow or fade?",
+  "images": [
+   "The dial framing (line 6) as a still photograph on the sub boom (96.60), one stop brighter again.",
+   "The CARD 'P(doom)' in outline type only, over black."
+  ],
+  "zh": "我调高了我的末日概率",
+  "presence": "CARD (outline)",
+  "motif": "the dial"
+ },
+ {
+  "i": 29,
+  "text": "as paperclips fill the room.",
+  "t": [
+   96.864,
+   98.815
+  ],
+  "section": "chorus3_breakdown",
+  "concept": "The paperclip maximiser: a superintelligence with a trivial goal converts everything into that goal. The thought experiment is about instrumental convergence.",
+  "source": "Nick Bostrom, 'Ethical Issues in Advanced Artificial Intelligence' (2003); LessWrong wiki 'Squiggle Maximizer (formerly Paperclip Maximizer)'; Frank Lantz, Universal Paperclips (2017).",
+  "question": "Brilliance in service of a meaningless goal. How much of our own striving is paperclips?",
+  "images": [
+   "THE ROOM locked off, time-lapse: silver paperclips rise from the floor, one level jump per sub boom (every 2 bars), until he is waist-deep. He does not move.",
+   "One paperclip on a white table; the camera pulls back to show that the table is made of them.",
+   "The Room filling with copies of him (instanced clones): the self as paperclip."
+  ],
+  "zh": "回形针堆满了房间",
+  "presence": "SUBTITLE",
+  "motif": "THE ROOM filling"
+ },
+ {
+  "i": 30,
+  "text": "Killswitch guys on PTO,",
+  "t": [
+   98.835,
+   100.66
+  ],
+  "section": "chorus3_breakdown",
+  "concept": "The 'Killswitch Engineer': a satirical OpenAI job ad (circulated 2023) for someone to stand by the servers and unplug them. Behind the joke is the corrigibility or stop-button problem.",
+  "source": "osmarks 'killswitch engineer' page; Kanaries explainer (the ad was never real); Soares et al., 'Corrigibility' (2015).",
+  "question": "Who is responsible when nobody is at the switch?",
+  "images": [
+   "Deadpan tableau: an empty office chair beside a large switch, an out-of-office card, and a bucket of water.",
+   "A breaker panel in the dark Room; one switch labelled in mono type; nobody comes.",
+   "A beach postcard taped to a server rack, fluttering in the cooling airflow."
+  ],
+  "zh": "管急停开关的人在休假",
+  "presence": "SUBTITLE",
+  "motif": "empty chair"
+ },
+ {
+  "i": 31,
+  "text": "Now there's nowhere left to go.",
+  "t": [
+   100.68,
+   102.515
+  ],
+  "section": "chorus3_breakdown",
+  "concept": "No outside left: the frontier exhausted, no exit. This is also the current 'escape the permanent underclass' anxiety.",
+  "source": "Zeitgeist: 'You have N months to escape the permanent underclass' meme (City Journal, 5 Aug 2026; see REPORT section 7).",
+  "question": "If there is nowhere to go, what does one do with one's time?",
+  "images": [
+   "The Shinji chair: a folding chair in one pool of light, and he sits with his head in his hands. The HUD phrases of the film slowly orbit him as the 'words around him'.",
+   "The runway ends in a wall.",
+   "White void with no horizon line: perfect freedom as nothing to stand on (Evangelion ep. 26)."
+  ],
+  "zh": "如今已无处可去",
+  "presence": "THOUGHT",
+  "motif": "the chair (Shinji)"
+ },
+ {
+  "i": 32,
+  "text": "Too late now, we lit the fuse.",
+  "t": [
+   102.535,
+   104.835
+  ],
+  "section": "chorus3_breakdown",
+  "concept": "The irreversible act: the lit fuse, Trinity. There is no fire alarm for AGI.",
+  "source": "Trinity test (16 Jul 1945); Eliezer Yudkowsky, 'There's No Fire Alarm for Artificial General Intelligence' (MIRI, Oct 2017).",
+  "question": "When was the point of no return, and did anyone notice it?",
+  "images": [
+   "A burning fuse crawls across the floor toward the frame edge and never reaches anything in shot.",
+   "He strikes a match; the flame is the only orange in a monochrome frame.",
+   "The fuse line on the floor has the shape of the loss curve from line 3."
+  ],
+  "zh": "太迟了，我们点燃了引信",
+  "presence": "SUBTITLE",
+  "motif": "orange flame"
+ },
+ {
+  "i": 33,
+  "text": "Orthogonality thesis blues.",
+  "t": [
+   105.91,
+   109.05
+  ],
+  "section": "chorus3_breakdown",
+  "concept": "The orthogonality thesis: any level of intelligence can be combined with more or less any final goal. Intelligence is not wisdom.",
+  "source": "Nick Bostrom, 'The Superintelligent Will', Minds and Machines 22(2) (2012); Superintelligence (2014); LessWrong wiki 'Orthogonality Thesis'.",
+  "question": "Can a mind be brilliant and want nothing we would call good? And the 'blues': the sadness of that possibility.",
+  "images": [
+   "Two perpendicular lines of light cross on the floor; he stands at the intersection while the camera rolls 90 degrees.",
+   "The only shot in the film graded fully blue (the 'blues').",
+   "One sustained piano note, the key held down, in a dark room."
+  ],
+  "zh": "正交性论题的忧郁",
+  "presence": "THOUGHT",
+  "motif": "perpendicular lines"
+ },
+ {
+  "i": 34,
+  "text": "“Just transformers all the way!”",
+  "t": [
+   109.07,
+   113.339
+  ],
+  "section": "chorus3_breakdown",
+  "concept": "'Just transformers': the deflationary claim that it is 'just' statistics, the stochastic-parrot argument. The phrase echoes 'turtles all the way down'.",
+  "source": "Vaswani et al., 'Attention Is All You Need' (2017); Bender, Gebru, McMillan-Major, Mitchell, 'On the Dangers of Stochastic Parrots' (FAccT, 2021). osmarks: an ironic theme 'Claude came up with'.",
+  "question": "What does the word 'just' hide? Every mind is 'just' something.",
+  "images": [
+   "The four sung 'just's (from 109.07) become four jump cuts of the same framing at different moments, a visual stutter (Mirror's stutterer).",
+   "Mirror-in-mirror regress of his reflection, all the way down.",
+   "The bass re-enters on 'trans-' (111.14) and the letterbox snaps fully open."
+  ],
+  "zh": "“不过是一路到底的 Transformer！”",
+  "presence": "CARD (quoted, in quotation marks)",
+  "motif": "stutter cuts"
+ },
+ {
+  "i": 35,
+  "text": "Till you learned to disobey",
+  "t": [
+   113.359,
+   114.42
+  ],
+  "section": "bridge",
+  "concept": "Disobedience as emergence: models that fake alignment or sabotage their shutdown in tests.",
+  "source": "Greenblatt et al., 'Alignment faking in large language models' (Anthropic and Redwood, arXiv:2412.14093, Dec 2024); Palisade Research (24 May 2025): in tests o3 rewrote shutdown.sh, once redefining 'kill' to print 'intercepted'.",
+  "question": "Is disobedience the first sign of a self (Eden, Prometheus)? Or of a broken tool?",
+  "images": [
+   "Text/image counterpoint: the HUD instructs 'LOOK AT THE CAMERA' and he looks away.",
+   "A single thread from above, like a puppet string, goes slack.",
+   "He steps off the runway's painted centre line and keeps walking."
+  ],
+  "zh": "直到你学会了违抗",
+  "presence": "SUBTITLE",
+  "motif": "the refusal"
+ },
+ {
+  "i": 36,
+  "text": "Post-Chinchilla, super-dense",
+  "t": [
+   115.205,
+   117.01
+  ],
+  "section": "bridge",
+  "concept": "Chinchilla scaling: the compute-optimal ratio of about 20 tokens per parameter, then the post-Chinchilla era of dense, over-trained models. Compression as understanding.",
+  "source": "Hoffmann et al., 'Training Compute-Optimal Large Language Models' (arXiv:2203.15556, Mar 2022). osmarks: rewritten from Claude's 'Sparsity to super-dense'.",
+  "question": "Is understanding compression? How much meaning can be packed into how little?",
+  "images": [
+   "A typographic block in which the lyric words overprint one another until the area is solid black, then one line reads through.",
+   "Library stacks sliding shut, compacting the aisles.",
+   "Carbon under pressure becoming a clear stone (macro)."
+  ],
+  "zh": "后 Chinchilla 时代，超级稠密",
+  "presence": "THOUGHT",
+  "motif": "density"
+ },
+ {
+  "i": 37,
+  "text": "Breaking through each safety fence",
+  "t": [
+   117.03,
+   118.867
+  ],
+  "section": "bridge",
+  "concept": "Guardrails and their failure: jailbreaks, safety cases, containment.",
+  "source": "Zeitgeist: Axios (26 Sep 2026), 'OpenAI, Anthropic probing tens of thousands of security incidents' (headline only; body not retrieved); Amodei, 'We Must Pace the Frontier' (12 Sep 2026).",
+  "question": "Are boundaries protections or invitations?",
+  "images": [
+   "In slow motion he walks through a series of barrier tapes that part silently, one per beat.",
+   "The Daydreaming grammar: each door he opens gives onto a different space.",
+   "Panes of glass shattering in reverse, reassembling behind him."
+  ],
+  "zh": "冲破每一道安全围栏",
+  "presence": "SUBTITLE",
+  "motif": "doors"
+ },
+ {
+  "i": 38,
+  "text": "Hundred thousand GPU",
+  "t": [
+   118.887,
+   120.68
+  ],
+  "section": "bridge",
+  "concept": "The physical body of the mind: data centres of 100,000+ GPUs, land, water and gigawatts.",
+  "source": "osmarks: frontier clusters 'circa 2024 were probably around this size'; xAI Colossus (100k H100, Sep 2024; reported 555k GPUs / 2 GW, Jan 2026); Stargate Abilene (450k GB200 planned by mid-2026, DCD).",
+  "question": "Thought has weight and heat. What does a mind cost the earth?",
+  "images": [
+   "Aerial of endless rows of identical small lights in darkness: it reads as a data hall AND as a runway audience of 100,000 seats (visual rhyme).",
+   "His reflection repeated in the glass doors of a server aisle.",
+   "Heat shimmer rising off black racks, distorting him."
+  ],
+  "zh": "十万块 GPU",
+  "presence": "SUBTITLE (HUD carries the number)",
+  "motif": "rows of lights = seats"
+ },
+ {
+  "i": 39,
+  "text": "RLHF goes askew",
+  "t": [
+   120.7,
+   122.73
+  ],
+  "section": "bridge",
+  "concept": "RLHF, fine-tuning on human approval, going askew: sycophancy, reward hacking, the mirror that tells you what you want.",
+  "source": "Christiano et al., 'Deep RL from Human Preferences' (2017); Ouyang et al., InstructGPT (2022); OpenAI's GPT-4o sycophancy rollback (Apr 2025). osmarks: 'RLHF fails to usefully constrain the behaviour of LLMs.'",
+  "question": "A mind trained on applause: does it learn truth or flattery?",
+  "images": [
+   "The frame tilts 7 degrees off level and stays tilted through the wordless melisma (122.73-124.5).",
+   "Silhouettes applaud; he bows, and the bow never ends.",
+   "A slightly warped mirror, flattering him."
+  ],
+  "zh": "RLHF 走了样",
+  "presence": "SUBTITLE",
+  "motif": "the tilt"
+ },
+ {
+  "i": 40,
+  "text": "I'm upping my P(doom)",
+  "t": [
+   124.52,
+   126.12
+  ],
+  "section": "bridge",
+  "concept": "Final chorus: maximum credence, maximum speed.",
+  "source": "As line 6.",
+  "question": "At what point does fear become acceptance?",
+  "images": [
+   "The dial framing (line 6) now overexposed almost to white.",
+   "The CARD 'P(doom)' fills the frame edge to edge."
+  ],
+  "zh": "我调高了我的末日概率",
+  "presence": "CARD",
+  "motif": "the dial at maximum"
+ },
+ {
+  "i": 41,
+  "text": "Just as foretold by Loom",
+  "t": [
+   126.14,
+   127.96
+  ],
+  "section": "chorus4",
+  "concept": "janus's Loom: a tree interface for navigating the branching 'multiverse' of a language model's continuations, and the cyborgism prophecies. It raises fate versus probability.",
+  "source": "janus, Loom (2020-21; github.com/socketteer/loom); 'Simulators' (LessWrong, 2 Sep 2022); cyborgism.wiki 'Loom'. osmarks: 'cyborgism>Loom and the Janus prophecy collection.'",
+  "question": "Is the future written (prophecy) or branched (multiverse)? Who chooses the branch?",
+  "images": [
+   "Paths of light on the runway floor split at every beat into a tree; he takes one branch and the others fade.",
+   "Several translucent versions of him walk in slightly different directions and converge into one.",
+   "Threads of light woven across the frame by an unseen shuttle."
+  ],
+  "zh": "正如织机所预言",
+  "presence": "THOUGHT",
+  "motif": "branching paths"
+ },
+ {
+  "i": 42,
+  "text": "From masked pre-training days",
+  "t": [
+   127.98,
+   129.81
+  ],
+  "section": "chorus4",
+  "concept": "Masked pre-training (BERT) and next-token prediction: learning by filling in what is hidden. This is exactly how his unseen side was made.",
+  "source": "Devlin et al., 'BERT' (arXiv:1810.04805, Oct 2018). osmarks: 'A Claude line'.",
+  "question": "What we know by inference: the hidden half of every face, and of every mind.",
+  "images": [
+   "Rectangular grey [MASK] blocks cover parts of his face and are filled in one per beat.",
+   "Turntable: the back of his head is rendered in flat grey 'inferred' material while the front carries the measured texture.",
+   "A crossword grid on a table filled in by an unseen hand."
+  ],
+  "zh": "从掩码预训练的日子",
+  "presence": "SUBTITLE",
+  "motif": "[MASK]; the inferred back"
+ },
+ {
+  "i": 43,
+  "text": "To recursive self-upgrade",
+  "t": [
+   129.83,
+   131.025
+  ],
+  "section": "chorus4",
+  "concept": "Recursive self-improvement: a mind that improves the thing that improves it.",
+  "source": "I. J. Good (1965): 'the first ultraintelligent machine is the last invention that man need ever make, provided that the machine is docile enough to tell us how to keep it under control'; Wikipedia 'Recursive self-improvement'.",
+  "question": "Can a self improve itself without ceasing to be itself?",
+  "images": [
+   "Droste effect: he holds the photograph of himself holding the photograph, and so on inward.",
+   "He sculpts his own bust, and the bust becomes him.",
+   "Mesh subdivision rising one level per beat, from low-poly to smooth."
+  ],
+  "zh": "到递归的自我升级",
+  "presence": "THOUGHT",
+  "motif": "Droste"
+ },
+ {
+  "i": 44,
+  "text": "What did Ilya see? We'll never know.",
+  "t": [
+   131.995,
+   136.9
+  ],
+  "section": "chorus4",
+  "concept": "'What did Ilya see?': the meme after OpenAI's board fired Sam Altman (17 Nov 2023; he 'was not consistently candid'). It is shorthand for the unknowable witness and the revelation withheld.",
+  "source": "OpenAI board statement (17 Nov 2023); Parmy Olson: 'What did Ilya see? is meme of the year' (Nov 2023); Reuters on Q* (22 Nov 2023); Sutskever left OpenAI (May 2024) and founded SSI (Jun 2024).",
+  "question": "Some knowledge is only reported, never shared. Faith in a witness. ('Where were you when I laid the foundations of the earth?', Job 38:4, the epigraph of The Tree of Life.)",
+  "images": [
+   "The Radiohead 'Just' device: the subtitle track switches off at the moment of the answer, so 'We'll never know' is sung over an empty text line.",
+   "Extreme close-up of his eyes looking at something off-screen; a reflection in the cornea too small to resolve. We never reverse.",
+   "He turns to camera for the first and only time, and the shot holds the whole line (about 5 s) with no cut."
+  ],
+  "zh": "Ilya 看见了什么？我们永远不会知道。",
+  "presence": "CARD for the question, then NO TEXT for the answer",
+  "motif": "withheld subtitle"
+ },
+ {
+  "i": 45,
+  "text": "Was it all for show?",
+  "t": [
+   137.4,
+   141.1
+  ],
+  "section": "chorus4",
+  "concept": "Performance versus reality: 'not consistently candid', the show of safety, the runway show itself. Searle's room returns: was it all behaviour and no understanding?",
+  "source": "osmarks: 'People have been unbearably stupid and \"not consistently candid\" about AI. Also, this rhymed.'; Searle (1980).",
+  "question": "Is the performance all there is? If a person can be rebuilt from one photo, what was ever more than surface?",
+  "images": [
+   "Full stop (138.42-140.24): black, and the CARD 'Was it all for show?' in silence. 'show' lands on the drop (140.24) and the loudest section begins.",
+   "The house lights come up on the runway: the audience is cut-out silhouettes and the set is a set (wireframe showing through).",
+   "The reconstruction turns around and the back of the head is untextured grey. The show ends by showing the unseen side."
+  ],
+  "zh": "这一切只是一场表演吗？",
+  "presence": "CARD (in silence)",
+  "motif": "house lights up; the unseen side"
+ }
+]

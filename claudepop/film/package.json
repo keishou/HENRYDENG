@@ -1,0 +1,10 @@
+{
+  "name": "claudepop-film",
+  "private": true,
+  "type": "module",
+  "description": "three.js offline renderer for the claudepop film: protagonist avatar, look-dev harness",
+  "dependencies": {
+    "playwright-core": "1.56.1",
+    "three": "0.180.0"
+  }
+}
