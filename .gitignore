@@ -115,3 +115,7 @@ odyssey/out/
 odyssey/film/node_modules/
 odyssey/film/assets/
 odyssey/work/
+
+# python bytecode
+__pycache__/
+*.pyc
