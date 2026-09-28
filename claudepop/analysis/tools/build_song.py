@@ -1,227 +1,563 @@
-"""Assemble analysis/song.json from the analysis intermediates.
+"""Assemble claudepop/analysis/song.json, the timing backbone of the film, from the analysis intermediates.
 
-inputs (in <work>): rhythm.json (rhythm.py), hits.json (hits.py), vt.json (vocal_timing.py)
-usage: python3 build_song.py <work_dir> <out song.json>
+Inputs (all under out/work/analysis unless noted)
+  grid.json                 beat grid, bar phase, drum hits, per-beat levels           (grid.py)
+  align_mms.json / align_w2v.json   whole-song CTC forced alignments, 4 sub-frame shifts each (align_fa.py)
+  vocal_onsets.json, vocal_feats.npz   vocal-stem onsets, f0, RMS                     (vocal_feats.py)
+  whisper_vocals.json       Whisper large-v3 transcript of the vocal stem, for sung material missing from lyrics.js
+  analysis/tools/word_overrides.json   manually verified word starts (each with the evidence that decided it)
+  analysis/tools/structure.json        sections / events / extra vocals as verified by eye and ear-proxy plots
+Outputs
+  analysis/song.json
+  out/audio/click_words.wav   vocal stem + a click at every word start (accented on line starts), 44.1 kHz
+  out/audio/click_beats.wav   full mix  + a click on every beat (accented on downbeats), 44.1 kHz
+  out/work/analysis/build_stats.json
+
+Word timing rule (per word)
+  1. Each model's start = median over its 4 shifted runs, minus that model's lag (median offset to the nearest vocal
+     onset over words that have one within 60 ms).
+  2. If the two models agree within 80 ms, the candidate is their mean; otherwise the candidate is the model that has
+     a SuperFlux vocal onset within 40 ms (wav2vec2 if both or neither), and the word is marked 'disagree'.
+  3. The candidate snaps to the nearest SuperFlux onset within 50 ms, else to an energy / pitch onset within 35 ms.
+  4. A manual override (verified on close-up spectrograms against the 16th-note grid and the per-character CTC
+     posteriors) replaces all of that.
+  Uncertainty u (ms) = the spread of the evidence around the chosen time (see REPORT.md); lines with any word start
+  u > 80 ms are flagged.
+
+usage: python3 build_song.py <claudepop_dir> <lyrics.js>
 """
-import sys, json
+import sys, os, json
 import numpy as np
+import soundfile as sf
 
-W, OUT = sys.argv[1:3]
-R = json.load(open(f"{W}/rhythm.json"))
-HITS = json.load(open(f"{W}/hits.json"))
-VT = json.load(open(f"{W}/vt.json"))
+sys.path.insert(0, os.path.dirname(__file__))
+from lyrics_lex import load_lines
 
-BPM, T, T0 = R["bpm"], R["beat_period"], R["t0"]
-BAR = 4 * T
-DUR = R["duration"]
-AUDIBLE_END = 156.48  # mix below -70 dBFS after this (measured)
+ROOT, LY = sys.argv[1:3]
+W = f"{ROOT}/out/work/analysis"
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+lines_src = load_lines(LY)
+G = json.load(open(f"{W}/grid.json"))
+ONS = json.load(open(f"{W}/vocal_onsets.json"))
+F = np.load(f"{W}/vocal_feats.npz")
+OVR = json.load(open(f"{TOOLS}/word_overrides.json")) if os.path.exists(f"{TOOLS}/word_overrides.json") else {}
+STRUCT = json.load(open(f"{TOOLS}/structure.json"))
+WH = json.load(open(f"{W}/whisper_vocals.json")) if os.path.exists(f"{W}/whisper_vocals.json") else {"segments": []}
+
+T0, T, BPM, DUR = G["t0"], G["beat_period"], G["bpm"], G["duration"]
+beats = np.array(G["beats"])
+on_flux = np.array([o[0] for o in ONS["onsets_flux"]])
+on_flux_s = np.array([o[1] for o in ONS["onsets_flux"]])
+on_en = np.array(ONS["onsets_energy"])
+on_pitch = np.array(ONS["onsets_pitch"])
+on_other = np.sort(np.concatenate([on_en, on_pitch]))
 
 
-def bar_t(n):  # start time of bar n (1-based)
-    return round(T0 + (n - 1) * BAR, 3)
+def bar_start(b):  # 1-based bar number -> time
+    return T0 + (b - 1) * 4 * T
 
 
-def pos(t):
+def nearest(arr, t):
+    if not len(arr):
+        return None, 1e9
+    j = int(np.argmin(np.abs(arr - t)))
+    return float(arr[j]), float(arr[j] - t)
+
+
+def grid_pos(t):
     q = (t - T0) / (T / 4)
-    qi = int(round(q))
-    return f"{qi // 16 + 1}.{(qi // 4) % 4 + 1}.{qi % 4 + 1}"
+    qi = int(np.round(q))
+    return {"bar": qi // 16 + 1, "beat": (qi // 4) % 4 + 1, "six": qi % 4 + 1, "off_ms": round((q - qi) * T / 4 * 1000)}
 
 
-# ------------------------------------------------------------------ sections (bar numbers are 1-based, end exclusive)
-SECTIONS = [
-    ("intro", 0, 1, 2, "Soft synth pad/keys only (no drums). Vocal breath/hum pickup from 1.60 s; high-band swell 1.2-2.05 s into bar 2."),
-    ("verse1", 1, 2, 10, "Vocals over 8th-note synth plucks, NO drums. 'I see sparks of AGI...' through '...you're my boss'."),
-    ("prechorus1", 2, 10, 14, "Noise riser 16.1-16.6 then four-on-the-floor kick enters on bar 10 (16.60) with crash; 'ChatGPT, please don't eat me alive'. Bar 13 beats 1-2: 16th-note kick roll; beats 3-4 (22.98-23.85): full instrumental STOP while 'I'm upping my P-' is sung."),
-    ("chorus1", 3, 14, 22, "DROP on 'DOOM' at 23.87 (bar 14 downbeat). Kick on every beat + clap on 2 & 4 + open hat on off-beat 8ths. Vocal lines end 35.5; wordless vocal fills 35.7-37.2; drum fill end of bar 21."),
-    ("verse2", 4, 22, 30, "Full groove continues (kick/clap/hats), vocals 'We had a stable training run...' to '...atoms rearranging'."),
-    ("prechorus2", 5, 30, 34, "Lighter: kick without clap, long notes 'Sydney, please let me free'. Bar 32 kick on 8ths + riser (build); bar 33 beats 1-2 kick roll; beats 3-4 (59.35-60.22) STOP with 'I'm upping my P-' pickup."),
-    ("chorus2", 6, 34, 42, "DROP on 'DOOM' at 60.24 (bar 34). Basilisk / NVDA / Omega Point / 1e30 FLOPs / 'safe enough'. Wordless ad-libs 68.2-69.5 and 71.8-73.8. Drum fill end of bar 41; verse-3 pickup 'Forward' at 74.10."),
-    ("verse3", 7, 42, 50, "Full groove. 'Forward MLP...' / von Neumann / sharp left turn / CDR. Bar 49 ends with kick 8ths fill."),
-    ("breakdown", 8, 50, 54, "Drums OUT (instrumental ~-32 dB): pad + long vocal notes 'Gato, please don't let me go'. Big riser 95.0-96.6. Hook pickup 'I'm upping my P-' at 95.43."),
-    ("chorus3_halftime", 9, 54, 61, "Half-time breakdown chorus (lowest energy of the song, instrumental -30..-41 dB): kick only on beat 1 of bars 54/56/58/60, noise-claps, reverse swells into bars 58 and 60. Paperclips / killswitch / fuse / orthogonality lines; 'blues' melisma + wordless vocal 108.4-109.8."),
-    ("verse4_bridge", 10, 61, 69, "Full groove returns at 109.33. 'Just (just) transformers all the way' / disobey / Chinchilla / safety fence / 100k GPU / RLHF."),
-    ("chorus4_final", 11, 69, 77, "No stop: the hook is sung in augmented quarter notes starting 123.66 and 'DOOM' lands on bar 70 (125.69). Loom / masked pre-training / recursive self-upgrade / 'What did Ilya see? We'll never know' (held to 136.6)."),
-    ("stop", 12, 77, 78, "Whole-bar instrumental drop-out 138.45-140.24 (inst ~-60 dB): 'Was it all for show?' ('all' 138.41 on the cut, 'show' 140.04)."),
-    ("outro_drop", 13, 78, 85, "Final DROP at 140.24: loudest section, full groove + pitched vocal-chop/lead stabs on every beat (non-lexical)."),
-    ("ending", 14, 85, 87, "Final kick 152.96 then sustained chord (bar 85) and fade from 154.8; -50 dB at 155.85, silence by 156.5."),
-]
-PATTERN = {  # drum pattern per section, read off the transcription (hits.py) + spectrograms; use it to synthesise perfect pulses
-    "intro": {"kick": None, "clap": None, "hat": None, "pulse": "none (pad)"},
-    "verse1": {"kick": None, "clap": None, "hat": None, "pulse": "synth pluck on every 8th (0.227 s)"},
-    "prechorus1": {"kick": "every beat from 16.60; 16th roll bar 13 beats 1-2; none during stop", "clap": None, "hat": None, "pulse": "plucks on off-beat 8ths"},
-    "chorus1": {"kick": "every beat", "clap": "beats 2 & 4", "hat": "off-beat 8ths", "pulse": "four-on-the-floor"},
-    "verse2": {"kick": "every beat", "clap": "beats 2 & 4", "hat": "off-beat 8ths (lighter, pluck-like)", "pulse": "four-on-the-floor"},
-    "prechorus2": {"kick": "every beat; 8ths in bar 32; 16th roll bar 33 beats 1-2; none during stop", "clap": None, "hat": None, "pulse": "kick only"},
-    "chorus2": {"kick": "every beat", "clap": "beats 2 & 4", "hat": "off-beat 8ths", "pulse": "four-on-the-floor"},
-    "verse3": {"kick": "every beat (8ths fill in bar 49)", "clap": "beats 2 & 4", "hat": "off-beat 8ths", "pulse": "four-on-the-floor"},
-    "breakdown": {"kick": None, "clap": None, "hat": None, "pulse": "none (pad, long vocal notes)"},
-    "chorus3_halftime": {"kick": "beat 1 of bars 54, 56, 58, 60 only", "clap": "sparse noise-claps (beat 2 / beat 4)", "hat": None, "pulse": "half-time, mostly empty"},
-    "verse4_bridge": {"kick": "every beat", "clap": "beats 2 & 4", "hat": "off-beat 8ths", "pulse": "four-on-the-floor"},
-    "chorus4_final": {"kick": "every beat", "clap": "beats 2 & 4", "hat": "off-beat 8ths", "pulse": "four-on-the-floor"},
-    "stop": {"kick": None, "clap": None, "hat": None, "pulse": "silence (vocal only)"},
-    "outro_drop": {"kick": "every beat", "clap": "beats 2 & 4", "hat": "off-beat 8ths", "pulse": "four-on-the-floor + vocal-chop stab per beat"},
-    "ending": {"kick": "single hit 152.96", "clap": None, "hat": None, "pulse": "ring-out / fade"},
-}
-lufs = np.array(R["curves10hz"]["lufs"])
-lufs_inst = np.array(R["curves10hz"]["lufs_inst"])
-lufs_voc = np.array(R["curves10hz"]["lufs_vocal"])
+# ------------------------------------------------------------------ per-model word starts
+def load_model(m):
+    A = json.load(open(f"{W}/align_{m}.json"))
+    out = {}
+    for li, L in enumerate(lines_src):
+        for wi in range(len(L["words"])):
+            k = f"{li}:{wi}"
+            ts = [s["words"][k]["t"] for s in A["shifts"] if k in s["words"]]
+            es = [s["words"][k]["e"] for s in A["shifts"] if k in s["words"]]
+            subs = {}
+            for s in A["shifts"]:
+                for gk, gv in s["letter_groups"].items():
+                    if gk.startswith(k + ":"):
+                        subs.setdefault(int(gk.split(":")[2]), []).append(gv["t"])
+            out[(li, wi)] = {"t": float(np.median(ts)), "e": float(np.median(es)), "spread": float(max(ts) - min(ts)),
+                             "subs": {p: float(np.median(v)) for p, v in sorted(subs.items())}}
+    return out
+
+
+M = {m: load_model(m) for m in ("mms", "w2v")}
+
+
+def lag_of(m):
+    d = []
+    for v in M[m].values():
+        _, dd = nearest(on_flux, v["t"])
+        if abs(dd) < 0.06:
+            d.append(-dd)  # model time minus onset time
+    return float(np.median(d)), len(d)
+
+
+LAG = {m: lag_of(m) for m in M}
+for m in M:
+    for v in M[m].values():
+        v["tc"] = v["t"] - LAG[m][0]
+        v["subs_c"] = {p: t - LAG[m][0] for p, t in v["subs"].items()}
+
+# ------------------------------------------------------------------ choose word starts
+SPELL_FIRST = {"AGI": "a", "NVDA": "e", "E": "e", "MLP,": "e", "RLHF": "a", "ChatGPT,": "c", "P(doom)": "p",
+               "P(doom),": "p", "CDR": "s", "PTO,": "p", "GPU": "g", "One": "w", "'cause": "c", "“Just": "j"}
+
+
+PART_NAMES = {"AGI": ["ay", "gee", "eye"], "ChatGPT,": ["chat", "gee", "pee", "tee"], "P(doom)": ["pee", "doom"],
+              "P(doom),": ["pee", "doom"], "NVDA": ["en", "vee", "dee", "ay"], "MLP,": ["em", "el", "pee"],
+              "CDR": ["see", "dee", "are"], "PTO,": ["pee", "tee", "oh"], "GPU": ["gee", "pee", "you"],
+              "RLHF": ["are", "el", "aitch", "ef"], "Post-Chinchilla,": ["post", "chinchilla"],
+              "super-dense": ["super", "dense"], "pre-training": ["pre", "training"], "self-upgrade": ["self", "upgrade"]}
+
+
+def spoken_first(dw):
+    if dw in SPELL_FIRST:
+        return SPELL_FIRST[dw]
+    c = [ch for ch in dw.lower() if ch.isalpha()]
+    return c[0] if c else ""
+
+
+words_out = {}
+stats_rows = []
+for li, L in enumerate(lines_src):
+    for wi, (dw, _) in enumerate(L["words"]):
+        a, b = M["mms"][(li, wi)], M["w2v"][(li, wi)]
+        dis = abs(a["tc"] - b["tc"])
+        if dis <= 0.08:
+            cand, src = 0.5 * (a["tc"] + b["tc"]), "both"
+        else:
+            _, da = nearest(on_flux, a["tc"])
+            _, db = nearest(on_flux, b["tc"])
+            if abs(da) <= 0.04 and abs(db) > 0.04:
+                cand, src = a["tc"], "mms"
+            else:
+                cand, src = b["tc"], "w2v"
+        t = cand
+        o, d = nearest(on_flux, cand)
+        snapped = None
+        first = spoken_first(dw)
+        pk = (li, wi - 1) if wi > 0 else ((li - 1, len(lines_src[li - 1]["words"]) - 1) if li > 0 else None)
+        prev_t = words_out[pk]["t"] if pk else 0.0
+        prev_e = (M["w2v"][pk]["e"] - LAG["w2v"][0]) if pk else 0.0  # end of the previous word's last CTC character
+        lo = max(prev_t + 0.12, prev_e, cand - 0.25)
+        look = [(tt, ss) for tt, ss in zip(on_flux, on_flux_s) if lo <= tt <= cand + 0.03 and ss >= 0.2]
+        if first and first in "aeiouymnlrw" and look:
+            # vowel- or sonorant-initial word: CTC fires mid-vowel, up to ~200 ms after the voicing onset -> take the
+            # latest vocal onset between the end of the previous word's CTC characters and this word's CTC start
+            t, snapped = max(look)[0], "vowel-lookback"
+        elif abs(d) <= 0.05:
+            t, snapped = o, "flux"
+        else:
+            o2, d2 = nearest(on_other, cand)
+            if abs(d2) <= 0.035:
+                t, snapped = o2, "energy/pitch"
+        spread = (a["spread"] + b["spread"]) / 2 if src == "both" else (a if src == "mms" else b)["spread"]
+        if snapped == "vowel-lookback":
+            # both models fire after the onset that was chosen, so their disagreement matters less than usual
+            u = max(0.03, spread / 2, min(dis / 2, 0.06))
+        elif dis <= 0.08:
+            u = max(0.015, dis / 2, abs(t - cand), spread / 2)
+        else:
+            u = max(dis, 0.015)
+        key = f"{li}:{wi}"
+        how = src + (">" + snapped if snapped else "")
+        t_auto, u_auto = t, u
+        if key in OVR:
+            ov = OVR[key]
+            t, u, how = ov["t"], ov.get("u", 0.03), "manual"
+        words_out[(li, wi)] = {"w": dw, "t": t, "u": u, "how": how, "t_auto": t_auto, "u_auto": u_auto, "mms": a["tc"], "w2v": b["tc"], "dis": dis,
+                               "subs_w2v": b["subs_c"], "subs_mms": a["subs_c"]}
+        stats_rows.append((li, wi, a["tc"], b["tc"], t, how))
+
+# monotonic order inside and across lines (>= 40 ms apart)
+flat = [(k, words_out[k]) for k in sorted(words_out)]
+for i in range(1, len(flat)):
+    if flat[i][1]["t"] < flat[i - 1][1]["t"] + 0.04:
+        flat[i][1]["t"] = flat[i - 1][1]["t"] + 0.04
+        flat[i][1]["how"] += ",monotonic"
+        flat[i][1]["u"] = max(flat[i][1]["u"], 0.08)
+
+# ------------------------------------------------------------------ word ends from vocal energy
+r5, t5 = F["r5"], F["t5"]
+REF = float(np.percentile(r5, 95))
+
+
+DT5 = float(t5[1] - t5[0])
+r5s = np.convolve(r5, np.ones(3) / 3, mode="same")
+
+
+def dip_between(t_word, a, b, min_depth=10.0, min_w=0.09):
+    """deepest level dip of the vocal stem in (a, b) relative to the word's own level (75th percentile of the 250 ms
+    after its start). Returns (gap_start, gap_end, depth_db) when the dip is >= min_depth dB deep and >= min_w wide at
+    half depth (plosive closures inside words are shorter), else None."""
+    i, j = int(np.searchsorted(t5, a)), int(np.searchsorted(t5, b))
+    if j - i < 4:
+        return None
+    seg = r5s[i:j]
+    k = int(np.argmin(seg))
+    mn = seg[k]
+    w0 = int(np.searchsorted(t5, t_word))
+    lvl = float(np.percentile(r5s[w0:w0 + int(0.25 / DT5)], 75))
+    if lvl - mn < min_depth:
+        return None
+    thr = mn + 0.5 * (lvl - mn)
+    s0, s1 = k, k
+    while s0 > 0 and seg[s0 - 1] < thr:
+        s0 -= 1
+    while s1 < len(seg) - 1 and seg[s1 + 1] < thr:
+        s1 += 1
+    if (s1 - s0 + 1) * DT5 < min_w:
+        return None
+    return float(t5[i + s0]), float(t5[i + s1]), float(lvl - mn)
+
+
+def sustain_end(t_from, t_limit):
+    """end of a held note: first 100 ms run >= 14 dB under the note's own peak, searched until t_limit."""
+    i = int(np.searchsorted(t5, t_from))
+    j = int(np.searchsorted(t5, t_limit))
+    if j <= i + 2:
+        return t_limit
+    pk = r5[i:min(j, i + int(0.3 / (t5[1] - t5[0])))].max()
+    n = int(0.1 / (t5[1] - t5[0]))
+    run = 0
+    for k in range(i, j):
+        run = run + 1 if r5[k] < pk - 14 else 0
+        if run >= n:
+            return float(t5[k - n + 1])
+    return float(t_limit)
+
+
+flat = [(k, words_out[k]) for k in sorted(words_out)]
+for i, (k, w) in enumerate(flat):
+    nxt = flat[i + 1][1]["t"] if i + 1 < len(flat) else min(DUR, w["t"] + 3)
+    last_in_line = i + 1 >= len(flat) or flat[i + 1][0][0] != k[0]
+    key_end = f"{k[0]}:end"
+    w["gap_db"] = 0.0
+    if not last_in_line:
+        g = dip_between(w["t"], w["t"] + 0.1, nxt)
+        w["e"] = g[0] if g else nxt
+        if g:
+            w["gap_db"] = g[2]
+    else:
+        g = dip_between(w["t"], w["t"] + 0.1, nxt)
+        if g:
+            w["gap_db"] = g[2]
+        w["e"] = sustain_end(w["t"] + 0.12, min(nxt - 0.02, w["t"] + 4.0))
+        if key_end in OVR:
+            w["e"] = OVR[key_end]["t"]
+
+# ------------------------------------------------------------------ lines
+lines = []
+for li, L in enumerate(lines_src):
+    ws = [words_out[(li, wi)] for wi in range(len(L["words"]))]
+    wl = []
+    for wi, w in enumerate(ws):
+        row = {"w": w["w"], "t": round(w["t"], 3), "e": round(w["e"], 3), "u": int(round(w["u"] * 1000)),
+               "_gap": w.get("gap_db", 0.0)}
+        # sub-parts of spelled words (acronyms, P(doom), hyphenated words): wav2vec2 letter-group times
+        subs = w["subs_w2v"] if len(w["subs_w2v"]) > 1 else {}
+        key = f"{li}:{wi}"
+        if key in OVR and "parts" in OVR[key]:
+            row["parts"] = OVR[key]["parts"]
+        elif subs:
+            names = PART_NAMES.get(w["w"], [])
+            parts = [round(w["t"], 3)]
+            for j, (p, v) in enumerate(sorted(subs.items())):
+                if j == 0:
+                    continue
+                v2 = v
+                nm = names[j] if j < len(names) else "x"
+                lk = [tt for tt, ss in zip(on_flux, on_flux_s) if parts[-1] + 0.1 <= tt <= v + 0.03 and v - tt <= 0.12 and ss >= 0.2]
+                o, d = nearest(on_flux, v)
+                if nm[0] in "aeiou" and lk:
+                    v2 = max(lk)  # vowel-initial letter name (ay, ee, el, em, en, are, aitch, ef, eye, oh)
+                elif abs(d) <= 0.05 and o > parts[-1] + 0.08:
+                    v2 = o
+                parts.append(round(max(v2, parts[-1] + 0.06), 3))
+            row["parts"] = parts
+        if "parts" in row and row["parts"][-1] > row["e"] - 0.1:
+            # the end was cut at a gap between letter names / word parts: search again after the last part
+            if wi + 1 < len(ws):
+                nxt_t = ws[wi + 1]["t"]
+            elif li + 1 < len(lines_src):
+                nxt_t = words_out[(li + 1, 0)]["t"]
+            else:
+                nxt_t = DUR
+            g = dip_between(row["parts"][-1], row["parts"][-1] + 0.1, nxt_t)
+            if wi + 1 < len(ws):
+                row["e"] = round(g[0] if g else nxt_t, 3)
+            else:
+                row["e"] = round(min(nxt_t - 0.02, sustain_end(row["parts"][-1] + 0.12, nxt_t - 0.02)), 3)
+        row["how"] = w["how"]
+        if w["how"] == "manual":
+            row["auto"] = round(w["t_auto"], 3)
+        wl.append(row)
+    start, end = wl[0]["t"], wl[-1]["e"]
+    u_max = max(r["u"] for r in wl)
+    ln = {"i": li, "text": L["text"], "start": start, "end": end, "words": wl,
+          "sub_start": L["start"], "sub_end": L["end"], "d_start": round(start - L["start"], 3),
+          "d_end": round(end - L["end"], 3), "u_max_ms": u_max, "flag": u_max > 80,
+          "flag_words": [r["w"] for r in wl if r["u"] > 80],
+          "auto_u_max_ms": int(round(max(words_out[(li, wi)]["u_auto"] for wi in range(len(ws))) * 1000)),
+          **grid_pos(start)}
+    sx = STRUCT.get("sung_as", {}).get(str(li))
+    if sx:
+        ln["sung_as"] = sx
+    lines.append(ln)
+
+# ------------------------------------------------------------------ phrases
+# level "line": each sung line, split at internal punctuation where the voice pauses or holds (>= 0.1 s gap or a
+# word held >= 1 s), plus the extra (non-lyric) vocals. level "couplet": the musical phrases the lines pair into
+# (structure.json), usually 2 bars ending on a downbeat. breath_before = silence before the phrase in the vocal stem.
+downbeats = beats[::4]
+
+
+def landing(ws):
+    """downbeat that the phrase resolves onto: nearest downbeat to any word/part start in its last 40 %, within 120 ms"""
+    ts = sorted([w["t"] for w in ws] + [p for w in ws for p in w.get("parts", [])])
+    a0, a1 = ts[0], max(ts)
+    land = None
+    for t in ts:
+        if t >= a0 + 0.6 * (a1 - a0) - 1e-6:
+            d = downbeats[np.argmin(np.abs(downbeats - t))]
+            if abs(d - t) < 0.12:
+                land = round(float(d), 4)
+    return land
+
+
+phrases = []
+for L in lines:
+    cur = []
+    ws = L["words"]
+    for j, w in enumerate(ws):
+        cur.append(w)
+        last = j == len(ws) - 1
+        end_ch = w["w"].rstrip("”\"")[-1:]
+        split = (not last) and (end_ch in "?!." or (end_ch == "," and (ws[j + 1]["t"] - w["e"] >= 0.1 or ws[j + 1]["t"] - w["t"] >= 1.0)))
+        if last or split:
+            phrases.append({"level": "line", "kind": "lyric", "start": cur[0]["t"], "end": cur[-1]["e"],
+                            "text": " ".join(x["w"] for x in cur), "lines": [L["i"]], "lands_on_downbeat": landing(cur)})
+            cur = []
+for x in STRUCT["extra_vocals"]:
+    if x.get("phrase", True):
+        phrases.append({"level": "line", "kind": x["kind"], "start": x["t"], "end": x["e"], "text": x["text"],
+                        "lines": [], "lands_on_downbeat": None})
+phrases.sort(key=lambda p: p["start"])
+prev_end = 0.0
+for p in phrases:
+    g = dip_between(p["start"], max(prev_end - 0.05, 0.0), p["start"] + 0.01, min_depth=12.0, min_w=0.08) if p["start"] > prev_end - 0.05 else None
+    p["breath_before"] = round(max(0.0, p["start"] - prev_end), 3) if g else 0.0
+    prev_end = max(prev_end, p["end"])
+for grp in STRUCT["couplets"]:
+    ws = [w for L in lines if L["i"] in grp for w in L["words"]]
+    phrases.append({"level": "couplet", "kind": "lyric", "start": ws[0]["t"], "end": ws[-1]["e"],
+                    "text": " / ".join(L["text"] for L in lines if L["i"] in grp), "lines": grp,
+                    "lands_on_downbeat": landing([w for L in lines if L["i"] == grp[-1] for w in L["words"]])})
+phrases.sort(key=lambda p: (p["level"] != "couplet", p["start"]))
+phrases.sort(key=lambda p: (0 if p["level"] == "line" else 1, p["start"]))
+for i, p in enumerate(phrases):
+    p["i"] = i
+    p["start"], p["end"] = round(p["start"], 3), round(p["end"], 3)
+    p.update({k: v for k, v in grid_pos(p["start"]).items() if k != "off_ms"})
+
+for L in lines:
+    for w in L["words"]:
+        w.pop("_gap", None)
+
+# ------------------------------------------------------------------ sections
+PB = G["per_beat"]
 sections = []
-for name, idx, b0, b1, desc in SECTIONS:
-    t0 = 0.0 if b0 == 1 and name == "intro" else bar_t(b0)
-    t1 = DUR if b1 == 87 else bar_t(b1)
-    if name == "intro":
-        t0, t1 = 0.0, bar_t(2)
-    i0, i1 = int(t0 * 10), int(t1 * 10)
-    sections.append({"name": name, "start": round(t0, 3), "end": round(min(t1, DUR), 3), "bars": [b0 if name != "intro" else 1, b1 - 1],
-                     "n_bars": (b1 - b0) if name != "intro" else 1,
-                     "lufs_mean": round(float(np.mean(lufs[i0:i1])), 1), "lufs_inst_mean": round(float(np.mean(lufs_inst[i0:i1])), 1),
-                     "drums": PATTERN[name], "desc": desc})
+for s in STRUCT["sections"]:
+    t_a = 0.0 if s["bar0"] == 0 else bar_start(s["bar0"])
+    t_b = DUR if s["bar1"] is None else bar_start(s["bar1"])
+    rows = [r for r in PB if t_a - 1e-6 <= r["t"] < t_b - 1e-6]
+    en = float(np.mean([r["energy"] for r in rows])) if rows else 0.0
+    onsets_in = lambda L: [w["t"] for w in L["words"]] + [p for w in L["words"] for p in w.get("parts", [])]
+    last_bar = max(r["bar"] for r in rows if r["t"] < t_b - 0.1) if rows else 1
+    sections.append({"name": s["name"], "t0": round(t_a, 4), "t1": round(t_b, 4),
+                     "bars": [s["bar0"] if s["bar0"] else 1, last_bar],
+                     "n_bars": round((t_b - max(t_a, T0)) / (4 * T), 2), "energy": round(en, 3),
+                     "mix_db": round(float(np.mean([r["mix_db"] for r in rows])), 1) if rows else None,
+                     "lines": [L["i"] for L in lines if any(t_a - 0.06 <= t < t_b - 0.06 for t in onsets_in(L))],
+                     "description": s["description"]})
 
 # ------------------------------------------------------------------ events
-events = [
-    {"t": 0.23, "type": "start", "note": "first sound (pad)"},
-    {"t": 1.60, "type": "vocal_entry", "note": "breath/hum pickup; first word 'I' at 2.05 on the bar-2 downbeat"},
-    {"t": 1.2, "end": 2.05, "type": "riser", "note": "intro swell into bar 2"},
-    {"t": 16.1, "end": 16.6, "type": "riser", "note": "white-noise riser into bar 10; kick enters 16.60"},
-    {"t": 16.60, "type": "impact", "note": "crash + kick-in (pre-chorus 1)"},
-    {"t": 22.05, "end": 22.96, "type": "fill", "note": "16th-note kick roll (bar 13 beats 1-2)"},
-    {"t": 22.98, "end": 23.85, "type": "stop", "note": "instrumental stop under 'I'm up-ping my P-'"},
-    {"t": 23.87, "type": "drop", "note": "CHORUS 1 drop on 'DOOM' (bar 14)"},
-    {"t": 37.9, "end": 38.42, "type": "fill", "note": "drum fill into verse 2"},
-    {"t": 56.6, "end": 58.42, "type": "build", "note": "bar 32: kick on 8ths + rising high band"},
-    {"t": 58.42, "end": 59.33, "type": "fill", "note": "16th-note kick roll (bar 33 beats 1-2)"},
-    {"t": 59.35, "end": 60.22, "type": "stop", "note": "instrumental stop under 'I'm up-ping my P-'"},
-    {"t": 60.235, "type": "drop", "note": "CHORUS 2 drop on 'DOOM' (bar 34)"},
-    {"t": 73.9, "end": 74.78, "type": "fill", "note": "drum fill (end of bar 41) under 'Forward'"},
-    {"t": 74.78, "type": "impact", "note": "crash at verse 3 downbeat (strongest high-band hit of the song)"},
-    {"t": 88.9, "end": 89.33, "type": "fill", "note": "kick 8ths fill into breakdown"},
-    {"t": 89.33, "type": "drop_out", "note": "drums out: breakdown"},
-    {"t": 95.0, "end": 96.6, "type": "riser", "note": "big noise/reverse riser into the half-time chorus"},
-    {"t": 96.60, "type": "drop", "note": "CHORUS 3 (half-time) on 'DOOM' (bar 54)"},
-    {"t": 103.4, "end": 103.87, "type": "riser", "note": "reverse swell into bar 58"},
-    {"t": 107.0, "end": 107.51, "type": "riser", "note": "reverse swell into bar 60"},
-    {"t": 109.33, "type": "drop", "note": "full groove returns (verse 4 / bridge)"},
-    {"t": 125.69, "type": "accent", "note": "CHORUS 4 'DOOM' (bar 70) - no stop, augmented hook"},
-    {"t": 138.45, "end": 140.24, "type": "stop", "note": "whole-bar stop under 'Was it all for show?'"},
-    {"t": 140.235, "type": "drop", "note": "OUTRO drop (bar 78) - loudest part of the song"},
-    {"t": 152.96, "type": "final_hit", "note": "last kick (bar 85); chord rings"},
-    {"t": 154.8, "end": 156.5, "type": "fade", "note": "fade to silence (-50 dB at 155.85)"},
-]
+events = []
+for e in STRUCT["events"]:
+    ev = dict(e)
+    if "bar" in e:
+        ev["t"] = round(bar_start(e["bar"]) + (e.get("beat", 1) - 1) * T, 4)
+    if "bar_end" in e:
+        ev["t_end"] = round(bar_start(e["bar_end"]) + (e.get("beat_end", 1) - 1) * T, 4)
+    for k in ("bar", "beat", "bar_end", "beat_end"):
+        ev.pop(k, None)
+    events.append(ev)
+events.sort(key=lambda e: e["t"])
 
-# ------------------------------------------------------------------ hooks (hand-verified, see REPORT.md)
-HOOKS = [
-    {"chorus": 1, "drop": 23.871, "syl": [["I'm", 22.72], ["up", 22.98], ["ping", 23.19], ["my", 23.42], ["P", 23.62], ["DOOM", 23.871]],
-     "rhythm": "8th notes; I'm = drop - 2.5 beats; last 5 syllables sung into the instrumental stop, DOOM on the drop downbeat"},
-    {"chorus": 2, "drop": 60.235, "syl": [["I'm", 59.09], ["up", 59.32], ["ping", 59.53], ["my", 59.77], ["P", 59.98], ["DOOM", 60.235]],
-     "rhythm": "identical to chorus 1 ('my' has no detectable onset: grid value)"},
-    {"chorus": 3, "drop": 96.598, "syl": [["I'm", 95.43], ["up", 95.68], ["ping", 95.91], ["my", 96.14], ["P", 96.34], ["DOOM", 96.598]],
-     "rhythm": "identical, over the breakdown riser (no stop); 'my' = grid value"},
-    {"chorus": 4, "drop": 125.689, "syl": [["I'm", 123.66], ["up", 124.12], ["ping", 124.53], ["my", 124.99], ["P", 125.45], ["DOOM", 125.689]],
-     "rhythm": "AUGMENTED: quarter notes (~0.46 s apart), no stop; 'P' -> 'DOOM' still a half beat. Lowest confidence of the four (+-0.1 s on I'm/up)"},
-]
+# ------------------------------------------------------------------ hits (kick/snare with strengths; hats compact)
+hits = {"kick": [], "snare": [], "hat": []}
+for h in G["hits"]:
+    hits[h["type"]].append([h["t"], h["s"]])
 
-# sub-syllable timings for acronym / hook words (line index, word index) -> [[label, t], ...]
-SYL = {
-    (0, 4): [["A", 3.65], ["G", 4.10], ["I", 4.33]],
-    (5, 0): [["Chat", 16.60], ["G", 17.25], ["P", 17.95], ["T", 18.42]],
-    (19, 0): [["N", 62.51], ["V", 62.74], ["D", 62.965], ["A", 63.19]],
-    (30, 3): [["P", 99.78], ["T", 100.01], ["O", 100.24]],
-    (38, 2): [["G", 119.78], ["P", 120.01], ["U", 120.24]],
-    (39, 0): [["R", 120.69], ["L", 120.92], ["H", 121.15], ["F", 121.37]],
-}
-for h in HOOKS:
-    li = {1: 6, 2: 17, 3: 28, 4: 40}[h["chorus"]]
-    s = dict(h["syl"])
-    SYL[(li, 1)] = [["up", s["up"]], ["ping", s["ping"]]]
-    SYL[(li, 3)] = [["P", s["P"]], ["(doom)", s["DOOM"]]]
+per_beat = [{"t": r["t"], "bar": r["bar"], "beat": r["beat"], "energy": r["energy"], "mix_db": r["mix_db"],
+             "drums_db": r["drums_db"], "bass_db": r["bass_db"], "other_db": r["other_db"], "vocal_db": r["vocal_db"],
+             "kick": r["kick"], "snare": r["snare"]} for r in PB]
 
-NOTES = {
-    0: "Vocal breath/hum from 1.60 s; first lexical word 'I' on the bar-2 downbeat (2.05). Show the line from ~1.6.",
-    5: "Burned-in subtitle is 1.3 s late: 'Chat-' starts on the bar-10 downbeat together with the kick entry.",
-    6: "Chorus hook. Sung into the 22.98-23.85 instrumental stop; DOOM = drop at 23.871.",
-    10: "'lies' held to 31.8; unlabelled vocal notes 31.85-33.2 (backing 'ooh'/echo - subtitle keeps the line up to 33.4).",
-    16: "'Syd-ney' is a 2.9 s melisma (53.02-55.9); subtitle starts 0.38 s late.",
-    17: "Chorus hook; stop 59.35-60.22; DOOM = drop at 60.235.",
-    19: "NVDA sung as letters N-V-D-A on 8th notes (ASR hears 'in the E-eight'); subtitle 0.5 s late.",
-    22: "'reckoned' ends 71.75; wordless ad-libs 71.8-73.8 are not in the lyric sheet.",
-    23: "Subtitle is 1.1 s early: 'Forward' starts at 74.10 (pickup into bar 42).",
-    27: "Breakdown; long notes. 'Gato' on the bar-50 downbeat (89.33) as the drums drop out.",
-    28: "Chorus hook over the riser; DOOM = bar 54 downbeat 96.598.",
-    33: "'blues' held/melisma to ~108.3; more wordless vocal 108.4-109.8 (both ASR models hear 'who's a...', possibly an echo of 'Ortho-': unverified).",
-    34: "Both CTC models hear the word 'just' repeated 2-3x (110.2, 110.7, ~111.1) before 'transformers' (111.2-111.4); subtitle 0.8 s early.",
-    40: "Final chorus: hook in quarter notes, no stop; DOOM on bar 70 downbeat 125.689.",
-    44: "'know' held to ~136.6.",
-    45: "'Was' is a pickup (137.40); the instrumental cuts out at 138.45 on 'all'; 'show' at 140.04 rings into the outro drop at 140.235.",
+# ------------------------------------------------------------------ verification statistics
+def coinc(ts, arr, win):
+    ts = np.asarray(ts)
+    return float(np.mean([abs(nearest(arr, t)[1]) <= win for t in ts]))
+
+
+raw_m = [M["mms"][k]["tc"] for k in sorted(M["mms"])]
+raw_w = [M["w2v"][k]["tc"] for k in sorted(M["w2v"])]
+fin = [words_out[k]["t"] for k in sorted(words_out)]
+dis = np.abs(np.array(raw_m) - np.array(raw_w)) * 1000
+allu = np.array([words_out[k]["u"] for k in words_out]) * 1000
+on_all = np.sort(np.concatenate([on_flux, on_en]))
+eighth = T / 2
+q8 = [abs(((t - T0) / eighth) - np.round((t - T0) / eighth)) * eighth * 1000 for t in fin]
+stats = {
+    "lags_ms": {m: {"lag": round(LAG[m][0] * 1000, 1), "n": LAG[m][1]} for m in LAG},
+    "method_disagreement_ms": {"median": round(float(np.median(dis)), 1), "p75": round(float(np.percentile(dis, 75)), 1),
+                               "p90": round(float(np.percentile(dis, 90)), 1),
+                               "frac_le_50": round(float(np.mean(dis <= 50)), 3), "frac_le_80": round(float(np.mean(dis <= 80)), 3),
+                               "frac_gt_200": round(float(np.mean(dis > 200)), 3)},
+    "onset_coincidence": {name: {"flux_30ms": round(coinc(ts, on_flux, 0.03), 3), "flux_50ms": round(coinc(ts, on_flux, 0.05), 3),
+                                 "any_50ms": round(coinc(ts, on_all, 0.05), 3)}
+                          for name, ts in (("mms", raw_m), ("w2v", raw_w), ("final", fin))},
+    "chance_onset_coincidence_50ms": round(float(min(1.0, len(on_flux) / (DUR - 2) * 0.1)), 3),
+    "final_offset_from_8th_grid_ms": {"median": round(float(np.median(q8)), 1), "frac_le_40": round(float(np.mean(np.array(q8) <= 40)), 3),
+                                      "chance_median": round(eighth * 1000 / 4, 1)},
+    "word_u_ms": {"median": round(float(np.median(allu)), 1), "p90": round(float(np.percentile(allu, 90)), 1),
+                  "n_gt_80": int(np.sum(allu > 80))},
+    "how": {h: sum(1 for k in words_out if words_out[k]["how"].split(",")[0] == h) for h in sorted({w["how"].split(",")[0] for w in words_out.values()})},
+    "n_words": len(words_out), "n_manual": sum(1 for w in words_out.values() if w["how"] == "manual"),
+    "flagged_lines": [L["i"] for L in lines if L["flag"]],
+    "auto_flagged_lines": [L["i"] for L in lines if L["auto_u_max_ms"] > 80],
+    "manual_changed_ms": {"n_moved_gt_30ms": int(sum(1 for w in words_out.values() if w["how"] == "manual" and abs(w["t"] - w["t_auto"]) > 0.03)),
+                          "max": int(round(max(abs(w["t"] - w["t_auto"]) for w in words_out.values()) * 1000))},
 }
 
-lines = []
-for L in VT["lines"]:
-    words = []
-    for j, w in enumerate(L["words"]):
-        src = w["src"]
-        conf = ("verified" if src == "manual" else "high" if src.startswith("ps+ctc>onset") else
-                "med" if (">onset" in src or ">pitch" in src or src.startswith("ps+ctc")) else "low")
-        d = {"t": w["t"], "e": w["e"], "w": w["w"], "conf": conf, "src": src}
-        if (L["i"], j) in SYL:
-            d["syl"] = [{"t": t, "s": s} for s, t in SYL[(L["i"], j)]]
-        words.append(d)
-    entry = {"i": L["i"], "start": L["start"], "end": L["end"], "text": L["text"], "words": words,
-             "sub_start": L["sub_start"], "sub_end": L["sub_end"], "d_start": L["d_start"], "d_end": L["d_end"],
-             "sub_off_gt150ms": L["flag_150ms"], "pos": pos(L["start"])}
-    if L["i"] in NOTES:
-        entry["note"] = NOTES[L["i"]]
-    if L["i"] == 0:
-        entry["vocal_entry"] = 1.60
-    lines.append(entry)
+# third method: Whisper large-v3 word times (coarse, cross-attention DTW) matched by spelling within +-1.5 s
+import re as _re
+wh_words = [(w["w"], w["t"]) for sg in WH["segments"] for w in sg["words"]]
+norm = lambda x: _re.sub(r"[^a-z]", "", x.lower())
+offs = []
+for k in sorted(words_out):
+    fw = norm(words_out[k]["w"])
+    cands = [t for ww, t in wh_words if norm(ww) == fw and abs(t - words_out[k]["t"]) <= 1.5]
+    if fw and cands:
+        offs.append(min(cands, key=lambda t: abs(t - words_out[k]["t"])) - words_out[k]["t"])
+offs = np.array(offs)
+med = float(np.median(offs))
+stats["whisper_check"] = {"n_matched": int(len(offs)), "median_offset_ms": round(med * 1000),
+                          "mad_ms": round(float(np.median(np.abs(offs - med))) * 1000),
+                          "frac_within_150ms_of_median": round(float(np.mean(np.abs(offs - med) <= 0.15)), 3),
+                          "note": "Whisper word starts are systematically early and coarse; a small spread around a constant offset is the check"}
 
-VOCAL_EXTRA = [
-    {"start": 1.60, "end": 2.02, "what": "breath/hum pickup before 'I see sparks'"},
-    {"start": 31.85, "end": 33.20, "what": "3 wordless notes after 'lies' (backing/echo)"},
-    {"start": 35.70, "end": 37.20, "what": "post-chorus wordless vocal fills"},
-    {"start": 45.70, "end": 46.10, "what": "high 'ooh'/vocal chop (~900 Hz)"},
-    {"start": 68.20, "end": 69.50, "what": "ad-lib after 'a second' (ASR: 'yeah... ah...')"},
-    {"start": 71.80, "end": 73.80, "what": "wordless ad-libs after 'we reckoned'"},
-    {"start": 108.40, "end": 109.80, "what": "wordless vocal / possible 'Ortho-' echo after 'blues'"},
-    {"start": 140.24, "end": 154.0, "what": "outro: pitched vocal-chop (or lead) stabs on every beat, non-lexical"},
-]
-
-# ------------------------------------------------------------------ energy (10 Hz, 0..1)
-lo, hi = -45.0, float(np.max(lufs))
-energy = np.clip((lufs - lo) / (hi - lo), 0, 1)
+# section starts vs the grid: the nearest drum attack / vocal onset / crash to each section downbeat
+kick_t = np.array([h[0] for h in hits["kick"]])
+sn_t = np.array([h[0] for h in hits["snare"]])
+cr_t = np.array([c["t"] for c in G["crashes"]])
+dbc = []
+for sct in sections[1:]:
+    row = {"section": sct["name"], "t0": sct["t0"]}
+    for nm, arr, win in (("kick", kick_t, 0.05), ("snare", sn_t, 0.05), ("crash", cr_t, 0.05), ("vocal_onset", on_flux, 0.06)):
+        o, d = nearest(arr, sct["t0"])
+        row[nm + "_ms"] = round(d * 1000, 1) if abs(d) <= win else None
+    bi = int(round((sct["t0"] - T0) / T))
+    if 1 <= bi < len(PB):
+        row["level_step_db"] = round(PB[bi]["mix_db"] - PB[bi - 1]["mix_db"], 1)
+        row["drums_step_db"] = round(PB[bi]["drums_db"] - PB[bi - 1]["drums_db"], 1)
+    dbc.append(row)
+stats["section_downbeat_check"] = dbc
 
 song = {
-    "_about": "I'm Upping My P(doom) - frame-accurate analysis. All times in seconds from the first decoded PCM sample of assets/pdoom.mp3 "
-              "(ffmpeg/librosa/WebAudio decodeAudioData convention; the MP3 has a 23 ms encoder-delay start_time that some players/containers "
-              "apply - verify once with a click test). See analysis/REPORT.md.",
-    "duration": DUR,
-    "bpm": BPM,
-    "beat_period": T,
-    "time_signature": "4/4",
-    "grid": {"t0": T0, "t0_uncertainty_s": 0.008, "bar_period": BAR,
-             "formula": "beat k (0-based) = t0 + k*beat_period; bar n (1-based) starts at t0 + (n-1)*bar_period",
-             "madmom_free_fit": R["madmom_free_fit"]},
-    "beats": [b for b in R["beats"] if b < AUDIBLE_END],
-    "downbeats": [b for b in R["downbeats"] if b < AUDIBLE_END],
-    "audible_end": AUDIBLE_END,
+    "_about": "Timing backbone for the Claude Pop film. All times are seconds from the first sample of the gapless "
+              "decode of pdoom.mp3 (ffmpeg honours the LAME header: 1105 priming samples at 48 kHz = 23.0 ms are "
+              "skipped). Generated by claudepop/analysis/tools/build_song.py; method and verification in REPORT.md.",
+    "song": "I'm Upping My P(doom)", "audio": "pdoomvideo/assets/pdoom.mp3 (48 kHz stereo MP3, untouched)",
+    "duration": round(DUR, 4), "first_sound": STRUCT["first_sound"], "bpm": BPM, "beat_period": round(T, 6),
+    "meter": "4/4", "t0": T0,
+    "t0_note": "t0 = the attack start (10 % of rise, unfiltered drum stem) of the kick on clap-free beats. Beat n is at "
+               "t0 + n*60/132; bar b (1-based) starts at t0 + (b-1)*4*60/132. Claps on beats 2/4 are flammed and start "
+               "up to 19 ms before the beat; the kick's low-frequency peak is ~23 ms after it.",
+    "half_time": {"bpm": 66.0, "period": round(2 * T, 6),
+                  "grid": "t0 + n*2*60/132 = beats 1 and 3 of every bar (the kick-only beats; the claps sit on 2 and 4 "
+                          "between them). Cutting on this grid gives a half-time edit (one cut per 0.909 s), which suits "
+                          "verse 1, the breakdown and the bridge; the choruses and the outro carry a full 132 four-on-the-floor.",
+                  "units_s": {"beat": round(T, 6), "half_time_beat": round(2 * T, 6), "bar": round(4 * T, 6),
+                              "two_bars": round(8 * T, 6), "eight_bars": round(32 * T, 6), "sixteenth": round(T / 4, 6)}},
+    "beats": [round(float(b), 4) for b in beats],
+    "downbeats": [round(float(b), 4) for b in beats[::4]],
+    "phase_estimates": G["phase_estimates"], "tempo_check": G["tempo_check"],
+    "bar_phase_votes": G["bar_phase_votes"], "onset_offsets_ms_from_grid": G["onset_offsets_ms_from_grid"],
     "sections": sections,
-    "lines": lines,
-    "hooks": HOOKS,
-    "vocal_extra": VOCAL_EXTRA,
-    "hits": HITS,
     "events": events,
-    "energy": [round(float(v), 3) for v in energy],
-    "energy_info": {"rate_hz": 10, "t0": 0.0, "definition": "EBU R128 momentary loudness (400 ms, K-weighted) of the full mix mapped "
-                    f"linearly from {lo} LUFS -> 0 to the song max {hi:.1f} LUFS -> 1", "integrated_lufs": R["integrated_lufs"]},
-    "curves10hz": R["curves10hz"],
+    "lines": lines,
+    "extra_vocals": STRUCT["extra_vocals"],
+    "phrases": phrases,
+    "hits": {"_format": "[t, strength 0..1]; t = attack start", **hits},
+    "per_beat": per_beat,
+    "verification": stats,
 }
-json.dump(song, open(OUT, "w"), separators=(",", ":"))
-# drop-in replacement for pdoomvideo/src/lyrics.js format ([start, end, text])
-import os
-with open(os.path.join(os.path.dirname(OUT), "lyrics_refined.js"), "w") as f:
-    f.write("// lyrics_refined.js: [start, end, text] refined against the audio (see analysis/REPORT.md). Word timings: song.json lines[].words.\n")
-    f.write("const LY = [\n")
-    f.write(",\n".join(f"  [{L['start']:.2f}, {L['end']:.2f}, {json.dumps(L['text'], ensure_ascii=False)}]" for L in lines))
-    f.write("\n];\n")
-print("sections", len(sections), "lines", len(lines), "hits", len(HITS), "beats", len(R["beats"]), "energy", len(energy))
-for s in sections:
-    print(f"{s['name']:18s} {s['start']:7.2f}-{s['end']:7.2f} bars {s['bars']} lufs {s['lufs_mean']} inst {s['lufs_inst_mean']}")
+
+
+def dump(o, f):
+    """compact JSON with one array element per line for big lists (diff-friendly, still valid JSON)."""
+    s = json.dumps(o, ensure_ascii=False, separators=(",", ":"))
+    f.write(s)
+
+
+with open(f"{ROOT}/analysis/song.json", "w") as f:
+    txt = json.dumps(song, ensure_ascii=False, indent=1)
+    # collapse short inner arrays / word objects onto one line
+    import re
+    txt = re.sub(r"\[\s+([-\d.,\s]+?)\s+\]", lambda m: "[" + ",".join(x.strip() for x in m.group(1).split(",")) + "]", txt)
+    txt = re.sub(r"\{\s+(\"w\"[^{}\[\]]*?(\[[^\[\]]*\])?[^{}\[\]]*?)\s+\}",
+                 lambda m: "{" + " ".join(l.strip() for l in m.group(1).splitlines()) + "}", txt)
+    f.write(txt)
+json.dump(stats, open(f"{W}/build_stats.json", "w"), indent=1)
+
+# ------------------------------------------------------------------ click-track auditions
+voc, sr = sf.read(f"{ROOT}/out/audio/stems/htdemucs/pdoom_44k/vocals.wav", always_2d=True)
+
+
+def click(freq, dur=0.03, amp=0.5):
+    n = int(dur * sr)
+    tt = np.arange(n) / sr
+    return amp * np.sin(2 * np.pi * freq * tt) * np.exp(-tt * 120)
+
+
+out = voc.copy() * 0.8
+for L in lines:
+    for j, w in enumerate(L["words"]):
+        c = click(2400 if j == 0 else 1500, amp=0.45 if j == 0 else 0.3)
+        i = int(w["t"] * sr)
+        n = min(len(c), len(out) - i)
+        out[i:i + n] += c[:n, None]
+sf.write(f"{ROOT}/out/audio/click_words.wav", np.clip(out, -1, 1), sr, subtype="PCM_16")
+mix, _ = sf.read(f"{ROOT}/out/audio/pdoom_44k.wav", always_2d=True)
+out = mix.copy() * 0.7
+for n, b in enumerate(beats):
+    c = click(2000 if n % 4 == 0 else 1200, amp=0.4 if n % 4 == 0 else 0.22)
+    i = int(b * sr)
+    k = min(len(c), len(out) - i)
+    out[i:i + k] += c[:k, None]
+sf.write(f"{ROOT}/out/audio/click_beats.wav", np.clip(out, -1, 1), sr, subtype="PCM_16")
+
+print(json.dumps(stats, indent=1))
+for L in lines:
+    fl = " FLAG " + ",".join(L["flag_words"]) if L["flag"] else ""
+    print(f"{L['i']:2d} {L['start']:7.3f}-{L['end']:7.3f} u{L['u_max_ms']:4d}{fl} | " +
+          " ".join(f"{w['w']}@{w['t']:.2f}" for w in L["words"]))

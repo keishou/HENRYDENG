@@ -1,52 +1,156 @@
-# Song analysis
-_Written from the preproduction workflow's structured result: the subagent could not save its markdown report itself._
-## Key findings
-1. GRID. The song is 132.000 BPM in 4/4 at a constant, machine-quantised tempo. Beat = 0.454545 s, bar = 1.818182 s, 8th = 0.2273 s, 16th = 0.1136 s. Beat k = 0.235 + k*0.454545. Bar n (1-based) starts at 0.235 + (n-1)*1.818182. There are 86 bars, audible from 0.23 s to about 156.5 s (file length 156.65 s). Evidence: madmom's downbeat tracker chose 4/4 (341 beats; a free linear fit gives 132.002 BPM with 5.7 ms residual std and no drift), and an onset-envelope comb search peaks sharply at exactly 132.000 (score 1.70 against about 1.0 at ±0.02 BPM). Phase estimates were 0.2351 (madmom fit), 0.243 (comb), 0.229–0.240 (kick attacks) and about 0.231 (CNN onsets), so t0 = 0.235 ± 0.008 s. Downbeat phase is confirmed three ways: claps on beats 2 and 4 (+2.7 dB at 150–400 Hz and a long noise tail), all stops resolving on bar downbeats, and crashes landing on section downbeats.
-2. BUG IN THE PREVIOUS PROJECT. pdoomvideo/src/core.js uses BPM=88, OFF=0.21. 88 is 2/3 of 132, so that grid only coincides with the real beat every third real beat, and most pulse()/beatN() accents miss the kick. Replace with BPM=132, OFF=0.235. The 88 BPM impression comes from a secondary autocorrelation peak at 1.5 beats caused by off-beat hats and plucks.
-3. TIMING CONVENTION. All times are measured from the first decoded PCM sample, as ffmpeg, librosa and WebAudio decodeAudioData count them. The MP3 has a 23 ms start_time, but a test ffmpeg mux like render.mjs's placed analysis t=0 at video t=0: cross-correlation lag was 0 ms and the first audio pts was 0. So frame n at a given fps is t = n/fps.
-4. SECTION MAP (bars inclusive; mean LUFS mix/instrumental). intro 0–2.05 (bar 1; pad only; breath/hum from 1.60; swell 1.2–2.05). verse1 2.05–16.60 (bars 2–9, −19.3/−24.0; NO drums, synth plucks on 8ths). prechorus1 16.60–23.87 (bars 10–13; noise riser 16.1–16.6, then crash and four-on-the-floor kick entering with 'Chat-' at 16.60; 16th kick roll 22.05–22.96; STOP 22.98–23.85). chorus1 23.87–38.42 (bars 14–21, −15.7; DROP on 'DOOM' 23.871; kick every beat, clap on 2 and 4, open hat on off-beats; wordless fills 35.7–37.2; drum fill into bar 22). verse2 38.42–52.96 (bars 22–29, −16.2). prechorus2 52.96–60.24 (bars 30–33, −16.8; kick without clap; bar 32 kick 8ths build; bar 33 16th roll; STOP 59.35–60.22). chorus2 60.24–74.78 (bars 34–41, −14.9; DROP 60.235; ad-libs 68.2–69.5 and 71.8–73.8; fill at end of bar 41). verse3 74.78–89.33 (bars 42–49, −14.7; crash at 74.78; kick 8ths fill in bar 49). breakdown 89.33–96.60 (bars 50–53, −19.3/−26.4; drums out; big riser 95.0–96.6). chorus3_halftime 96.60–109.33 (bars 54–60, only 7 bars, −19.2/−28.5; 'DOOM' 96.598 over a near-empty half-time beat, with kick only on beat 1 of bars 54/56/58/60, sparse noise-claps, and reverse swells into 103.87 and 107.51). verse4_bridge 109.33–123.87 (bars 61–68, −14.1; groove returns 109.326). chorus4_final 123.87–138.42 (bars 69–76, −13.5; no stop; augmented hook, 'DOOM' on bar 70 at 125.689). stop 138.42–140.24 (bar 77; instrumental cut 138.45–140.24, about −60 dB). outro_drop 140.24–152.96 (bars 78–84, −13.3, the LOUDEST section; per-beat vocal-chop stabs). ending 152.96–156.65 (last kick 152.96, chord rings, fade from 154.8, −50 dB at 155.85, silent by about 156.5). Integrated loudness is −15.5 LUFS.
-5. KEY FRAMES (24/30/60 fps). Drop chorus1 23.871 (573/716/1432). Drop chorus2 60.235 (1446/1807/3614). Drop chorus3 96.598 (2318/2898/5796). Groove returns 109.326 (2624/3280/6560). Chorus4 DOOM 125.689 (3017/3771/7541). Outro drop 140.235 (3366/4207/8414). Kick-in 16.60 (398/498/996). Stops start 22.98 (552/689/1379), 59.35 (1424/1780/3561) and 138.45 (3323/4154/8307). Breakdown 89.326 (2144/2680/5360). Verse3 crash 74.78 (1795/2243/4487). Final hit 152.96 (3671/4589/9178).
-6. P(doom) HOOK, per syllable (hand-verified on vocal-stem spectrograms, pitch, onsets and CTC posteriors). The syllables are I'm | up | ping | my | P | DOOM, and DOOM falls on the downbeat. Chorus 1: 22.72 | 22.98 | 23.19 | 23.42 | 23.62 | 23.871 (bar 14). Chorus 2: 59.09 | 59.32 | 59.53 | 59.77* | 59.98 | 60.235 (bar 34). Chorus 3: 95.43 | 95.68 | 95.91 | 96.14* | 96.34 | 96.598 (bar 54). Chorus 4 is AUGMENTED to quarter notes: 123.66 | 124.12 | 124.53 | 124.99 | 125.45 | 125.689 (bar 70), with ±0.1 s on I'm and up. * marks grid values where no separate onset was detectable. In choruses 1–3 the hook runs on 8th notes starting 2.5 beats before the drop. In choruses 1 and 2 the five syllables 'up…P' are sung inside a full instrumental stop, and DOOM (a note falling from about 330 Hz, held about 0.45 s) slams on the drop downbeat. This is a built-in 'calm space, then slam' moment for huge kinetic type.
-7. OTHER SUB-SYLLABLE TIMES (in song.json words[].syl). AGI: A 3.65, G 4.10, I 4.33. ChatGPT: Chat 16.60, G 17.25, P 17.95, T 18.42. NVDA, sung as letters on 8ths: N 62.51, V 62.74, D 62.965, A 63.19. PTO: 99.78, 100.01, 100.24. GPU: 119.78, 120.01, 120.24. RLHF: 120.69, 120.92, 121.15, 121.37. On-beat word anchors: FOOM 25.68 (bar 15 downbeat), soon 65.69 (bar 37), Gato 89.33 (bar 50, as the drums drop out), blues 107.5 (bar 60), Loom 127.53 (bar 71), 'show' 140.04 (just before the outro drop at 140.235).
-8. REFINED LINES, part 1 (start–end; Δstart = refined minus subtitle; * = subtitle off by more than 150 ms at start or end). 0 'I see sparks' 2.05–5.73 (+0.55*; a hum starts at 1.60, and the first word 'I' is on the bar-2 downbeat). 1 5.75–7.41 (−0.25*). 2 7.74–9.20 (−0.26*). 3 9.55–12.37 (+0.55*). 4 13.08–16.58 (+0.08). 5 'ChatGPT' 16.60–22.70 (−1.30*). 6 hook 22.72–24.31 (−0.28*). 7 FOOM 24.35–26.23 (−0.15*). 8 26.25–27.96 (−0.25*). 9 27.98–29.69 (−0.02*, end +0.29). 10 shoggoth 29.93–31.84 (+0.43*; 'lies' held to 31.8, then wordless backing notes 31.85–33.2). 11 shinigami 33.26–35.49 (−0.24*; 'shinigami' starts 33.87, 'eyes' 34.79). 12 38.54–41.35 (+0.04). 13 41.37–45.00 (−0.13). 14 45.02–49.24 (+0.02, end +0.74*). 15 49.53–52.75 (+0.13, end +0.85*). 16 Sydney 53.02–58.95 (−0.38*; 'Syd-ney' is a 2.9 s melisma). 17 hook 59.09–60.19 (+0.09*). 18 basilisk 60.49–62.45 (−0.01). 19 NVDA 62.49–64.10 (−0.51*). 20 Omega 64.12–66.06 (−0.38*). 21 1e30 flops 66.08–68.14 (+0.08, end −0.36*). 22 safe enough 69.65–71.75 (−0.35*).
-9. REFINED LINES, part 2. 23 'Forward MLP' 74.10–77.13 (+1.10*; a pickup under the drum fill). 24 von Neumann 77.70–81.10 (+0.20*). 25 sharp left turn 81.22–84.69 (−0.18*). 26 CDR 85.03–89.28 (+0.03, end +1.28*). 27 Gato 89.30–95.41 (−0.10, end +0.41*). 28 hook 95.43–96.88 (+0.03, end −0.52*). 29 paperclips 96.90–98.75 (−0.60*). 30 killswitch/PTO 98.77–100.19 (−0.23*). 31 100.69–102.52 (+0.19*). 32 fuse 102.54–104.59 (+0.04, end +0.19*). 33 orthogonality 105.00–108.30 (−0.40*; 'blues' 107.49, then a melisma). 34 'Just transformers' 110.20–113.35 (+0.80*; both CTC models hear 'just' repeated 2–3 times at about 110.2, 110.7 and 111.1 before 'transformers' at about 111.2–111.4, a stutter worth animating but unverified by ear). 35 disobey 113.37–115.12 (−0.13, end −0.28*). 36 Chinchilla 115.22–116.95 (−0.28*). 37 safety fence 117.03–118.82 (+0.03). 38 GPU 118.84–120.55 (−0.16*). 39 RLHF 120.61–123.60 (−0.29*). 40 final hook 123.66–125.73 (+0.16*). 41 Loom 126.12–127.89 (+0.12). 42 masked pre-training 127.91–129.75 (−0.09). 43 recursive self-upgrade 129.80–131.62 (−0.20*). 44 Ilya 131.79–136.65 (−0.21*, end +1.25; 'know' 134.36 is held to 136.6). 45 'Was it all for show?' 137.40–140.60 (+0.00; the cut at 138.45 falls on 'all', 'show' is at 140.04). In total, 27 of 46 line starts are off by more than 150 ms, and 38 of 46 lines are off at the start or the end.
-10. WORDLESS VOCAL (vocal_extra[]) that is not in the lyric sheet: 1.60–2.02 hum pickup; 31.85–33.2 backing notes; 35.7–37.2 post-chorus fills; 45.7–46.1 high 'ooh' or chop; 68.2–69.5 ad-lib (ASR hears 'yeah… ah'); 71.8–73.8 ad-libs; 108.4–109.8 wordless vocal (ASR hears 'who's a…', possibly an echo of 'Ortho-'); 140.24–154.0 outro pitched vocal-chop stabs on every beat, non-lexical and possibly partly synth leaking into the stem. Vocal register (pYIN): median F4 (349 Hz); 10–90 % range C4–D5; extremes about A#3–D#5.
-11. DRUM HITS. hits[] has 761 entries {t, type, bar, beat, six, off_ms, s}: kick 280, clap 118, hat 182, perc 181. They come from madmom CNN onsets on the MDX instrumental stem, classified by band rise, level and decay on the HPSS percussive spectrum. Recall per 8-bar full section is about 34 kicks (32 expected plus fills), 14–17 claps (16 expected) and 26–29 hats (32 expected). 99% of hits fall within 43 ms of the 16th grid. Each section also carries a rule-based drum pattern (sections[].drums) so perfectly regular pulses can be generated from the grid.
-12. EVENTS (events[]). Risers: 1.2–2.05, 16.1–16.6, build 56.6–58.4, big riser 95.0–96.6, reverse swells 103.4–103.87 and 107.0–107.51. Fills: kick rolls 22.05–22.96 and 58.42–59.33; drum fills 37.9–38.42 and 73.9–74.78; kick 8ths 88.9–89.33. Stops: 22.98–23.85, 59.35–60.22, 138.45–140.24. Drops: 23.871, 60.235, 96.598, 109.326, 140.235. Accent 125.689. Impacts: 16.60 and 74.78. Final hit 152.96. Fade 154.8–156.5.
-13. ENERGY. energy[] has 1567 samples at 10 Hz (t = i/10): EBU R128 momentary loudness (400 ms, K-weighted) of the mix, mapped linearly with −45 LUFS at 0 and the song maximum at 1. Raw curves are in curves10hz: lufs, lufs_inst, lufs_vocal, centroid_hz, low_db and high_db. Arc: verse1 −19.3 → prechorus1 −17.3 → chorus1 −15.7 → verse2 −16.2 → chorus2 −14.9 / verse3 −14.7 → dip in breakdown and half-time chorus (about −19.2) → bridge −14.1 → final chorus −13.5 → stop → outro −13.3 (loudest).
-14. CHOREOGRAPHY IMPLICATIONS. (1) There is no instrumental intro: the first word lands at 2.05, so the lyric card must be up by about 1.6. The opening line suits a lyric-forward hook, timed word by word at 2.05 / 2.36 / 2.73 / 3.44 / A 3.65 / G 4.10 / I 4.33. (2) Verse 1 has no kick, so drive motion from the 8th-note pluck pulse. The first big cut is 16.60, where 'Chat-', the kick and the crash arrive together. (3) The hook's syllables arrive one per 8th, sung into silence in choruses 1 and 2, with DOOM on the drop: ideal for giant kinetic type and P(doom) meter pumps (six exact hit times per chorus). (4) Chorus 3 (96.6–109.3) is half-time and nearly empty, the calm chorus for huge type. (5) Chorus 4's hook is a slow-motion, quarter-note version. (6) The stop at 138.45–140.24 is the natural reveal for 'Was it all for show?'. (7) The outro drop at 140.235 is the loudest part and suits a full-cast dance break on the per-beat vocal-chop stabs.
-15. METHOD. (a) Vocal separation: the UVR MDX-Net Kim_Vocal_2.onnx model run on CPU with onnxruntime (about 4 min). Weights come from https://github.com/TRvlvr/model_repo/releases/tag/all_public_uvr_models; parameters (n_fft 7680, dim_f 3072, dim_t 256, compensate 1.009) from https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/model_data.json. demucs, Hugging Face and download.pytorch.org are blocked, but GitHub release assets are reachable. (b) madmom git master (https://github.com/CPJKU/madmom), built in place, for beats, downbeats and CNN onsets. (c) Three lyric aligners on the vocal stem: PocketSphinx with a custom ARPAbet lexicon; NeMo Parakeet TDT-CTC 110M (https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nemo/models/parakeet-tdt_ctc-110m); and NeMo FastConformer hybrid large (https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nemo/models/stt_en_fastconformer_hybrid_large_pc). Both NeMo models are sherpa-onnx ONNX exports from https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models, run with my own NeMo mel front-end and Viterbi CTC forced alignment at 8 sub-frame shifts (about 10 ms effective resolution). Parakeet's free transcription of the verses was nearly verbatim. (d) Lag calibration against vocal onsets (PK −80 ms, FC −50 ms, PS +20 ms), consensus, then snapping to madmom vocal onsets (70 ms) or pYIN pitch/voicing onsets (50 ms). (e) Every line was checked on zoomed plots, giving 32 word corrections and 14 line-end corrections (tools/overrides.json). Per-word confidence: verified 32, high 130, med 64, low 1.
-16. SONG.JSON SCHEMA. Top-level keys: duration, bpm, beat_period, time_signature, grid{t0, t0_uncertainty_s, bar_period, formula, madmom_free_fit}, beats[344], downbeats[86], audible_end, sections[{name, start, end, bars, n_bars, lufs_mean, lufs_inst_mean, drums, desc}], lines[{i, start, end, text, words[{t, e, w, conf, src, syl?}], sub_start, sub_end, d_start, d_end, sub_off_gt150ms, pos, note?, vocal_entry?}], hooks[{chorus, drop, syl, rhythm}], vocal_extra[], hits[], events[], energy[1567 @ 10 Hz], energy_info, curves10hz. lyrics_refined.js is a drop-in replacement for pdoomvideo/src/lyrics.js. JS grid: const BPM=132, BEAT=60/BPM, OFF=0.235, BAR=4*BEAT; bpOf = t => (t-OFF)/BEAT.
-17. REPRODUCE. Decode with ffmpeg to pdoom48k.wav (float) and pdoom44k.wav (16-bit). Then run tools/mdx_separate.py to get the stems; madmom via tools/prep/mm_beats.py and mm_onsets.py (needs git clone --recursive, build_ext --inplace, a patch to __version__, and pip install mido); tools/prep/pitch.py; tools/align_ps.py; tools/align_ctc.py <model_dir> ... 8 for each model; tools/vocal_timing.py with overrides.json; tools/rhythm.py; tools/hits.py; tools/build_song.py; tools/plot_map.py. Verification helpers: tools/prep/hookzoom.py, linecheck2.py, and ctc_dump.py (which prints CTC token posteriors). The intermediates and stems live in the session scratchpad /tmp/claude-0/-home-user-HENRYDENG/7f8d1921-66d2-537c-b24c-b53f151ed290/scratchpad (stems/vocals.wav and instrumental.wav at 44.1 kHz; work/*.json). The scratchpad is not persistent: regenerate with the commands above.
+# Song analysis: the timing backbone
 
-## Artifacts
-- `/home/user/HENRYDENG/claudepop/analysis/song.json`
-- `/home/user/HENRYDENG/claudepop/analysis/song_map.png`
-- `/home/user/HENRYDENG/claudepop/analysis/lyrics_refined.js`
-- `/home/user/HENRYDENG/claudepop/analysis/figures/hook1_chorus1_21.5-25.2.png`
-- `/home/user/HENRYDENG/claudepop/analysis/figures/hook2_chorus2_58.0-61.3.png`
-- `/home/user/HENRYDENG/claudepop/analysis/figures/hook3_chorus3_94.5-97.6.png`
-- `/home/user/HENRYDENG/claudepop/analysis/figures/hook4_chorus4_122.6-126.4.png`
-- `/home/user/HENRYDENG/claudepop/analysis/figures/drum_pattern_one_bar.png`
-- `/home/user/HENRYDENG/claudepop/analysis/figures/instrumental_grid_check.png`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/overrides.json`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/mdx_separate.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/rhythm.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/hits.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/align_ps.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/align_ctc.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/lyrics_lex.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/vocal_timing.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/build_song.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/plot_map.py`
-- `/home/user/HENRYDENG/claudepop/analysis/tools/prep/`
+"I'm Upping My P(doom)" (`pdoomvideo/assets/pdoom.mp3`, 48 kHz stereo MP3, untouched). Analysis run 2026-09-28. Every shot, cut, lyric card and HUD tick in the film is timed from `claudepop/analysis/song.json`. This report says how each number in it was made, what was checked, and what is still uncertain.
 
-## Caveats
-- REPORT.md was not written: the harness rejected the Write with 'Subagents should return findings as text, not write report files'. Its full content is in key_findings. If the orchestrator needs the file on disk, it can write one from these findings.
-- Nobody listened to the audio. Every lyric judgement comes from spectrograms, pYIN pitch, madmom onsets and two ASR models. A 60-second listening pass against figures/hook*.png should confirm: whether the 1.60 s pickup is a hum or a breath; the 'just, just' stutter in line 34; whether 108.4–109.8 and the outro stabs are vocal or synth leak; the chorus 4 'I'm'/'up' times (±0.1 s); 'Sydney' at 53.02 (neither ASR model recognised the word); and 'single' at 85.78 (low confidence).
-- Word end times are the next word's start (legato singing). Only each line's last word has a measured vocal offset. Expected accuracy: verified and hook syllables ±30 ms; 'high' ±50–80 ms; 'med' ±100–150 ms. The automatic stage's typical error was one 8th early, which is why all four hooks were set by hand.
-- Drum hits are a transcription: about 85–95 % recall per type in full sections, and some kicks are missed in prechorus 1. Kick and clap layered on beats 2 and 4 appear as two entries at the same time. For perfectly regular pulses, use the grid plus sections[].drums.
-- Grid phase uncertainty is ±8 ms. The vocal onsets typically sit −10 to +40 ms around the grid.
-- The ffmpeg mux path was verified at 0 ms offset. A browser <audio> preview in studio.html may differ by about one frame because of the MP3's 23 ms start_time.
-- Chorus 3 is 7 bars (bars 54–60), not 8. This is inferred from the fixed grid: the full groove returns exactly at bar 61 (109.326).
-- Downbeats and the beat grid run to the audible end at 156.48. beats[] has 344 entries and downbeats[] 86.
+## 1. Files
+| Path | What |
+|---|---|
+| `analysis/song.json` | grid, sections, events, lines with word timings, extra vocals, phrases, hits, per-beat energy, verification stats |
+| `analysis/tools/run_all.sh` | regenerates everything in order (about 15 min on 4 CPU cores) |
+| `grid.py` | beat grid, t0, bar phase, kick/snare/hat hits, crashes, per-beat stem levels |
+| `beats_bt.py` | Beat This! (CPJKU, ISMIR 2024) beats + downbeats, an independent check (reproduces the cached output exactly) |
+| `vocal_feats.py` | vocal-stem onsets (SuperFlux, energy, pYIN pitch/voicing), f0, RMS |
+| `emissions.py` | CTC frame posteriors of torchaudio MMS_FA and WAV2VEC2_ASR_LARGE_LV60K_960H on the vocal stem, 4 sub-frame shifts each |
+| `align_fa.py` | whole-song Viterbi forced alignment with a garbage state for unscripted singing |
+| `asr_whisper.py` | Whisper large-v3 (faster-whisper, own venv `out/venv-asr`) transcript: sung material missing from lyrics.js |
+| `build_song.py` | combines everything with the hand-verified `word_overrides.json` (75 word starts, each with its evidence) and `structure.json` (sections, events, extra vocals, couplets); writes song.json + click tracks |
+| `zoom_post.py`, `zoom_plot.py`, `review_plots.py` | review plots (vocal + synth spectrograms, onsets, CTC posteriors, 16th grid) |
+| `out/audio/click_words.wav`, `click_beats.wav` | auditions: vocal stem + clicks at word starts (high click = line start); mix + beat clicks (high = downbeat) |
+| `out/audio/pdoom_44k/48k.wav`, `stems/htdemucs/pdoom_44k/` | analysis decodes and Demucs stems (never for delivery) |
+
+Legacy scripts from the interrupted run (`rhythm.py`, `vocal_timing.py`, `align_ctc.py`, `align_ps.py`, `mdx_separate.py`) read a scratch folder that no longer exists and are superseded; `lyrics_lex.py` is still used.
+
+## 2. Time zero
+Seconds from the first sample of ffmpeg's decode of the MP3. ffmpeg honours the LAME gapless header and drops 1105 priming samples (23.0 ms), so t = 0 is the first programme sample. Duration 156.6507 s; first sound (pad, above -40 dBFS) 0.230 s. Checked: an MP4 muxed with `ffmpeg -c:a copy` and decoded back matches `pdoom_48k.wav` at exactly 0 samples lag. A player that ignored the MP4 edit list would play everything 23 ms late, so check once in Chromium at final review.
+
+## 3. Beat grid and t0
+- 132.000 BPM, 4/4, machine-quantised. The free fit of 106 clap-free on-beat kick attacks gives 132.0027 BPM, residual std 2.5 ms (p95 5.4 ms). Phase by thirds: 0.2368 / 0.2350 / 0.2348, so there is no drift.
+- **t0 = 0.2356 s.** Beat n = t0 + n·60/132; bar b starts at t0 + (b−1)·240/132. 345 beats, 87 bars.
+
+Phase estimates on the 132 grid:
+| Estimate | Phase (s) | Note |
+|---|---|---|
+| kick attack start (10 % rise, unfiltered drum stem), clap-free beats | **0.2356** | chosen, R = 0.9993 |
+| free fit intercept | 0.2371 | |
+| Beat This! | 0.2407 | median +4.4 ms, MAD 6.2 ms from the grid |
+| mix spectral-flux comb | 0.249 | peaks on the attack's energy build, not its start |
+| kick max slope | 0.2598 | the kick's low end peaks ~23 ms after it starts |
+
+Why the attack start: a cut or flash should land when the ear hears the hit begin. The older 0.219-0.244 spread measured different points of the kick (one ignored the gapless header). The first draft of `grid.py` used a zero-phase filter whose ringing moved attacks about 70 ms early (phase 0.166); it now uses causal filters with the delay removed plus an unfiltered-stem attack. At 24 fps, anything from 0.235 to 0.241 puts each beat in the same or the next frame. Claps are flammed (median -1.9 ms, p10 -19 ms from the grid).
+
+**Bar phase (beat index mod 4)**:
+| Evidence | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| snare/clap within 30 ms of a beat | 14 | **61** | 22 | **60** |
+| harmonic change (chroma of bass + other stems) | **0.155** | 0.036 | 0.021 | 0.023 |
+| Beat This! downbeats | **86** | 0 | 0 | 0 |
+| crashes | 6 | 3 | 4 | 4 |
+
+**Section starts on downbeats** (`verification.section_downbeat_check`):
+- Choruses 1 and 2 and the final drop: kick, clap and crash within 3 ms, with drum steps of +34, +40 and +40 dB.
+- Breakdown, stop and outro tail: drum cuts of -50, -56 and -47 dB.
+- Pre-chorus 1, the breakdown chorus and the build: kick within 5 ms.
+- Verse 2, pre-chorus 2, verse 3 and chorus 4: kick within 13 ms plus a vocal onset.
+- The bridge has no kick on beat 1 (snare and bass return), which is correct for the song.
+
+Half-time grid: t0 + n·2·60/132 (66 BPM, 0.909 s = beats 1 and 3). Units: beat 0.4545, bar 1.8182, 2 bars 3.6364, 8 bars 14.5455, 16th 0.1136 s.
+
+## 4. Sections
+| Section | t0 | t1 | Bars | Energy | Mix dB | Lines | What happens |
+|---|---|---|---|---|---|---|---|
+| intro | 0.000 | 2.054 | 1 | 0.36 | -30.5 | - | silence to 0.23, one bar of pad |
+| verse1 | 2.054 | 16.599 | 2-9 | 0.68 | -22.7 | 0-4 | pad + voice, no drums; bass swells from 12.05, full from bar 8 |
+| prechorus1 | 16.599 | 23.872 | 10-13 | 0.77 | -20.7 | 5-6 | first drums on "ChatGPT"; hat roll 22.05; a-cappella stop 22.96-23.87 |
+| chorus1 | 23.872 | 38.417 | 14-21 | 0.87 | -18.3 | 6-11 | crash on "doom"; each line lands on a downbeat; fill in bar 21 |
+| verse2 | 38.417 | 52.963 | 22-29 | 0.88 | -18.1 | 12-15 | full drums continue |
+| prechorus2 | 52.963 | 60.236 | 30-33 | 0.79 | -20.1 | 16-17 | bass out on "Sydney"; 8th kicks bar 32; stop 59.33-60.24 |
+| chorus2 | 60.236 | 74.781 | 34-41 | 0.90 | -17.5 | 17-23 | crash on "doom"; fill bar 41 |
+| verse3 | 74.781 | 89.326 | 42-49 | 0.91 | -17.4 | 23-26 | densest stretch |
+| breakdown_prechorus3 | 89.326 | 96.599 | 50-53 | 0.64 | -23.8 | 27-28 | drums + bass cut on "Gato"; hats back 94.78 |
+| chorus3_breakdown | 96.599 | 109.326 | 54-60 | 0.67 | -23.1 | 28-34 | no bass; sub booms 96.60/100.24/103.87/107.51; reverbed claps |
+| build | 109.326 | 111.145 | 61 | 0.83 | -19.3 | (34) | drums back, 8th snare roll, "just" stutter |
+| bridge | 111.145 | 125.690 | 62-69 | 0.94 | -16.6 | 34-40 | bass back on "trans-"; melisma 122.73-124.5 |
+| chorus4 | 125.690 | 138.417 | 70-76 | 0.93 | -16.9 | 40-45 | "What did Ilya see?" |
+| was_it_all_for_show | 138.417 | 140.236 | 77 | 0.42 | -29.0 | 45 | full stop, voice alone |
+| outro_climax | 140.236 | 152.963 | 78-84 | 0.98 | -15.6 | - | loudest, instrumental + vocal pad |
+| outro_tail | 152.963 | 156.651 | 85-86 | 0.36 | -40.3 | - | drums stop; bass cut 154.78; synth fades; below -40 dBFS from 155.28 |
+
+The song's dynamics come from cuts and stops: verse 2, verse 3 and the bridge are as loud as the choruses.
+
+## 5. Events
+There are 31 events in `song.json.events`:
+- **Drops and big hits:** drop 16.60; big hits 23.87, 60.24 and 125.69; drums return 109.33; bass returns 111.15; final drop 140.24.
+- **Stops:** 22.96-23.87 (the /p/ closures reach -60 dBFS), 59.33-60.24, 138.42-140.24.
+- **Dropouts and cuts:** bass out 52.96; breakdown cut 89.33; drums stop 152.96; bass cut 154.78.
+- **Risers:** 12.05-12.96, 22.05-22.96, 56.60-58.42, 58.42-59.33, 94.78-96.60, 109.33-111.15.
+- **Fills:** 37.51, 73.87, 124.78.
+- **Sub booms:** 96.60, 100.24, 103.87, 107.51.
+- **Vocal melisma:** 122.73-124.5.
+- **Silences:** 0-0.23 and 155.28-156.65.
+
+Crashes are in `grid.json`.
+
+## 6. Lyrics
+**Method**:
+1. Demucs htdemucs vocal stem.
+2. Two CTC models, each run 4 times with 5 ms shifted inputs (5 ms effective resolution).
+3. Whole-song Viterbi alignment with a garbage state for ad-libs and repeats; each line limited to ±1.5 s of its lyrics.js span; acronyms spelled as sung.
+4. Lag calibration against vocal onsets (MMS -5.0 ms, wav2vec2 -3.7 ms).
+5. Combination: mean when the models agree within 80 ms, else the model with an onset nearby; snap to a vocal onset within 50 ms; for words beginning with a vowel or sonorant, look back to the latest vocal onset.
+6. Hand verification of every line on close-up plots: 75 overrides, 34 of them moved more than 30 ms.
+7. Word ends from level dips; line ends at the end of the held note.
+
+**Results**: 46 lines and 227 words; `song.json.lines[].words` holds `{w, t, e, u, how, parts?, auto?}`. `lyrics.js` is off by more than 0.25 s at 18 line starts. The largest errors are line 5 (1.28 s late), line 23 (+1.09), line 40 (+1.02) and line 29 (-0.64).
+
+**Flagged (u > 80 ms)**: automatic pipeline, 16 lines (5-11, 14, 15, 22, 25, 27, 34, 40, 41, 44). After hand verification, 0 lines. Word u: median 30 ms, p90 40 ms, max 72 ms ("as", line 41). Causes:
+- MMS goes nearly silent in chorus 1;
+- "I'm" pickups sung on the previous held vowel (22.73, 124.52);
+- the "just" stutter;
+- held notes ("are" 83.65, "never know" 133.87/134.38, "eyes" 34.77);
+- ad-libs absorbed before lines 22 and 33.
+
+**Not in lyrics.js** (`extra_vocals`, `sung_as`):
+- melisma 35.6-37.05;
+- ad-lib 68.18-69.58 ("get..et..eh", both CTC models hear it);
+- ad-lib 72.27-73.92;
+- uncertain "or-, or-?" at 104.98 and 105.43;
+- "Just, just, just, just transformers" (109.07/109.56/110.18/110.65);
+- "transformers, formers all the way" (112.05);
+- wordless melisma 122.73-124.5;
+- outro "oh/ooh" vocal pad 141.1-152.95, with a possible "oh my God" around 150 (Whisper, low confidence).
+
+**Pronunciation:** P(doom) = "pee" on the 4&, "doom" on the downbeat; acronyms are spelled letter by letter with each letter in `parts` (e.g. NVDA 62.49/62.73/62.95/63.18).
+
+**Phrases**:
+- `level: "line"` (60): sung lines split at pauses or holds, with `breath_before` and `lands_on_downbeat`.
+- `level: "couplet"` (25): the 2-line musical phrases.
+- Chorus lines start on beat 2 and resolve onto the next downbeat, so cut on the landing to play a line out.
+- Longest vocal gaps: 35.6-38.6, 45.6-47.6, 72.3-74.1, 90.6-92.5, 122.7-124.5, and inside the stop.
+
+## 7. Hits and energy
+- **Hits:** `kick` (246), `snare` (168, flammed clap), `hat` (405) as [t, strength], t = attack start. Checked against band plots of chorus 1, the breakdown and the outro.
+- **Patterns:** four-on-the-floor from bar 10; claps on 2/4 from bar 14; 8th kicks bar 32; hat rolls bars 13, 33, 53; fills bars 21, 41, 61, 69; no drums in bars 1-9, 50-52, 77, 85-87.
+- **Per-beat energy:** `per_beat` (345 rows) has stem dB, kick/snare counts and energy 0..1.
+
+## 8. Verification
+| Check | Result |
+|---|---|
+| tempo | 132.0027 BPM free fit, 2.5 ms residual, 2 ms phase stability |
+| bar phase | backbeat, harmony and Beat This! agree |
+| section starts | all on bar lines, with attacks within 13 ms or 47-56 dB cuts at every structural one |
+| model disagreement | median 16 ms; 74 % ≤ 50 ms; 80 % ≤ 80 ms; 17 % > 200 ms (chorus 1, pickups, held notes) |
+| onset coincidence (50 ms) | MMS 62 %, wav2vec2 63 %, final 78 % (any onset 80 %); chance 29 % |
+| 8th-grid offset | median 17 ms (chance 57 ms); 82 % ≤ 40 ms |
+| Whisper large-v3 | 189 words matched; constant offset -250 ms, MAD 90 ms; 18 outliers, 10 of them segment-initial (Whisper artifact); none contradicts a verified word |
+| visual review | all windows with lyrics (1.6-146.8 s) inspected with posterior plots; 146.8-148.6 of the outro only through the CTC posterior listing |
+| consistency | word starts increasing, e > t, no overlaps, parts inside their word, sections on downbeats |
+| MP4 mux | 0-sample lag |
+
+Listen to the click tracks, especially 22.7-24.4, 26.5-27.6, 33.3-35.0, 59.0-60.3, 109.0-113.0 and 124.4-125.8.
+
+## 9. Still uncertain
+- **Legato words with no onset of their own** ("upping" 22.96/59.31, "me" 20.83, "I" 60.50, "the" 26.84, "as" 126.36, "it" 137.80): u 50-72 ms. Fine for type reveals, not for frame-exact lip sync.
+- **Word ends** are less reliable than starts; use them for how long a word stays on screen, not as cut points.
+- **Guesses:** the 104.98/105.43 syllables and the outro "oh my God".
+- **Backing vocals** are not listed separately.
+- **Section label:** 109.33-111.14 could be counted as part of the bridge; the events are the same either way.
